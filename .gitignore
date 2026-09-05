@@ -1,0 +1,13 @@
+# Raw API dumps — large, regenerable, may contain sensitive ticket detail
+gitlab-analysis/raw/
+
+# Obsidian local workspace state
+obsidian-vault/.obsidian/workspace*
+obsidian-vault/.obsidian/cache
+
+# Office temp files
+exports/~$*.docx
+
+# OS
+Thumbs.db
+.DS_Store
