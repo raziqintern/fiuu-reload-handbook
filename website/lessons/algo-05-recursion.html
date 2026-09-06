@@ -46,6 +46,10 @@ End Sub</pre>
 
 <p><code>Factorial(5)</code> calls <code>Factorial(4)</code>, which calls <code>Factorial(3)</code>, and so on down to <code>Factorial(1)</code>, which hits the base case and returns <code>1</code> without recursing further. Then each pending call multiplies its own <code>n</code> by the result coming back up: <code>1 → 2×1 → 3×2 → 4×6 → 5×24</code>.</p>
 
+<h2>Watch the call stack itself</h2>
+<p>Every pending call is a real frame sitting on the call stack, waiting for the one below it to finish. Step through and watch it grow (top-down, newest call on top) as <code>Factorial</code> recurses, then shrink as each call returns its result.</p>
+<div class="callstack-viz" data-n="5"></div>
+
 <h2>What happens without a base case</h2>
 <div class="callout warn">
 <span class="callout-title">Don't run this — shown for illustration only</span>
@@ -124,5 +128,6 @@ When writing any recursive function, write the base case <em>first</em>, before 
 <script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
+<script src="../assets/js/callstack-viz.js"></script>
 </body>
 </html>
