@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Value vs. Reference Types · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="theory-01-value-reference-types">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C#/.NET Deep Dives</span>
+<h1>Value vs. Reference Types</h1>
+<p class="lede">A new track: the "why did my code do that" theory every C#/VB.NET developer eventually needs, once syntax alone stops explaining the behavior you're seeing.</p>
+
+<h2>How to use this track</h2>
+<p>Each lesson explains one mental model, shows it happening in both languages, and connects it to a real, cited pattern elsewhere on this site or in reload itself. These are the topics that separate "I can write C#" from "I understand why C# behaves the way it does."</p>
+
+<h2>The core distinction</h2>
+<table>
+<tr><th>Kind</th><th>Examples</th><th>What assignment/passing does</th></tr>
+<tr><td><strong>Value type</strong></td><td><code>int</code>, <code>double</code>, <code>bool</code>, <code>struct</code>, <code>DateTime</code></td><td>Copies the actual value. The new variable is fully independent.</td></tr>
+<tr><td><strong>Reference type</strong></td><td><code>class</code>, arrays, <code>string</code>*, <code>List&lt;T&gt;</code></td><td>Copies the reference (a pointer to the object). Both variables point at the <em>same</em> object.</td></tr>
+</table>
+<p>* <code>string</code> is technically a reference type, but it's <strong>immutable</strong> — every operation that looks like it "changes" a string actually creates a new one, so it behaves like a value type in practice. This is worth knowing so it doesn't confuse the mental model below.</p>
+
+<h2>Example: watch the difference happen</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">public class Terminal
+{
+    public string Id;
+}
+
+static void Main()
+{
+    // Value type: b gets a COPY of a
+    int a = 5;
+    int b = a;
+    b = 10;
+    Console.WriteLine("a = " + a + ", b = " + b);
+
+    // Reference type: t1 and t2 point to the SAME object
+    Terminal t1 = new Terminal { Id = "TNG-0042" };
+    Terminal t2 = t1;
+    t2.Id = "TNG-9999";
+    Console.WriteLine("t1.Id = " + t1.Id + ", t2.Id = " + t2.Id);
+}</pre>
+<pre class="tryit-output-src">a = 5, b = 10
+t1.Id = TNG-9999, t2.Id = TNG-9999</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Public Class Terminal
+    Public Id As String
+End Class
+
+Sub Main()
+    ' Value type: b gets a COPY of a
+    Dim a As Integer = 5
+    Dim b As Integer = a
+    b = 10
+    Console.WriteLine("a = " & a & ", b = " & b)
+
+    ' Reference type: t1 and t2 point to the SAME object
+    Dim t1 As New Terminal()
+    t1.Id = "TNG-0042"
+    Dim t2 As Terminal = t1
+    t2.Id = "TNG-9999"
+    Console.WriteLine("t1.Id = " & t1.Id & ", t2.Id = " & t2.Id)
+End Sub</pre>
+<pre class="tryit-output-src">a = 5, b = 10
+t1.Id = TNG-9999, t2.Id = TNG-9999</pre>
+</div>
+</div>
+
+<p>Changing <code>b</code> never touches <code>a</code> — they're independent copies. But changing <code>t2.Id</code> also changes what <code>t1.Id</code> reports, because <code>t1</code> and <code>t2</code> are two labels pointing at the exact same <code>Terminal</code> object in memory. This is the single most common source of "I didn't even touch that variable, why did it change?" bugs in object-oriented code.</p>
+
+<h2>Where they actually live: stack vs. heap</h2>
+<p>As a working simplification: local value-type variables live on the <strong>stack</strong> — a fast, function-call-scoped region that's automatically reclaimed the instant the method returns. Objects created with <code>new</code> (reference types) live on the <strong>heap</strong> — a larger, longer-lived region managed by the garbage collector (see <a href="theory-07-garbage-collection.html">Garbage Collection &amp; Object Lifetime</a>), which can outlive the method that created them. A local variable holding a reference type is itself just a small pointer on the stack, pointing into the heap.</p>
+
+<div class="callout warn">
+<span class="callout-title">This is a simplification, not the full CLR spec</span>
+Value types nested inside a class (a field of type <code>int</code> on a heap-allocated object) actually live on the heap too, as part of that object. The "value types = stack, reference types = heap" rule of thumb is the right first mental model, not a universal law — don't repeat it as an absolute in a technical interview without this caveat.
+</div>
+
+<h2>Best practice</h2>
+<p>Be deliberate when passing a reference-type object into a method that might mutate it — the caller's object changes too, which is sometimes exactly what you want (mutating a shared cache) and sometimes a bug (an unintended side effect on data the caller still needs unchanged).</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A method receives a <code>Terminal</code> object as a parameter and changes one of its properties. What happens to the caller's original object after the method returns?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="That would be true if Terminal were a value type (a struct) — but a class is a reference type, so the parameter is a reference to the same object, not a copy." >Nothing — the method only had a copy, so the original is untouched.</li>
+<li data-correct="true" data-explain="Terminal is a class (reference type). Passing it into a method passes a reference to the same object on the heap — changes made through that reference are visible to the caller too, since there's only ever one object." >The caller's object is changed too — the method was working on the same object, not a copy.</li>
+<li data-correct="false" data-explain="C# doesn't ask for permission here — mutating a reference type's fields/properties through any reference to it always affects every reference to that same object, unless you deliberately create a copy first.">It depends on whether the method has explicit permission to mutate it.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

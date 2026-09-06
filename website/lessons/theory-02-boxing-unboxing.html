@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boxing & Unboxing · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="theory-02-boxing-unboxing">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C#/.NET Deep Dives</span>
+<h1>Boxing &amp; Unboxing</h1>
+<p class="lede">Builds directly on <a href="theory-01-value-reference-types.html">Value vs. Reference Types</a> — this is what happens when the two worlds have to meet.</p>
+
+<h2>The problem: sometimes a value type needs to act like a reference type</h2>
+<p><code>object</code> (and any interface) can only ever hold a reference to something on the heap. But <code>int</code> is a value type that normally lives on the stack. When you assign an <code>int</code> to an <code>object</code>-typed variable, the runtime has to do something to reconcile that — it <strong>boxes</strong> it: allocates a small object on the heap, copies the value into it, and gives you a reference to that box.</p>
+
+<h2>Example: boxing and unboxing, explicitly</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">int number = 42;
+object boxed = number;      // boxing: a heap allocation is created here
+int unboxed = (int)boxed;   // unboxing: the value is copied back out
+
+Console.WriteLine(boxed);
+Console.WriteLine(boxed.GetType());
+Console.WriteLine(unboxed);</pre>
+<pre class="tryit-output-src">42
+System.Int32
+42</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Dim number As Integer = 42
+Dim boxed As Object = number       ' boxing: a heap allocation is created here
+Dim unboxed As Integer = CInt(boxed) ' unboxing: the value is copied back out
+
+Console.WriteLine(boxed)
+Console.WriteLine(boxed.GetType())
+Console.WriteLine(unboxed)</pre>
+<pre class="tryit-output-src">42
+System.Int32
+42</pre>
+</div>
+</div>
+
+<p><code>boxed.GetType()</code> reports <code>System.Int32</code> — the boxed object remembers its original value type. Unboxing (<code>(int)boxed</code> / <code>CInt(boxed)</code>) copies the value back into a plain stack-based <code>int</code>. Both directions involve a real copy; boxing additionally involves a real heap allocation.</p>
+
+<div class="callout warn">
+<span class="callout-title">Why this matters: it's a hidden performance cost</span>
+Boxing looks like a harmless assignment, but it's a heap allocation and a memory copy every single time it happens. Do it once, irrelevant. Do it inside a hot loop processing thousands of transactions, and you've created thousands of tiny heap allocations the garbage collector now has to clean up — a real, measurable performance cost that's invisible just from reading the code, unless you know to look for it.
+</div>
+
+<h2>Where this used to bite people: non-generic collections</h2>
+<p>Before generics existed in .NET, collections like <code>ArrayList</code> and <code>Hashtable</code> stored everything as <code>object</code> — adding an <code>int</code> to an <code>ArrayList</code> boxed it, and reading it back out unboxed it, on every single operation. This is one of the concrete reasons generic collections (<code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey,TValue&gt;</code> — see <a href="theory-06-generics-collections.html">Generics &amp; Collections Internals</a>) replaced them almost entirely: <code>List&lt;int&gt;</code> stores actual <code>int</code>s directly, with zero boxing.</p>
+
+<h2>Best practice</h2>
+<ul>
+<li>Always prefer the generic collection types (<code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey,TValue&gt;</code>) over their non-generic predecessors — reload's own code already does this consistently.</li>
+<li>Be alert to boxing hiding behind an innocent-looking method signature that takes <code>object</code> — logging helpers that accept <code>params object[]</code> (common for formatted log messages) box every value-type argument you pass them.</li>
+</ul>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why did switching from <code>ArrayList</code> to <code>List&lt;int&gt;</code> improve performance for code storing lots of integers?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Both are perfectly capable of storing large numbers of items — capacity isn't the distinguishing factor here." ><code>List&lt;int&gt;</code> can hold more items than ArrayList.</li>
+<li data-correct="true" data-explain="ArrayList stores everything as object, so every int added or read involved a boxing or unboxing operation — a heap allocation and a copy. List<int> is generic and stores actual ints directly, with no boxing at all." ><code>ArrayList</code> boxes every int into an object on every add/read; <code>List&lt;int&gt;</code> stores actual ints with no boxing.</li>
+<li data-correct="false" data-explain="This isn't about syntax convenience — the actual difference is a real, measurable runtime behavior (boxing vs. no boxing), not just how the code reads.">List&lt;int&gt; is just newer syntax for the exact same underlying behavior as ArrayList.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

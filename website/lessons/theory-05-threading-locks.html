@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Threading, Locks & Race Conditions · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="theory-05-threading-locks">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C#/.NET Deep Dives</span>
+<h1>Threading, Locks &amp; Race Conditions</h1>
+<p class="lede">Async/await (previous lesson) is about not blocking a thread. This lesson is about what happens when <em>multiple</em> threads genuinely run at the same time and touch the same data.</p>
+
+<h2>What a race condition actually is</h2>
+<p>Imagine two threads both run <code>counter++</code> on a shared variable. That one line is really three steps: read the current value, add one, write it back. If both threads read the same starting value before either writes back, one increment is silently lost — the final count is wrong, and which run loses an increment (or whether it happens at all) is unpredictable. This is a <strong>race condition</strong>: correctness depends on timing that isn't guaranteed.</p>
+
+<div class="callout warn">
+<span class="callout-title">Why this can't be usefully "predicted and revealed"</span>
+Unlike every other example on this site, a genuine race condition's wrong output isn't one fixed, reproducible value — it depends on real thread scheduling, which varies run to run. The honest teaching move here is to show you the <em>fix</em>'s deterministic behavior below, not to fake a specific "wrong number" as if it were guaranteed.
+</div>
+
+<h2>Example: lock / SyncLock serializes access to a critical section</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">static readonly object _lockObj = new object();
+static int counter = 0;
+
+static void SafeIncrementBatch()
+{
+    for (int i = 0; i < 1000; i++)
+    {
+        lock (_lockObj)
+        {
+            counter++; // only one thread at a time can be inside here
+        }
+    }
+}
+
+static void Main()
+{
+    // Called sequentially here just to show correct, deterministic behavior —
+    // the real value of `lock` is when multiple threads call this concurrently.
+    SafeIncrementBatch();
+    SafeIncrementBatch();
+    Console.WriteLine(counter);
+}</pre>
+<pre class="tryit-output-src">2000</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Dim lockObj As New Object()
+Dim counter As Integer = 0
+
+Sub SafeIncrementBatch()
+    For i As Integer = 0 To 999
+        SyncLock lockObj
+            counter += 1 ' only one thread at a time can be inside here
+        End SyncLock
+    Next
+End Sub
+
+Sub Main()
+    ' Called sequentially here just to show correct, deterministic behavior —
+    ' the real value of SyncLock is when multiple threads call this concurrently.
+    SafeIncrementBatch()
+    SafeIncrementBatch()
+    Console.WriteLine(counter)
+End Sub</pre>
+<pre class="tryit-output-src">2000</pre>
+</div>
+</div>
+
+<p><code>lock</code> (C#) / <code>SyncLock</code> (VB.NET) guarantees only one thread can be inside the block touching <code>counter</code> at a time — any other thread that arrives has to wait its turn. That's what makes concurrent increments safe instead of racy.</p>
+
+<h2>The real cost of a lock: it can turn a small slowdown into a queue</h2>
+<div class="callout real">
+<span class="callout-title">This is exactly what happened in a real reload incident</span>
+Recall issue #2592 from <a href="dbg-04-trace-a-bug.html">Debugging Reload → Worked Example</a>: every TNG reload transaction opened a certificate file and RSA-decrypted a session key from scratch, twice, and never released the handle — a resource leak. That alone would just get progressively slower. What made it a multi-hour queue instead of a mild slowdown: <strong>this all happened inside a per-account lock.</strong> As the leak made each lookup slightly slower, every other transaction for that same account had to wait behind it — the lock, which exists to keep things safe, was also what let a small per-request slowdown compound into a serialized backlog.
+</div>
+
+<p>The lesson isn't "don't use locks" — the increment example above needed one. It's that a lock makes whatever's inside it a serialization point: anything slow inside a lock doesn't just cost that one caller, it costs every other thread waiting for the same lock.</p>
+
+<h2>Best practice</h2>
+<ul>
+<li>Keep the code inside a <code>lock</code>/<code>SyncLock</code> block as short and fast as possible — nothing that does I/O, calls a network API, or opens a file/certificate should live inside one.</li>
+<li>If you're debugging a "gets slower over time, especially under load, and a restart temporarily fixes it" report, check for exactly this shape: a resource leak sitting inside a lock.</li>
+</ul>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why did the real TNG incident's slowdown compound into a multi-hour queue instead of staying a mild, steady slowdown?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The certificate/key handle leak was the root cause of the slowdown existing at all — but on its own, that would just make each lookup a bit slower over time, not turn into a compounding backlog." >Because certificate files are always slow to open in .NET.</li>
+<li data-correct="true" data-explain="Because the slow, leaking operation ran inside a per-account lock, every other transaction for that account had to wait for the current one to finish — as the leak made each one slightly slower, the queue behind the lock kept growing." >Because the slow operation ran inside a per-account lock, so every other transaction for that account had to wait its turn behind it.</li>
+<li data-correct="false" data-explain="The incident's own root-cause analysis attributes the compounding effect specifically to the lock, not to garbage collection.">Because the .NET garbage collector paused the whole application periodically.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

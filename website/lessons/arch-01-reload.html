@@ -28,7 +28,7 @@ It's natural to assume <code>web_api</code>, <code>web_app</code>, <code>reload_
 <h2>The real applications, mapped to what they're actually called in code</h2>
 <table>
 <tr><th>Common name</th><th>Actual project</th><th>What it is</th></tr>
-<tr><td>"web_api"</td><td><code>Reloads/Terminal/Api</code></td><td>The terminal-facing REST API. A second, smaller <code>BackOffice/Api</code> also exists.</td></tr>
+<tr><td>"web_api"</td><td><code>Reloads/Terminal/Api</code></td><td>The terminal-facing <a class="term" data-term="rest">REST</a> <a class="term" data-term="api">API</a>. A second, smaller <code>BackOffice/Api</code> also exists.</td></tr>
 <tr><td>"web_app"</td><td><code>BackOffice/Web</code></td><td>The only traditional WebForms UI found (374+ <code>.aspx</code> pages) — merchant/dealer/product/commission administration.</td></tr>
 <tr><td>"reload_portal"</td><td><em>Unresolved</em></td><td>No separate codebase found — open question, possibly the same app as web_app under a different name, or a repo not present in this checkout.</td></tr>
 <tr><td>"terminal_application"</td><td><code>Reloads/TerminalServer/Console</code></td><td>A legacy TCP socket server that physical POS terminal hardware connects to directly, plus a WinForms monitor tool.</td></tr>
@@ -55,17 +55,76 @@ Don't assume "app X depends on module Y" as a blanket rule — verify it via the
 </div>
 
 <h2>Request flow, simplified</h2>
-<pre class="code-block">POS Terminal / Partner API
-        |
-        v
-Reloads/Terminal/Api  ---calls--->  MOLReloads/Core  ---uses--->  CEPP, TNG, Game (business logic)
-        |                                                              |
-        v                                                              v
-   reload_db (TRANSACTION, provider-specific DBs)          reload_db (CEPP master data)
-        |
-        v
-  Scheduler jobs  --->  REPORTSUMMARY  --->  DataWarehouse</pre>
-<p>This mirrors the reload_db-side flow from the SQL track — the application-side <code>Reloads/Terminal/Api</code> is what actually lands rows in <code>TRANSACTION</code> in the first place.</p>
+<p>The dots trace a real reload transaction moving through the system. The dashed line is <code>CEPP</code> master data being referenced along the way, not part of the main flow.</p>
+
+<div class="flow-diagram">
+<svg viewBox="0 0 620 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram: a request flows from POS Terminal through Reloads Terminal Api, MOLReloads Core, reload_db TRANSACTION, Scheduler jobs, to REPORTSUMMARY and DataWarehouse. CEPP master data is referenced by several steps along a dashed side path.">
+  <defs>
+    <marker id="arrow1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#8a9088"></path>
+    </marker>
+  </defs>
+
+  <!-- main flow connectors -->
+  <path d="M290,66 L290,104" stroke="#c7cdc9" stroke-width="2" marker-end="url(#arrow1)"></path>
+  <path d="M290,156 L290,194" stroke="#c7cdc9" stroke-width="2" marker-end="url(#arrow1)"></path>
+  <path d="M290,246 L290,284" stroke="#c7cdc9" stroke-width="2" marker-end="url(#arrow1)"></path>
+  <path d="M290,336 L290,374" stroke="#c7cdc9" stroke-width="2" marker-end="url(#arrow1)"></path>
+
+  <!-- CEPP reference lines (dashed, static) -->
+  <path d="M410,220 C 470,220 470,150 430,131" fill="none" stroke="#b9c6ee" stroke-width="2" stroke-dasharray="4 4"></path>
+  <path d="M410,225 L520,225" fill="none" stroke="#b9c6ee" stroke-width="2" stroke-dasharray="4 4"></path>
+  <path d="M410,230 C 470,230 470,310 430,316" fill="none" stroke="#b9c6ee" stroke-width="2" stroke-dasharray="4 4"></path>
+
+  <!-- moving dots along the main flow -->
+  <circle r="5" fill="#2fa81e">
+    <animateMotion dur="3.2s" repeatCount="indefinite" path="M290,66 L290,104"></animateMotion>
+  </circle>
+  <circle r="5" fill="#2fa81e">
+    <animateMotion dur="3.2s" begin="0.8s" repeatCount="indefinite" path="M290,156 L290,194"></animateMotion>
+  </circle>
+  <circle r="5" fill="#2fa81e">
+    <animateMotion dur="3.2s" begin="1.6s" repeatCount="indefinite" path="M290,246 L290,284"></animateMotion>
+  </circle>
+  <circle r="5" fill="#2fa81e">
+    <animateMotion dur="3.2s" begin="2.4s" repeatCount="indefinite" path="M290,336 L290,374"></animateMotion>
+  </circle>
+
+  <!-- nodes -->
+  <g font-family="sans-serif">
+    <rect x="80" y="16" width="420" height="50" rx="8" fill="#0d1210"></rect>
+    <text x="290" y="46" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">POS Terminal / Partner API</text>
+
+    <rect x="80" y="106" width="420" height="50" rx="8" fill="#eaf7e7" stroke="#2fa81e"></rect>
+    <text x="290" y="136" text-anchor="middle" fill="#14171a" font-size="14" font-weight="700">Reloads/Terminal/Api</text>
+
+    <rect x="80" y="196" width="330" height="50" rx="8" fill="#eaf7e7" stroke="#2fa81e"></rect>
+    <text x="245" y="226" text-anchor="middle" fill="#14171a" font-size="14" font-weight="700">MOLReloads/Core (business logic)</text>
+
+    <rect x="410" y="200" width="150" height="50" rx="8" fill="#eef3ff" stroke="#8fa8e0"></rect>
+    <text x="485" y="222" text-anchor="middle" fill="#2d55b0" font-size="13" font-weight="700">CEPP</text>
+    <text x="485" y="238" text-anchor="middle" fill="#2d55b0" font-size="11">master data</text>
+
+    <rect x="80" y="286" width="330" height="50" rx="8" fill="#fff8e6" stroke="#d99a2b"></rect>
+    <text x="245" y="316" text-anchor="middle" fill="#14171a" font-size="14" font-weight="700">reload_db: TRANSACTION</text>
+
+    <rect x="80" y="376" width="330" height="50" rx="8" fill="#fff8e6" stroke="#d99a2b"></rect>
+    <text x="245" y="406" text-anchor="middle" fill="#14171a" font-size="14" font-weight="700">Scheduler jobs</text>
+  </g>
+
+  <path d="M245,426 L245,432 L410,432" fill="none" stroke="#c7cdc9" stroke-width="2" marker-end="url(#arrow1)"></path>
+  <g font-family="sans-serif">
+    <rect x="410" y="407" width="170" height="50" rx="8" fill="#fdecec" stroke="#d64545"></rect>
+    <text x="495" y="428" text-anchor="middle" fill="#14171a" font-size="13" font-weight="700">REPORTSUMMARY</text>
+    <text x="495" y="444" text-anchor="middle" fill="#14171a" font-size="11">→ DataWarehouse</text>
+  </g>
+  <circle r="5" fill="#2fa81e">
+    <animateMotion dur="1.4s" begin="3.2s" repeatCount="indefinite" path="M245,426 L245,432 L410,432"></animateMotion>
+  </circle>
+</svg>
+</div>
+
+<p>This mirrors the reload_db-side flow from the SQL track — the application-side <code>Reloads/Terminal/Api</code> is what actually lands rows in <code>TRANSACTION</code> in the first place. Almost every step along the way reads shared reference data out of <code>CEPP</code> (the dashed connections) without that being part of the main request path itself.</p>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -81,6 +140,7 @@ Reloads/Terminal/Api  ---calls--->  MOLReloads/Core  ---uses--->  CEPP, TNG, Gam
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

@@ -14,7 +14,7 @@
 
 <span class="track-label">Software Design &amp; Best Practices</span>
 <h1>Git &amp; Version Control</h1>
-<p class="lede">Reload's own repos (<code>reload</code>, <code>reload_db</code>, the <code>class-library</code> submodule) are all Git — and the review culture you'll meet in <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a> is entirely built on top of Git's branch/merge-request workflow. This lesson is the mechanics underneath that culture.</p>
+<p class="lede">Reload's own repos (<code>reload</code>, <code>reload_db</code>, the <code>class-library</code> submodule) are all <a class="term" data-term="git">Git</a> — and the review culture you'll meet in <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a> is entirely built on top of Git's branch/merge-request workflow. This lesson is the mechanics underneath that culture.</p>
 
 <h2>The core mental model</h2>
 <p>Git tracks <strong>snapshots</strong> of your entire project over time, called <strong>commits</strong>. Each commit points to the commit before it, forming a history. A <strong>branch</strong> is just a movable label pointing at one commit — creating a branch doesn't copy any files, it just gives you a new label to move independently of <code>master</code>/<code>main</code> while you work.</p>
@@ -57,6 +57,7 @@ git push -u origin fix/duplicate-transaction-race # push the branch to the remot
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

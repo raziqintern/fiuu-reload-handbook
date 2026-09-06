@@ -26,7 +26,7 @@ Under reload's dominant catch-log-return-sentinel pattern (<a href="conv-03-erro
 <p>Recall the <code>&gt;&gt;&gt;</code>/<code>&lt;&lt;&lt;</code> bracket convention from <a href="conv-04-logging.html">Conventions → Logging</a>: outbound calls are logged with a <code>[Key: ...]</code> correlation id, usually the business reference. Given a specific failing transaction, search the log for its reference id directly — don't scroll from the top of the file.</p>
 
 <h2>The most misleading thing you'll see in a log: duplicate entries for one real error</h2>
-<p>This is a real, explicitly-named review complaint — reviewer <code>khenggek</code> flags it repeatedly across unrelated merge requests:</p>
+<p>This is a real, explicitly-named review complaint — reviewer <code>khenggek</code> flags it repeatedly across unrelated <a class="term" data-term="merge-request">merge requests</a>:</p>
 <blockquote>"Please check whether the reference will write to event viewer. There is no point in writing to viewer and throw the same exception again. This will cause it to write to event viewer twice for the same error and will be misleading." — MR !844</blockquote>
 <blockquote>"Please always check the method reference. Is there try catch at the reference? If yes, you should not put try catch here as you are just logging and throwing exception again and causing double writing to event viewer..." — MR !470</blockquote>
 
@@ -54,6 +54,7 @@ Log in exactly one place per exception. Either let it propagate unlogged to a ha
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

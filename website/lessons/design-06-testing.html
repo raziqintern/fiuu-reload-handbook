@@ -17,28 +17,61 @@
 <p class="lede">A unit test is just code that checks other code's behavior automatically, so a human doesn't have to manually re-verify it every time something nearby changes.</p>
 
 <h2>The shape of a test: Arrange, Act, Assert</h2>
-<p>Almost every unit test follows the same three-part structure: set up the inputs (<strong>Arrange</strong>), call the code you're testing (<strong>Act</strong>), and check the result is what you expected (<strong>Assert</strong>). You don't need a testing framework to see this in action — here it is hand-rolled, testing the same validation function from earlier in this site:</p>
+<p>Almost every unit test follows the same three-part structure: set up the inputs (<strong>Arrange</strong>), call the code you're testing (<strong>Act</strong>), and check the result is what you expected (<strong>Assert</strong>). You don't need a real testing framework to see this in action — here it is hand-rolled, testing the exact same validation function from <a href="cs-03-methods.html">C# Fundamentals → Methods &amp; Parameters</a>:</p>
 
-<div class="tryit" data-lang="js">
-<pre class="tryit-src">function validateReload(amount, method) {
-  if (amount <= 0) return "Amount must be positive";
-  if (amount > 500) return "Exceeds max reload limit";
-  if (!method) return "Payment method required";
-  return "OK";
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">static string ValidateReload(double amount, string method)
+{
+    if (amount <= 0) return "Amount must be positive";
+    if (amount > 500) return "Exceeds max reload limit";
+    if (string.IsNullOrEmpty(method)) return "Payment method required";
+    return "OK";
 }
 
-function assertEqual(actual, expected, testName) {
-  const pass = actual === expected;
-  console.log((pass ? "PASS" : "FAIL") + ": " + testName);
+static void AssertEqual(string actual, string expected, string testName)
+{
+    bool pass = actual == expected;
+    Console.WriteLine((pass ? "PASS" : "FAIL") + ": " + testName);
 }
 
-// Arrange + Act + Assert, three times over
-assertEqual(validateReload(50, "tng"), "OK", "valid reload should pass");
-assertEqual(validateReload(-5, "tng"), "Amount must be positive", "negative amount should fail");
-assertEqual(validateReload(50, null), "Payment method required", "missing method should fail");</pre>
+static void Main()
+{
+    // Arrange + Act + Assert, three times over
+    AssertEqual(ValidateReload(50, "tng"), "OK", "valid reload should pass");
+    AssertEqual(ValidateReload(-5, "tng"), "Amount must be positive", "negative amount should fail");
+    AssertEqual(ValidateReload(50, null), "Payment method required", "missing method should fail");
+}</pre>
+<pre class="tryit-output-src">PASS: valid reload should pass
+PASS: negative amount should fail
+PASS: missing method should fail</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Function ValidateReload(amount As Double, method As String) As String
+    If amount <= 0 Then Return "Amount must be positive"
+    If amount > 500 Then Return "Exceeds max reload limit"
+    If String.IsNullOrEmpty(method) Then Return "Payment method required"
+    Return "OK"
+End Function
+
+Sub AssertEqual(actual As String, expected As String, testName As String)
+    Dim pass As Boolean = (actual = expected)
+    Console.WriteLine((If(pass, "PASS", "FAIL")) & ": " & testName)
+End Sub
+
+Sub Main()
+    ' Arrange + Act + Assert, three times over
+    AssertEqual(ValidateReload(50, "tng"), "OK", "valid reload should pass")
+    AssertEqual(ValidateReload(-5, "tng"), "Amount must be positive", "negative amount should fail")
+    AssertEqual(ValidateReload(50, Nothing), "Payment method required", "missing method should fail")
+End Sub</pre>
+<pre class="tryit-output-src">PASS: valid reload should pass
+PASS: negative amount should fail
+PASS: missing method should fail</pre>
+</div>
 </div>
 
-<p>You've now seen this exact validation logic implemented three times across this site — <a href="js-03-functions.html">JavaScript</a>, <a href="cs-03-methods.html">C#</a>, and here again — and this is the first time you've seen it <em>verified</em> automatically instead of by eyeballing the output.</p>
+<p>You've now seen this exact validation logic implemented across three languages on this site — JavaScript, C#, VB.NET — and this is the first time you've seen it <em>verified</em> automatically instead of by eyeballing the output.</p>
 
 <h2>Why untested code is a real, tracked risk — not a theoretical concern</h2>
 <div class="callout warn">
@@ -52,6 +85,9 @@ assertEqual(validateReload(50, null), "Payment method required", "missing method
 <li><strong>Executable documentation.</strong> A test named <code>"negative amount should fail"</code> tells a future reader what the function is supposed to do, in a way that can't silently go stale the way a comment can.</li>
 <li><strong>A place to reproduce a bug before fixing it.</strong> Writing a failing test that reproduces a reported bug, <em>then</em> fixing the code until it passes, proves the fix actually addresses the reported behavior — not just "seems fine now."</li>
 </ul>
+
+<h2>Best practice</h2>
+<p>Use a real test framework in real code (xUnit/NUnit/MSTest for C#/VB.NET) rather than hand-rolled asserts like the example above — they give you test discovery, isolated failures, and readable reports for free. The <code>AssertEqual</code> helper here exists purely to show the underlying idea without any tooling in the way.</p>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -67,6 +103,7 @@ assertEqual(validateReload(50, null), "Payment method required", "missing method
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

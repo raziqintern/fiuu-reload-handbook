@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Async/Await Fundamentals · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="theory-04-async-await">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C#/.NET Deep Dives</span>
+<h1>Async/Await Fundamentals</h1>
+<p class="lede">Reload constantly calls out to partner APIs (TNG, INCOMM, banks) — slow, network-bound operations. Async/await is how modern .NET code waits for those without freezing everything else.</p>
+
+<h2>The problem it solves</h2>
+<p>A network call might take 200ms. If the calling thread just sits there blocked waiting for it, that thread can't do anything else for those 200ms — on a server handling many requests at once, that's a real scalability problem. <code>async</code>/<code>await</code> lets the thread be released back to do other work while the operation is in flight, then resume this method exactly where it left off once the result is ready.</p>
+
+<h2>Example: the shape of async code</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">using System.Threading.Tasks;
+
+static async Task&lt;string&gt; FetchPartnerResponseAsync()
+{
+    await Task.Delay(100); // simulates a slow network call
+    return "partner API response";
+}
+
+static async Task Main()
+{
+    Console.WriteLine("Starting request...");
+    string result = await FetchPartnerResponseAsync();
+    Console.WriteLine("Got: " + result);
+    Console.WriteLine("Done.");
+}</pre>
+<pre class="tryit-output-src">Starting request...
+Got: partner API response
+Done.</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Imports System.Threading.Tasks
+
+Async Function FetchPartnerResponseAsync() As Task(Of String)
+    Await Task.Delay(100) ' simulates a slow network call
+    Return "partner API response"
+End Function
+
+Async Function RunAsync() As Task
+    Console.WriteLine("Starting request...")
+    Dim result As String = Await FetchPartnerResponseAsync()
+    Console.WriteLine("Got: " & result)
+    Console.WriteLine("Done.")
+End Function</pre>
+<pre class="tryit-output-src">Starting request...
+Got: partner API response
+Done.</pre>
+</div>
+</div>
+
+<p>This reads top-to-bottom exactly like ordinary synchronous code — that's deliberate, and the whole point of the feature. But at the <code>await</code> line, control is handed back to the caller until <code>Task.Delay</code> (standing in for a real network call) actually finishes; the thread isn't blocked sitting there the whole time.</p>
+
+<div class="callout warn">
+<span class="callout-title">The rule almost everyone breaks once</span>
+Never call <code>.Result</code> or <code>.Wait()</code> on a <code>Task</code> to force synchronous blocking on async code — this can deadlock in some hosting contexts (classic ASP.NET, some UI frameworks), because the thread that's blocked waiting is sometimes the exact same thread the async method needs back to finish. The fix is to <code>await</code> all the way up the call chain, not to block partway through it.
+</div>
+
+<h2>Best practice</h2>
+<ul>
+<li>Name async methods with an <code>Async</code> suffix (as above) — a real, widely-followed .NET convention that flags at a glance which methods need <code>await</code>.</li>
+<li>An <code>async</code> method with no <code>await</code> inside it runs synchronously anyway (with a compiler warning) — if nothing in the method is actually slow/async, it usually shouldn't be <code>async</code> at all.</li>
+</ul>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why is calling <code>.Result</code> to force-block on an async partner-API call risky, instead of just being a harmless way to "go back to synchronous"?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="In some hosting contexts, the thread you've blocked with .Result is the exact thread the async method needs to resume on once its await completes — each is waiting on the other, a deadlock." >It can deadlock in certain hosting contexts, because the blocked thread may be the same one the async call needs to resume on.</li>
+<li data-correct="false" data-explain=".Result doesn't change the network call's actual speed — it just blocks the calling thread until the task finishes." >It makes the network call itself slower.</li>
+<li data-correct="false" data-explain="This isn't a syntax error — it compiles fine, which is exactly why the risk is easy to miss until it causes an intermittent, hard-to-reproduce deadlock in production.">The code simply won't compile if you try it.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

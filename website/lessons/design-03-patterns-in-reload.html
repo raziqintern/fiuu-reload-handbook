@@ -21,7 +21,7 @@
 <pre class="code-block">private IAccountService _accountCompo;
 private IAccountService AccountCompo
 {
-    get { return _accountCompo ?? (_accountCompo = EngineContext.Current.Resolve<IAccountService>()); }
+    get { return _accountCompo ?? (_accountCompo = EngineContext.Current.Resolve&lt;IAccountService&gt;()); }
 }</pre>
 <p class="code-cite">reload/class-library/Reloads/TNG/Services/TerminalService.cs:35-39</p>
 <p>Instead of receiving <code>IAccountService</code> as a constructor parameter (the more modern <strong>Dependency Injection</strong> approach you'll see recommended almost everywhere today), <code>TerminalService</code> asks a central registry (<code>EngineContext.Current</code>) for it, lazily, the first time it's actually used. This is the <strong>Service Locator</strong> pattern — a real, working, if somewhat dated, alternative to constructor injection. You saw this first in <a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>; the callout there is worth re-reading now that you know the pattern's name: don't "fix" it to constructor injection unless that's the actual scope of your change.</p>
@@ -57,6 +57,7 @@ protected override int ValidateParameters(ContractRequest appReq) { ... }</pre>
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

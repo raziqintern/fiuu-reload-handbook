@@ -19,7 +19,7 @@
 <h2>The one universal rule: stored-procedure-only</h2>
 <div class="callout real">
 <span class="callout-title">No exceptions found, across every module sampled</span>
-No inline dynamic SQL, no string-built SELECT/UPDATE statements, no LINQ-to-SQL or Entity Framework entity mapping, anywhere. Every single read or write goes through a named stored procedure. This is worth internalizing before you go looking for "the query" behind a bug — it's in reload_db's <code>StoredProcedure/</code> folder, never inline in the C#.
+No inline dynamic SQL, no string-built SELECT/UPDATE statements, no LINQ-to-SQL or Entity Framework entity mapping, anywhere. Every single read or write goes through a named <a class="term" data-term="stored-procedure">stored procedure</a>. This is worth internalizing before you go looking for "the query" behind a bug — it's in reload_db's <code>StoredProcedure/</code> folder, never inline in the C#.
 </div>
 
 <h2>Pattern 1 (most common): SqlAccessor + ParameterCollection</h2>
@@ -73,6 +73,7 @@ There is no example anywhere in class-library of composing multiple writes into 
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

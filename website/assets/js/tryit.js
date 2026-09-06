@@ -11,6 +11,19 @@
    sql  -> real SQLite via sql.js (WASM), shared in-memory db per block,
            pre-seeded with a small practice schema
    csharp/vbnet -> "Predict -> Reveal" mode (no live backend available)
+
+   Dual-language variant (a toggle between C# and VB.NET, both reveal mode):
+
+   <div class="tryit" data-lang="dual">
+     <div class="tryit-variant" data-variant-lang="csharp">
+       <pre class="tryit-src">...</pre>
+       <pre class="tryit-output-src">...</pre>
+     </div>
+     <div class="tryit-variant" data-variant-lang="vbnet">
+       <pre class="tryit-src">...</pre>
+       <pre class="tryit-output-src">...</pre>
+     </div>
+   </div>
 */
 
 (function () {
@@ -245,17 +258,82 @@
     block.querySelector(".tryit-copy").addEventListener("click", () => navigator.clipboard.writeText(input.value));
   }
 
+  function trimSrc(el) {
+    return el ? el.textContent.replace(/^\n/, "").replace(/\n$/, "") : "";
+  }
+
+  const LANG_LABEL = { csharp: "C#", vbnet: "VB.NET" };
+
+  function initDualRevealBlock(block, variants) {
+    block.classList.add("reveal-mode", "tryit-dual");
+    let active = 0;
+
+    function render() {
+      const v = variants[active];
+      const tabs = variants
+        .map(
+          (vv, i) =>
+            `<button type="button" class="tryit-langtab${i === active ? " active" : ""}" data-i="${i}">${LANG_LABEL[vv.lang] || vv.lang}</button>`
+        )
+        .join("");
+      block.innerHTML = `
+        <div class="tryit-bar">
+          <div class="tryit-langtabs">${tabs}</div>
+          <div class="tryit-actions">
+            <button type="button" class="tryit-copy">Copy code</button>
+            <button type="button" class="tryit-reset">Reset</button>
+            <button type="button" class="tryit-run primary">Reveal Output</button>
+          </div>
+        </div>
+        <div class="tryit-reveal-hint">Live in-browser compilation isn't available for C#/VB.NET without a hosted backend (see the note on this page). Read the code, predict the output, then reveal it. Switch tabs to compare the same logic in the other language.</div>
+        <div class="tryit-body">
+          <div class="tryit-editor">
+            <textarea class="tryit-input" spellcheck="false">${esc(v.code)}</textarea>
+          </div>
+          <div class="tryit-output">
+            <span class="tryit-output-label">Output (hidden until you reveal it)</span>
+            <pre class="tryit-reveal-panel"><span class="muted">Predict the output, then click Reveal Output ▸</span></pre>
+          </div>
+        </div>
+      `;
+      block.querySelectorAll(".tryit-langtab").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          active = Number(btn.getAttribute("data-i"));
+          render();
+        });
+      });
+      const input = block.querySelector(".tryit-input");
+      const out = block.querySelector(".tryit-reveal-panel");
+      block.querySelector(".tryit-run").addEventListener("click", () => (out.textContent = v.expected));
+      block.querySelector(".tryit-reset").addEventListener("click", () => {
+        input.value = v.code;
+        out.innerHTML = '<span class="muted">Predict the output, then click Reveal Output ▸</span>';
+      });
+      block.querySelector(".tryit-copy").addEventListener("click", () => navigator.clipboard.writeText(input.value));
+    }
+
+    render();
+  }
+
   function init() {
     document.querySelectorAll(".tryit").forEach((block) => {
       const lang = block.getAttribute("data-lang");
+      if (lang === "dual") {
+        const variants = [...block.querySelectorAll(".tryit-variant")].map((v) => ({
+          lang: v.getAttribute("data-variant-lang"),
+          code: trimSrc(v.querySelector(".tryit-src")),
+          expected: trimSrc(v.querySelector(".tryit-output-src")) || "(no expected output authored)",
+        }));
+        initDualRevealBlock(block, variants);
+        return;
+      }
       const srcEl = block.querySelector(".tryit-src");
-      const code = srcEl ? srcEl.textContent.replace(/^\n/, "").replace(/\n$/, "") : "";
+      const code = trimSrc(srcEl);
       if (lang === "html") initHtmlBlock(block, code);
       else if (lang === "js") initJsBlock(block, code);
       else if (lang === "sql") initSqlBlock(block, code);
       else if (lang === "csharp" || lang === "vbnet") {
-        const outEl = block.querySelector(".tryit-output-src");
-        const expected = outEl ? outEl.textContent.replace(/^\n/, "").replace(/\n$/, "") : "(no expected output authored)";
+        const expected = trimSrc(block.querySelector(".tryit-output-src")) || "(no expected output authored)";
         initRevealBlock(block, code, lang, expected);
       }
     });

@@ -14,54 +14,101 @@
 
 <span class="track-label">Algorithms &amp; Data Structures</span>
 <h1>Sorting: How &amp; Why</h1>
-<p class="lede">You'll essentially never hand-write a sort algorithm in real code — but understanding how one works is what lets you predict and debug the built-in one's behavior, including a genuinely common gotcha.</p>
+<p class="lede">You'll essentially never hand-write a sort algorithm in real code — but understanding how one works is what lets you predict and debug the built-in one's behavior.</p>
 
-<h2>The gotcha first: JavaScript's default sort is alphabetical, not numeric</h2>
-<div class="tryit" data-lang="js">
-<pre class="tryit-src">const nums = [10, 1, 21, 2];
-
-console.log(nums.sort());              // default sort — compares as TEXT
-console.log(nums.sort((a, b) => a - b)); // explicit numeric comparator — the fix</pre>
+<h2>Example: the built-in sort, and why C#/VB.NET dodge a common trap</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">int[] nums = { 10, 1, 21, 2 };
+Array.Sort(nums);
+Console.WriteLine(string.Join(", ", nums));</pre>
+<pre class="tryit-output-src">1, 2, 10, 21</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Dim nums() As Integer = {10, 1, 21, 2}
+Array.Sort(nums)
+Console.WriteLine(String.Join(", ", nums))</pre>
+<pre class="tryit-output-src">1, 2, 10, 21</pre>
+</div>
 </div>
 
-<p>Run it. The first line is very likely not what you expected — JavaScript's default <code>.sort()</code> converts every element to a string and compares them alphabetically, so <code>"10"</code> sorts before <code>"2"</code> (because <code>"1"</code> comes before <code>"2"</code> as the first character). Passing an explicit comparator function — <code>(a, b) =&gt; a - b</code> for ascending numbers — is the fix, and it's required any time you're sorting numbers in JavaScript.</p>
-
-<div class="callout warn">
-<span class="callout-title">C#'s built-in sort doesn't have this specific trap</span>
-<code>List&lt;int&gt;.Sort()</code> or LINQ's <code>.OrderBy(x =&gt; x)</code> in C# sort numbers numerically by default, because C# is statically typed and knows the list actually contains numbers. This particular gotcha is JavaScript-specific — but the general lesson (know what comparison your sort is actually using) applies everywhere.
+<div class="callout tip">
+<span class="callout-title">A trap this codebase's languages don't have</span>
+JavaScript's default <code>.sort()</code> converts numbers to text and compares them alphabetically — <code>[10, 1, 21, 2].sort()</code> gives the surprising <code>[1, 10, 2, 21]</code> unless you pass an explicit numeric comparator. C#/VB.NET don't have this trap: <code>int[]</code> is statically typed, so <code>Array.Sort</code> only ever compares actual integers numerically. The equivalent C#/VB.NET failure mode is different — sorting a custom class without implementing <code>IComparable</code> or supplying a comparer is a compile error, not a silent wrong answer.
 </div>
 
 <h2>How a sort actually works: bubble sort, the simplest one</h2>
 <p>Bubble sort repeatedly walks through the list, swapping any two adjacent elements that are out of order, until a full pass makes no swaps. It's O(n²) — genuinely slow for large lists — but it's the clearest way to see the mechanism.</p>
 
-<div class="tryit" data-lang="js">
-<pre class="tryit-src">function bubbleSort(arr) {
-  const a = [...arr]; // copy — don't mutate the caller's array
-  for (let i = 0; i < a.length; i++) {
-    for (let j = 0; j < a.length - i - 1; j++) {
-      if (a[j] > a[j + 1]) {
-        [a[j], a[j + 1]] = [a[j + 1], a[j]]; // swap
-      }
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">static int[] BubbleSort(int[] arr)
+{
+    int[] a = (int[])arr.Clone(); // copy — don't mutate the caller's array
+    for (int i = 0; i < a.Length; i++)
+    {
+        for (int j = 0; j < a.Length - i - 1; j++)
+        {
+            if (a[j] > a[j + 1])
+            {
+                int temp = a[j];
+                a[j] = a[j + 1];
+                a[j + 1] = temp;
+            }
+        }
     }
-  }
-  return a;
+    return a;
 }
 
-console.log(bubbleSort([5, 3, 8, 1, 9, 2]));</pre>
+static void Main()
+{
+    int[] result = BubbleSort(new int[] { 5, 3, 8, 1, 9, 2 });
+    Console.WriteLine(string.Join(", ", result));
+}</pre>
+<pre class="tryit-output-src">1, 2, 3, 5, 8, 9</pre>
 </div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Function BubbleSort(arr() As Integer) As Integer()
+    Dim a() As Integer = CType(arr.Clone(), Integer()) ' copy — don't mutate the caller's array
+    For i As Integer = 0 To a.Length - 1
+        For j As Integer = 0 To a.Length - i - 2
+            If a(j) > a(j + 1) Then
+                Dim temp As Integer = a(j)
+                a(j) = a(j + 1)
+                a(j + 1) = temp
+            End If
+        Next
+    Next
+    Return a
+End Function
+
+Sub Main()
+    Dim result() As Integer = BubbleSort({5, 3, 8, 1, 9, 2})
+    Console.WriteLine(String.Join(", ", result))
+End Sub</pre>
+<pre class="tryit-output-src">1, 2, 3, 5, 8, 9</pre>
+</div>
+</div>
+
+<h2>Watch it happen</h2>
+<p>The exact algorithm above, animated one comparison at a time. Amber bars are being compared; red bars are being swapped. Step through manually, or press Play.</p>
+<div class="sort-viz" data-values="8,3,5,1,9,2,7,4,6"></div>
 
 <div class="callout tip">
 <span class="callout-title">Why you'll never actually use bubble sort in real code</span>
-Real language built-ins (<code>Array.prototype.sort</code>, C#'s <code>List&lt;T&gt;.Sort</code>) use well-tested algorithms achieving O(n log n) — dramatically faster than bubble sort's O(n²) on any list bigger than a handful of items. The value of learning bubble sort isn't to use it — it's understanding "sorting compares and rearranges elements" well enough to reason about correctness when you use the built-in.
+Real language built-ins (<code>Array.Sort</code>, C#'s <code>List&lt;T&gt;.Sort</code>) use well-tested algorithms achieving O(n log n) — dramatically faster than bubble sort's O(n²) on any list bigger than a handful of items. The value of learning bubble sort isn't to use it — it's understanding "sorting compares and rearranges elements" well enough to reason about correctness when you use the built-in.
 </div>
+
+<h2>Best practice</h2>
+<p>Always use <code>Array.Sort</code>/<code>List&lt;T&gt;.Sort</code>/LINQ's <code>.OrderBy(...)</code> for real code. Hand-rolling a sort in production is almost always a sign something else went wrong (usually: not knowing the built-in existed).</p>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
-<p class="quiz-q">You call <code>[100, 9, 25].sort()</code> in JavaScript with no comparator. What do you actually get?</p>
+<p class="quiz-q">Why does <code>Array.Sort</code> on an <code>int[]</code> never need an explicit comparator to sort correctly, unlike JavaScript's default <code>.sort()</code>?</p>
 <ul class="quiz-options">
-<li data-correct="false" data-explain="This is what a numeric sort would give you — but that's not what the default, comparator-less sort does in JavaScript.">[9, 25, 100] — sorted numerically ascending.</li>
-<li data-correct="true" data-explain="Without a comparator, JavaScript's sort converts each value to a string and compares alphabetically: \"100\" comes before \"25\" because '1' < '2' as characters, then \"25\" before \"9\" for the same reason." >[100, 25, 9] — sorted as if each number were text.</li>
-<li data-correct="false" data-explain="JavaScript's sort() doesn't throw without a comparator — it silently falls back to string comparison instead.">It throws an error, since no comparator was provided.</li>
+<li data-correct="true" data-explain="C#/VB.NET are statically typed — an int[] can only ever contain integers, so Array.Sort's default numeric comparison for integers is always the correct, unambiguous choice. JavaScript arrays can hold anything, so its default sort falls back to a type-agnostic string comparison instead." >The array's element type is known and fixed at compile time, so the default comparison for that type (numeric, for integers) is always well-defined.</li>
+<li data-correct="false" data-explain="Array.Sort's default behavior for a numeric array type doesn't require you to opt in — it already compares correctly by default.">C# secretly requires you to always pass a comparator; the example above is a special case.</li>
+<li data-correct="false" data-explain="This isn't about performance — it's about what the default comparison actually compares (typed values vs. arbitrary values converted to strings).">Array.Sort is simply a newer, unrelated algorithm to JavaScript's sort.</li>
 </ul>
 </div>
 
@@ -69,7 +116,9 @@ Real language built-ins (<code>Array.prototype.sort</code>, C#'s <code>List&lt;T
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
+<script src="../assets/js/sort-viz.js"></script>
 </body>
 </html>

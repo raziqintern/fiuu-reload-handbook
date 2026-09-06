@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generics & Collections Internals · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="theory-06-generics-collections">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C#/.NET Deep Dives</span>
+<h1>Generics &amp; Collections Internals</h1>
+<p class="lede">You've used <code>List&lt;T&gt;</code> and <code>Dictionary&lt;TKey,TValue&gt;</code> since <a href="algo-06-stacks-queues.html">Algorithms &amp; Data Structures</a>. This lesson is why the <code>&lt;T&gt;</code> exists and what's actually happening inside them.</p>
+
+<h2>The problem generics solve</h2>
+<p>Without generics, you'd either write a separate <code>IntList</code>, <code>StringList</code>, <code>TerminalList</code>... for every type (massive duplication), or write one list that stores <code>object</code> (losing type safety, and — per <a href="theory-02-boxing-unboxing.html">Boxing &amp; Unboxing</a> — boxing every value type you put in it). Generics let you write the logic <strong>once</strong>, parameterized by a type, with full compile-time type safety and no boxing.</p>
+
+<h2>Example: one generic method, two types, no duplication</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">static T Max&lt;T&gt;(T a, T b) where T : IComparable&lt;T&gt;
+{
+    return a.CompareTo(b) > 0 ? a : b;
+}
+
+static void Main()
+{
+    Console.WriteLine(Max(10, 25));
+    Console.WriteLine(Max("apple", "banana"));
+}</pre>
+<pre class="tryit-output-src">25
+banana</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Function Max(Of T As IComparable(Of T))(a As T, b As T) As T
+    If a.CompareTo(b) > 0 Then
+        Return a
+    Else
+        Return b
+    End If
+End Function
+
+Sub Main()
+    Console.WriteLine(Max(10, 25))
+    Console.WriteLine(Max("apple", "banana"))
+End Sub</pre>
+<pre class="tryit-output-src">25
+banana</pre>
+</div>
+</div>
+
+<p><code>where T : IComparable&lt;T&gt;</code> is a <strong>generic constraint</strong> — it tells the compiler "only allow types that can actually be compared," so <code>a.CompareTo(b)</code> is guaranteed to exist. Without it, the compiler couldn't verify <code>CompareTo</code> is callable on an arbitrary <code>T</code>. The same one method body works for <code>int</code> and <code>string</code> here, and would work for any other comparable type — no copy-pasted overload needed.</p>
+
+<h2>What's actually inside List&lt;T&gt; and Dictionary&lt;TKey,TValue&gt;</h2>
+<table>
+<tr><th>Type</th><th>Internal structure</th><th>Why it matters</th></tr>
+<tr><td><code>List&lt;T&gt;</code></td><td>A plain array that automatically resizes (typically doubling) when it runs out of room</td><td>Adding to the end is usually O(1), but occasionally O(n) when a resize happens — inserting in the middle is always O(n) (everything after has to shift).</td></tr>
+<tr><td><code>Dictionary&lt;TKey,TValue&gt;</code></td><td>A hash table — each key is run through a hash function to compute roughly where it lives</td><td>This is <em>why</em> lookups are close to O(1) — see <a href="algo-01-big-o.html">Big O Notation</a> and <a href="algo-06-stacks-queues.html">Stacks, Queues &amp; Dictionaries</a>.</td></tr>
+</table>
+
+<div class="callout warn">
+<span class="callout-title">A hash table needs a good, stable key</span>
+<code>Dictionary</code>'s O(1) lookup depends on the key type having a correct <code>GetHashCode()</code>/<code>Equals()</code> pair. Using a mutable object as a dictionary key, then changing a field that affects its hash code after inserting it, can make that entry unfindable — the dictionary is still looking in the bucket for the <em>old</em> hash. Strings (as reload's real <code>Dictionary&lt;string,string&gt;</code> secrets cache uses) are immutable, which sidesteps this entirely — one more reason immutable keys are the safe default.
+</div>
+
+<h2>Best practice</h2>
+<p>Default to <code>List&lt;T&gt;</code> and <code>Dictionary&lt;TKey,TValue&gt;</code> for almost everything. Reach for a different collection only when you specifically need its distinguishing behavior — <code>Stack&lt;T&gt;</code>/<code>Queue&lt;T&gt;</code> for strict LIFO/FIFO order, <code>HashSet&lt;T&gt;</code> when you only care about unique membership, not order or key-value pairing.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why does <code>where T : IComparable&lt;T&gt;</code> need to be on the generic <code>Max&lt;T&gt;</code> method above?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Without the constraint, the compiler has no guarantee that an arbitrary T supports .CompareTo(...) — the constraint is what makes calling it inside the method valid and type-checked at compile time." >Without it, the compiler can't guarantee an arbitrary type T actually supports .CompareTo(...).</li>
+<li data-correct="false" data-explain="Generic constraints don't control the collection's growth behavior — List<T>'s resizing is unrelated to this method's own type constraint." >It controls how much memory the method is allowed to allocate.</li>
+<li data-correct="false" data-explain="Constraints are a compile-time, type-system feature — they don't change anything about runtime performance for a method that already type-checks correctly." >It makes the method run faster at runtime.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

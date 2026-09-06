@@ -16,39 +16,87 @@
 <h1>Recursion</h1>
 <p class="lede">A function that calls itself — genuinely confusing the first time you see it, and genuinely simple once the shape clicks.</p>
 
-<h2>Every correct recursive function has two parts</h2>
-<div class="tryit" data-lang="js">
-<pre class="tryit-src">function factorial(n) {
-  if (n <= 1) return 1;       // base case — stops the recursion
-  return n * factorial(n - 1); // recursive case — calls itself on a smaller problem
+<h2>Example: every correct recursive function has two parts</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">static int Factorial(int n)
+{
+    if (n <= 1) return 1;          // base case — stops the recursion
+    return n * Factorial(n - 1);   // recursive case — calls itself on a smaller problem
 }
 
-console.log(factorial(5));</pre>
+static void Main()
+{
+    Console.WriteLine(Factorial(5));
+}</pre>
+<pre class="tryit-output-src">120</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Function Factorial(n As Integer) As Integer
+    If n <= 1 Then Return 1          ' base case — stops the recursion
+    Return n * Factorial(n - 1)      ' recursive case — calls itself on a smaller problem
+End Function
+
+Sub Main()
+    Console.WriteLine(Factorial(5))
+End Sub</pre>
+<pre class="tryit-output-src">120</pre>
+</div>
 </div>
 
-<p><code>factorial(5)</code> calls <code>factorial(4)</code>, which calls <code>factorial(3)</code>, and so on down to <code>factorial(1)</code>, which hits the base case and returns <code>1</code> without recursing further. Then each pending call multiplies its own <code>n</code> by the result coming back up: <code>1 → 2×1 → 3×2 → 4×6 → 5×24</code>.</p>
+<p><code>Factorial(5)</code> calls <code>Factorial(4)</code>, which calls <code>Factorial(3)</code>, and so on down to <code>Factorial(1)</code>, which hits the base case and returns <code>1</code> without recursing further. Then each pending call multiplies its own <code>n</code> by the result coming back up: <code>1 → 2×1 → 3×2 → 4×6 → 5×24</code>.</p>
 
 <h2>What happens without a base case</h2>
 <div class="callout warn">
 <span class="callout-title">Don't run this — shown for illustration only</span>
-<pre class="code-block">function countDown(n) {
-  console.log(n);
-  countDown(n - 1); // missing base case — this never stops
+<pre class="code-block">static void CountDown(int n)
+{
+    Console.WriteLine(n);
+    CountDown(n - 1); // missing base case — this never stops
 }
 
-countDown(5);</pre>
-With no condition to stop it, this keeps calling itself with an ever-more-negative <code>n</code> forever. It doesn't loop politely — every call adds a new frame to the call stack, and the stack has a fixed size, so this crashes with a stack overflow error (<code>RangeError: Maximum call stack size exceeded</code> in JavaScript) after a large but finite number of calls, likely after flooding the console with thousands of lines first. This is the recursive equivalent of an infinite loop, and it's the single most common recursion bug.
+CountDown(5);</pre>
+With no condition to stop it, this keeps calling itself with an ever-more-negative <code>n</code> forever. Every call adds a new frame to the call stack, and the stack has a fixed size — this eventually throws a <code>StackOverflowException</code>. In .NET specifically, this exception is <strong>uncatchable</strong>: no <code>try</code>/<code>catch</code>, however broad, will stop it — the entire process terminates immediately. (JavaScript's equivalent, <code>RangeError: Maximum call stack size exceeded</code>, can actually be caught — a real, notable difference between the platforms.)
 </div>
 
 <h2>The fix: the same function, with a base case</h2>
-<div class="tryit" data-lang="js">
-<pre class="tryit-src">function countDown(n) {
-  if (n < 0) return; // base case — this is what was missing above
-  console.log(n);
-  countDown(n - 1);
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">static void CountDown(int n)
+{
+    if (n < 0) return; // base case — this is what was missing above
+    Console.WriteLine(n);
+    CountDown(n - 1);
 }
 
-countDown(5);</pre>
+static void Main()
+{
+    CountDown(5);
+}</pre>
+<pre class="tryit-output-src">5
+4
+3
+2
+1
+0</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Sub CountDown(n As Integer)
+    If n < 0 Then Return ' base case — this is what was missing above
+    Console.WriteLine(n)
+    CountDown(n - 1)
+End Sub
+
+Sub Main()
+    CountDown(5)
+End Sub</pre>
+<pre class="tryit-output-src">5
+4
+3
+2
+1
+0</pre>
+</div>
 </div>
 
 <div class="callout tip">
@@ -56,13 +104,16 @@ countDown(5);</pre>
 When writing any recursive function, write the base case <em>first</em>, before the recursive call — it's easy to get absorbed in the "interesting" recursive logic and add the stopping condition as an afterthought, which is exactly how the broken version above tends to get written in practice.
 </div>
 
+<h2>Best practice</h2>
+<p>Because a runaway .NET recursion can't be caught, treat "this base case might not always be reached" as a correctness bug to fix at the source, not something to defend against with a <code>try</code>/<code>catch</code> — that safety net doesn't exist here the way it does in some other languages.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
-<p class="quiz-q">A recursive function has no base case, or a base case that can never actually be reached for some inputs. What happens when you call it?</p>
+<p class="quiz-q">A recursive function has no base case, or a base case that can never actually be reached for some inputs. What happens when you call it in a .NET (C#/VB.NET) program?</p>
 <ul class="quiz-options">
-<li data-correct="false" data-explain="Recursion doesn't automatically detect this — it keeps calling itself exactly as written until something external (the call stack limit) stops it." >It runs once and returns undefined safely.</li>
-<li data-correct="true" data-explain="Every recursive call adds a new frame to the call stack. With no reachable base case, this continues until the stack's fixed size is exceeded, crashing with a stack overflow error — the recursive equivalent of an infinite loop." >It keeps calling itself until it crashes with a stack overflow error.</li>
-<li data-correct="false" data-explain="JavaScript doesn't statically analyze whether your base case is reachable — this isn't caught before the code runs.">The language detects the mistake at compile/parse time and refuses to run it.</li>
+<li data-correct="false" data-explain="Recursion doesn't automatically detect this — it keeps calling itself exactly as written until something external (the call stack limit) stops it." >It runs once and returns a default value safely.</li>
+<li data-correct="true" data-explain="Every recursive call adds a new frame to the call stack. With no reachable base case, this continues until the stack's fixed size is exceeded, throwing an uncatchable StackOverflowException that terminates the process immediately — no try/catch can stop it." >It keeps calling itself until the process crashes with an uncatchable StackOverflowException.</li>
+<li data-correct="false" data-explain=".NET doesn't statically analyze whether your base case is reachable — this isn't caught before the code runs.">The compiler detects the mistake at compile time and refuses to build it.</li>
 </ul>
 </div>
 
@@ -70,6 +121,7 @@ When writing any recursive function, write the base case <em>first</em>, before 
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

@@ -14,34 +14,66 @@
 
 <span class="track-label">Algorithms &amp; Data Structures</span>
 <h1>Stacks, Queues &amp; Dictionaries</h1>
-<p class="lede">Three more shapes data comes in, beyond a plain array — each one exists because it makes one specific operation fast and natural.</p>
+<p class="lede">Three more shapes data comes in, beyond a plain array — each one exists because it makes one specific operation fast and natural. All three are real, built-in .NET collection types.</p>
 
-<h2>Stack: Last In, First Out (LIFO)</h2>
-<p>Think of a stack of plates — you add to the top, and you take from the top. In JavaScript, a plain array's <code>.push()</code>/<code>.pop()</code> already gives you this.</p>
+<h2>Example: Stack&lt;T&gt; — Last In, First Out (LIFO)</h2>
+<p>Think of a stack of plates — you add to the top, and you take from the top.</p>
 
-<div class="tryit" data-lang="js">
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">// Stack: Last In, First Out — think "undo history"
-const stack = [];
-stack.push("open connection");
-stack.push("begin transaction");
-stack.push("insert row");
+Stack&lt;string&gt; stack = new Stack&lt;string&gt;();
+stack.Push("open connection");
+stack.Push("begin transaction");
+stack.Push("insert row");
 
-console.log("Undoing:", stack.pop()); // undoes the MOST RECENT action first
-console.log("Undoing:", stack.pop());</pre>
+Console.WriteLine("Undoing: " + stack.Pop()); // undoes the MOST RECENT action first
+Console.WriteLine("Undoing: " + stack.Pop());</pre>
+<pre class="tryit-output-src">Undoing: insert row
+Undoing: begin transaction</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">' Stack: Last In, First Out — think "undo history"
+Dim stack As New Stack(Of String)()
+stack.Push("open connection")
+stack.Push("begin transaction")
+stack.Push("insert row")
+
+Console.WriteLine("Undoing: " & stack.Pop()) ' undoes the MOST RECENT action first
+Console.WriteLine("Undoing: " & stack.Pop())</pre>
+<pre class="tryit-output-src">Undoing: insert row
+Undoing: begin transaction</pre>
+</div>
 </div>
 
-<h2>Queue: First In, First Out (FIFO)</h2>
-<p>Think of a line at a counter — first person in line is served first. <code>.push()</code> to add, <code>.shift()</code> to remove from the front.</p>
+<h2>Example: Queue&lt;T&gt; — First In, First Out (FIFO)</h2>
+<p>Think of a line at a counter — first person in line is served first.</p>
 
-<div class="tryit" data-lang="js">
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">// Queue: First In, First Out — think "job processing order"
-const queue = [];
-queue.push("transaction A");
-queue.push("transaction B");
-queue.push("transaction C");
+Queue&lt;string&gt; queue = new Queue&lt;string&gt;();
+queue.Enqueue("transaction A");
+queue.Enqueue("transaction B");
+queue.Enqueue("transaction C");
 
-console.log("Processing:", queue.shift()); // processes the OLDEST first
-console.log("Processing:", queue.shift());</pre>
+Console.WriteLine("Processing: " + queue.Dequeue()); // processes the OLDEST first
+Console.WriteLine("Processing: " + queue.Dequeue());</pre>
+<pre class="tryit-output-src">Processing: transaction A
+Processing: transaction B</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">' Queue: First In, First Out — think "job processing order"
+Dim queue As New Queue(Of String)()
+queue.Enqueue("transaction A")
+queue.Enqueue("transaction B")
+queue.Enqueue("transaction C")
+
+Console.WriteLine("Processing: " & queue.Dequeue()) ' processes the OLDEST first
+Console.WriteLine("Processing: " & queue.Dequeue())</pre>
+<pre class="tryit-output-src">Processing: transaction A
+Processing: transaction B</pre>
+</div>
 </div>
 
 <div class="callout tip">
@@ -49,43 +81,64 @@ console.log("Processing:", queue.shift());</pre>
 Picking the wrong one silently changes your processing order. A retry queue that should process failed transactions in the order they failed (FIFO) but is accidentally implemented as a stack (LIFO) will keep retrying the newest failure first and can leave an old one stuck at the bottom indefinitely.
 </div>
 
-<h2>Dictionary (Map): key-based O(1) lookup</h2>
+<h2>Example: Dictionary&lt;TKey, TValue&gt; — key-based O(1) lookup</h2>
 <p>When you need to look things up by a meaningful key instead of a numeric position, a dictionary gives you roughly O(1) lookup — a real, practical alternative to the O(n) array search from <a href="algo-02-arrays-time.html">Arrays &amp; Time Complexity</a>.</p>
 
-<div class="tryit" data-lang="js">
-<pre class="tryit-src">const secretsCache = new Map();
-secretsCache.set("TNG#ApiKey", "cached-value-1");
-secretsCache.set("Astro#Password", "cached-value-2");
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">Dictionary&lt;string, string&gt; secretsCache = new Dictionary&lt;string, string&gt;();
+secretsCache["TNG#ApiKey"] = "cached-value-1";
+secretsCache["Astro#Password"] = "cached-value-2";
 
-console.log(secretsCache.get("TNG#ApiKey"));
-console.log(secretsCache.has("Unknown#Key"));
-console.log(secretsCache.size);</pre>
+Console.WriteLine(secretsCache["TNG#ApiKey"]);
+Console.WriteLine(secretsCache.ContainsKey("Unknown#Key"));
+Console.WriteLine(secretsCache.Count);</pre>
+<pre class="tryit-output-src">cached-value-1
+False
+2</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Dim secretsCache As New Dictionary(Of String, String)()
+secretsCache("TNG#ApiKey") = "cached-value-1"
+secretsCache("Astro#Password") = "cached-value-2"
+
+Console.WriteLine(secretsCache("TNG#ApiKey"))
+Console.WriteLine(secretsCache.ContainsKey("Unknown#Key"))
+Console.WriteLine(secretsCache.Count)</pre>
+<pre class="tryit-output-src">cached-value-1
+False
+2</pre>
+</div>
 </div>
 
 <div class="callout real">
 <span class="callout-title">This is a real structure in reload, not a toy example</span>
-Recall <code>SecretsHelper.SecretsDictionary</code> from <a href="conv-06-config-secrets.html">Fiuu C# Conventions → Configuration &amp; Secrets</a> — a <code>Dictionary&lt;string, string&gt;</code> caching resolved AWS Secrets Manager values by label, precisely so a repeated lookup by key doesn't need to re-fetch or re-scan. The Game module's logging (<a href="conv-04-logging.html">Logging</a>) uses a <code>ConcurrentDictionary&lt;string, Logger&gt;</code> the same way — one logger per country code, looked up by key instead of searched for.</p>
+Recall <code>SecretsHelper.SecretsDictionary</code> from <a href="conv-06-config-secrets.html">Fiuu C# Conventions → Configuration &amp; Secrets</a> — a <code>Dictionary&lt;string, string&gt;</code> caching resolved AWS Secrets Manager values by label, precisely so a repeated lookup by key doesn't need to re-fetch or re-scan. The Game module's logging (<a href="conv-04-logging.html">Logging</a>) uses a <code>ConcurrentDictionary&lt;string, Logger&gt;</code> the same way — one logger per country code, looked up by key instead of searched for. The examples above use exactly these real types.
 </div>
+
+<h2>Best practice</h2>
+<p>Reach for <code>Stack&lt;T&gt;</code>/<code>Queue&lt;T&gt;</code>/<code>Dictionary&lt;TKey,TValue&gt;</code> from <code>System.Collections.Generic</code> rather than hand-rolling the behavior on top of a plain <code>List&lt;T&gt;</code> — they're well-tested, clearly communicate intent to the next reader, and (for Dictionary) are meaningfully faster for key lookups.</p>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">You're building a retry mechanism that must process failed transactions in the exact order they originally failed. Which structure fits?</p>
 <ul class="quiz-options">
-<li data-correct="false" data-explain="A stack (LIFO) would process the most recently failed transaction first, not the order they originally failed — the opposite of what's needed here." >A stack, so the most recent failure is retried first.</li>
-<li data-correct="true" data-explain="FIFO (queue) processing preserves the original failure order — the oldest failure is retried first, exactly matching the requirement." >A queue, so the oldest failure is retried first, in original order.</li>
-<li data-correct="false" data-explain="A dictionary is for key-based lookup, not for preserving processing order — it doesn't guarantee any particular iteration order for this purpose.">A dictionary, keyed by transaction ID.</li>
+<li data-correct="false" data-explain="A stack (LIFO) would process the most recently failed transaction first, not the order they originally failed — the opposite of what's needed here." >A Stack&lt;T&gt;, so the most recent failure is retried first.</li>
+<li data-correct="true" data-explain="FIFO (queue) processing preserves the original failure order — the oldest failure is retried first, exactly matching the requirement." >A Queue&lt;T&gt;, so the oldest failure is retried first, in original order.</li>
+<li data-correct="false" data-explain="A dictionary is for key-based lookup, not for preserving processing order — it doesn't guarantee any particular iteration order for this purpose.">A Dictionary&lt;TKey,TValue&gt;, keyed by transaction ID.</li>
 </ul>
 </div>
 
 <div class="callout tip">
 <span class="callout-title">You've completed Algorithms &amp; Data Structures</span>
-That's the whole track — Big O, arrays, searching, sorting, recursion, and the three data structures beyond a plain array. Next: back to language fundamentals with <strong>C# Fundamentals</strong>, where you'll recognise <code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey,TValue&gt;</code>, and LINQ's <code>.OrderBy()</code>/<code>.FirstOrDefault()</code> as exactly the concepts from this track, just spelled differently.
+That's the whole track — Big O, arrays, searching, sorting, recursion, and the three data structures beyond a plain array, all in the two languages reload actually uses. Next up: <strong>C# Fundamentals</strong>.
 </div>
 
 <div id="lesson-footer"></div>
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

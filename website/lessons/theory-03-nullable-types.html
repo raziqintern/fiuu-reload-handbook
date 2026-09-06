@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nullable Types · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="theory-03-nullable-types">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C#/.NET Deep Dives</span>
+<h1>Nullable Types</h1>
+<p class="lede">Value types normally can't be <code>null</code> — an <code>int</code> is always some actual number. Sometimes "no value at all" is itself a meaningful, distinct state you need to represent.</p>
+
+<h2>The problem: not every missing value is zero</h2>
+<p>If a database column allows <code>NULL</code>, mapping it straight to a plain <code>int</code> loses information: is the value genuinely <code>0</code>, or was it actually absent? <code>Nullable&lt;T&gt;</code> (written <code>T?</code>) wraps a value type so it can hold either a real value or nothing, distinctly.</p>
+
+<h2>Example: HasValue, ??, and ?.</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">int? maybeAmount = null;
+Console.WriteLine(maybeAmount.HasValue);
+Console.WriteLine(maybeAmount ?? -1); // null-coalescing: fallback when null
+
+maybeAmount = 25;
+Console.WriteLine(maybeAmount.HasValue);
+Console.WriteLine(maybeAmount.Value);</pre>
+<pre class="tryit-output-src">False
+-1
+True
+25</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Dim maybeAmount As Integer? = Nothing
+Console.WriteLine(maybeAmount.HasValue)
+Console.WriteLine(If(maybeAmount, -1)) ' null-coalescing: fallback when null
+
+maybeAmount = 25
+Console.WriteLine(maybeAmount.HasValue)
+Console.WriteLine(maybeAmount.Value)</pre>
+<pre class="tryit-output-src">False
+-1
+True
+25</pre>
+</div>
+</div>
+
+<p><code>.HasValue</code> tells you whether there's really a value inside. Reading <code>.Value</code> when <code>HasValue</code> is <code>false</code> throws — so <code>??</code> (C#) / <code>If(x, fallback)</code> (VB.NET) is the safe way to read a nullable with a default.</p>
+
+<h2>Example: the null-conditional operator avoids the crash entirely</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">public class Terminal
+{
+    public string Id;
+}
+
+static void Main()
+{
+    Terminal t = null;
+    Console.WriteLine(t?.Id ?? "no terminal");
+}</pre>
+<pre class="tryit-output-src">no terminal</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Public Class Terminal
+    Public Id As String
+End Class
+
+Sub Main()
+    Dim t As Terminal = Nothing
+    Console.WriteLine(If(t?.Id, "no terminal"))
+End Sub</pre>
+<pre class="tryit-output-src">no terminal</pre>
+</div>
+</div>
+
+<p><code>t?.Id</code> means "if <code>t</code> is null, the whole expression is null — don't even try to read <code>.Id</code>." This is C#/VB.NET's native defense against exactly the class of bug you saw in <a href="js-05-dom-debug.html">JavaScript Basics → DOM, Events &amp; the Console</a>'s "Cannot read properties of undefined" — here it's called a <code>NullReferenceException</code>, and <code>?.</code> lets you skip past a possibly-null reference instead of crashing on it.</p>
+
+<div class="callout real">
+<span class="callout-title">This is a real, named pattern in reload's own conventions</span>
+Recall <code>Conversion.DBNullToNullableDecimal</code> from <a href="conv-05-data-access.html">Fiuu C# Conventions → Data Access</a> — part of the shared helper family that maps a database <code>NULL</code> into exactly this kind of nullable value type, precisely so "the column was NULL" and "the column was zero" stay distinguishable once the data reaches C#.
+</div>
+
+<h2>Best practice</h2>
+<p>Reach for <code>T?</code> whenever "no value" is a real, meaningful state for that field — not as a lazy substitute for proper validation. A required amount field should never be nullable; an optional "last synced" timestamp genuinely should be.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A database column allows NULL for an optional discount percentage. Why map it to <code>decimal?</code> instead of a plain <code>decimal</code> defaulting to 0?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="decimal? doesn't run any faster than decimal — this isn't a performance distinction." ><code>decimal?</code> is faster to read from the database.</li>
+<li data-correct="true" data-explain="A plain decimal can't distinguish 'no discount was set' from 'a discount of exactly 0% was explicitly set' — both would just be 0. decimal? preserves that distinction by allowing a genuine null/no-value state." >A plain decimal defaulting to 0 can't distinguish "no discount was ever set" from "a discount of exactly 0 was explicitly set."</li>
+<li data-correct="false" data-explain="Nullable<T> doesn't remove the need for range/validity checks — it only adds the ability to represent 'no value', a separate concern from valid-value bounds." >decimal? automatically validates the value is a legitimate percentage.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

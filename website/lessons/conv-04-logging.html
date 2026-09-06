@@ -34,7 +34,7 @@ LogHelper.Write(string.Format("[{0}] <<< [Key: {1}] {2}", config.AmdocsPaymentUr
 
 <div class="callout warn">
 <span class="callout-title">This logs full payloads, unredacted</span>
-Full request/response bodies get logged as JSON, including for payment/account-verification calls — and nothing in the sampled code redacts sensitive fields before logging. Be aware of this both when reading logs (they may contain account numbers/amounts) and when adding new logging (don't assume redaction happens for you; it doesn't, by default, anywhere in this codebase).
+Full request/response bodies get logged as <a class="term" data-term="json">JSON</a>, including for payment/account-verification calls — and nothing in the sampled code redacts sensitive fields before logging. Be aware of this both when reading logs (they may contain account numbers/amounts) and when adding new logging (don't assume redaction happens for you; it doesn't, by default, anywhere in this codebase).
 </div>
 
 <h2>Practical debugging habit: search for the correlation key</h2>
@@ -54,6 +54,7 @@ Full request/response bodies get logged as JSON, including for payment/account-v
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

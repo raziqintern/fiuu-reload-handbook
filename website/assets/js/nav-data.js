@@ -60,6 +60,20 @@ const SITE_TRACKS = [
     ],
   },
   {
+    id: "theory",
+    title: "C#/.NET Deep Dives",
+    lessons: [
+      { id: "theory-01-value-reference-types", title: "1. Value vs. Reference Types", file: "theory-01-value-reference-types.html" },
+      { id: "theory-02-boxing-unboxing", title: "2. Boxing & Unboxing", file: "theory-02-boxing-unboxing.html" },
+      { id: "theory-03-nullable-types", title: "3. Nullable Types", file: "theory-03-nullable-types.html" },
+      { id: "theory-04-async-await", title: "4. Async/Await Fundamentals", file: "theory-04-async-await.html" },
+      { id: "theory-05-threading-locks", title: "5. Threading, Locks & Race Conditions", file: "theory-05-threading-locks.html" },
+      { id: "theory-06-generics-collections", title: "6. Generics & Collections Internals", file: "theory-06-generics-collections.html" },
+      { id: "theory-07-garbage-collection", title: "7. Garbage Collection & Object Lifetime", file: "theory-07-garbage-collection.html" },
+      { id: "theory-08-assemblies-dlls", title: "8. Assemblies & DLLs", file: "theory-08-assemblies-dlls.html" },
+    ],
+  },
+  {
     id: "sql",
     title: "SQL & reload_db",
     lessons: [

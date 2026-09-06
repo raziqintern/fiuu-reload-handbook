@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assemblies & DLLs · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="theory-08-assemblies-dlls">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C#/.NET Deep Dives</span>
+<h1>Assemblies &amp; DLLs</h1>
+<p class="lede">The last theory lesson, and the one that explains a genuinely unusual real pattern you'll run into in reload's own repository layout.</p>
+
+<h2>The vocabulary</h2>
+<table>
+<tr><th>Term</th><th>Meaning</th></tr>
+<tr><td><strong>Assembly</strong></td><td>The .NET unit of compiled code, versioning, and deployment — the output of compiling one project. Contains IL (Intermediate Language) code plus metadata describing every type inside it.</td></tr>
+<tr><td><strong>DLL</strong></td><td>Dynamic-Link Library — a compiled assembly meant to be referenced by other programs, not run directly (as opposed to an <code>.exe</code>, which is a runnable assembly).</td></tr>
+</table>
+<p>When you add a project reference in Visual Studio, you're telling your project "at build time, compile against this assembly's public types, and at runtime, load this DLL to actually execute them."</p>
+
+<h2>Two ways to consume someone else's code</h2>
+<ul>
+<li><strong>Project reference (source):</strong> your build compiles the other project's source directly alongside yours. Change the source, rebuild, see the change immediately.</li>
+<li><strong>Binary reference (a prebuilt DLL):</strong> you reference an already-compiled <code>.dll</code> file directly. You don't have (or need) its source to build against it — but you also can't see or step into its implementation without a separate copy of the source, and it won't reflect any source change until someone rebuilds and re-drops a new DLL.</li>
+</ul>
+
+<div class="callout real">
+<span class="callout-title">reload's class-library does something genuinely unusual here</span>
+Per <a href="arch-01-reload.html">Architecture Map → reload: Topology &amp; Modules</a>: several modules (<code>Fiuu.CEPP</code>, <code>Fiuu.Logging</code>, <code>Fiuu.Lookup</code>, <code>Fiuu.MasterFramework</code>, <code>Fiuu.Provider</code>, and others) exist as <strong>prebuilt <code>.dll</code> files committed directly into the <code>class-library</code> repository's root</strong> — not built from source inside that repo. Their actual source lives elsewhere (in <code>Components/*</code>, a different part of the monorepo). How the built DLL gets from that source into <code>class-library</code>'s root was never confirmed in this handbook's research — no visible build-and-publish pipeline step does it automatically, so the most likely explanation is a developer building locally and manually committing the resulting DLL.
+</div>
+
+<div class="callout warn">
+<span class="callout-title">Why this is worth knowing before you go looking for "the source"</span>
+If you're debugging behavior that seems to come from <code>Fiuu.Logging.dll</code> referenced this way, editing the <code>Components/Logging</code> source and rebuilding <em>that</em> project will not change what <code>class-library</code>'s consumers actually run — they're bound to whatever DLL is physically sitting in <code>class-library</code>'s repo root until someone manually rebuilds and re-commits it there. This is exactly the kind of "looks like one codebase, is actually two things kept in sync by hand" trap worth checking for before you conclude a fix didn't work.
+</div>
+
+<h2>Best practice</h2>
+<p>When you're not sure whether you're looking at the real, current source of a referenced type, check how it's referenced — a <code>&lt;ProjectReference&gt;</code> in the <code>.csproj</code> means you're building against live source; a <code>&lt;Reference&gt;</code> with a <code>HintPath</code> pointing at a <code>.dll</code> means you're not, and the actual behavior is frozen at whenever that DLL was last built.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You edit the source in <code>Components/Logging</code> and rebuild that project, expecting a bug fix to show up in an app that consumes <code>Fiuu.Logging.dll</code> from <code>class-library</code>'s repo root. Why might the bug still be there?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="A build failure would produce compiler errors — the scenario describes a successful rebuild that just doesn't propagate the change, a different problem." >The Components project probably failed to compile.</li>
+<li data-correct="true" data-explain="If the consuming app references the prebuilt Fiuu.Logging.dll sitting in class-library's repo root rather than the Components/Logging project directly, rebuilding the source elsewhere doesn't update that DLL — someone has to manually rebuild and re-commit it there for the fix to actually reach consumers." >The app likely references the prebuilt DLL committed in class-library's root, which isn't automatically regenerated from the Components source you just changed.</li>
+<li data-correct="false" data-explain=".NET doesn't cache assemblies across an application restart in a way that would explain this — the actual explanation is about which physical DLL is being referenced at all.">.NET caches the old assembly in memory until the whole machine restarts.</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You've completed C#/.NET Deep Dives</span>
+That's value vs. reference types, boxing, nullable types, async/await, threading and locks, generics, garbage collection, and assemblies — the theory that explains <em>why</em> C#/.NET code behaves the way it does, including the real reload incident this track kept coming back to. Next: <strong>SQL &amp; reload_db</strong>.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

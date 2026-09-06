@@ -14,67 +14,158 @@
 
 <span class="track-label">Software Design &amp; Best Practices</span>
 <h1>OOP Pillars</h1>
-<p class="lede">A new track: language-agnostic ideas about how to <em>structure</em> code well, not just how to write syntax that runs. You've already met every concept in this track in passing — this is where they get named properly.</p>
+<p class="lede">A new track: language-agnostic ideas about how to <em>structure</em> code well, not just how to write syntax that runs. You've already met every concept in this track in passing — this is where they get named properly, in the two languages reload actually uses.</p>
 
-<h2>Encapsulation: hide the internals, expose a controlled surface</h2>
-<div class="tryit" data-lang="js">
-<pre class="tryit-src">class Terminal {
-  constructor(id, balance) {
-    this._id = id;
-    this._balance = balance; // leading underscore: "internal, don't touch directly"
-  }
-  deposit(amount) {
-    if (amount <= 0) throw new Error("Deposit must be positive");
-    this._balance += amount;
-  }
-  getBalance() {
-    return this._balance;
-  }
+<h2>Example: encapsulation — hide the internals, expose a controlled surface</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">public class Terminal
+{
+    private string _id;
+    private double _balance; // leading underscore: "internal, don't touch directly"
+
+    public Terminal(string id, double balance)
+    {
+        _id = id;
+        _balance = balance;
+    }
+
+    public void Deposit(double amount)
+    {
+        if (amount <= 0) throw new Exception("Deposit must be positive");
+        _balance += amount;
+    }
+
+    public double GetBalance()
+    {
+        return _balance;
+    }
 }
 
-const t = new Terminal("TNG-0042", 100);
-t.deposit(50);
-console.log(t.getBalance());</pre>
-</div>
-<p>Nothing forces you to go through <code>deposit()</code> — you could still write <code>t._balance = -999</code> directly. Encapsulation here is a <em>convention</em> (the underscore, the method that validates), not a hard technical lock — the same underscore-prefix convention you saw on reload's real <code>_provider</code>/<code>_accountCompo</code> fields in <a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>.</p>
-
-<h2>Inheritance and polymorphism: one call, different behavior</h2>
-<div class="tryit" data-lang="js">
-<pre class="tryit-src">class PaymentMethod {
-  process(amount) {
-    throw new Error("process() must be implemented by a subclass");
-  }
-}
-
-class TngPayment extends PaymentMethod {
-  process(amount) {
-    return `Processed RM${amount} via TNG`;
-  }
-}
-
-class CardPayment extends PaymentMethod {
-  process(amount) {
-    return `Processed RM${amount} via Card`;
-  }
-}
-
-const methods = [new TngPayment(), new CardPayment()];
-for (const m of methods) {
-  console.log(m.process(25));
+class Program
+{
+    static void Main()
+    {
+        Terminal t = new Terminal("TNG-0042", 100);
+        t.Deposit(50);
+        Console.WriteLine(t.GetBalance());
+    }
 }</pre>
+<pre class="tryit-output-src">150</pre>
 </div>
-<p><strong>Inheritance</strong>: both classes extend <code>PaymentMethod</code>, inheriting its shape. <strong>Polymorphism</strong>: the loop calls <code>m.process(25)</code> identically for both objects, but each runs its own version — the caller doesn't need to know or care which concrete class it's holding.</p>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Public Class Terminal
+    Private _id As String
+    Private _balance As Double ' leading underscore: "internal, don't touch directly"
 
-<h2>Abstraction: expose what, hide how</h2>
-<p>You've already seen this formally: <code>ITerminalService</code> in <a href="cs-04-classes.html">C# Fundamentals → Classes, Objects &amp; Interfaces</a> is pure abstraction — it declares <em>what</em> <code>Login</code> does (takes a terminal id, returns a bool) without exposing <em>how</em> <code>TerminalService</code> implements it. The caller depends only on the abstraction.</p>
+    Public Sub New(id As String, balance As Double)
+        _id = id
+        _balance = balance
+    End Sub
+
+    Public Sub Deposit(amount As Double)
+        If amount <= 0 Then Throw New Exception("Deposit must be positive")
+        _balance += amount
+    End Sub
+
+    Public Function GetBalance() As Double
+        Return _balance
+    End Function
+End Class
+
+Module Program
+    Sub Main()
+        Dim t As New Terminal("TNG-0042", 100)
+        t.Deposit(50)
+        Console.WriteLine(t.GetBalance())
+    End Sub
+End Module</pre>
+<pre class="tryit-output-src">150</pre>
+</div>
+</div>
+<p>Nothing technically forces callers through <code>Deposit()</code> in either language — <code>private</code> only blocks access from <em>outside the class</em>, and within it the field is freely mutable. Encapsulation here means bundling the data with the one method that's allowed to safely change it, matching the underscore-prefix convention you saw on reload's real <code>_provider</code>/<code>_accountCompo</code> fields in <a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>.</p>
+
+<h2>Example: inheritance, polymorphism, and real abstraction</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">public abstract class PaymentMethod
+{
+    public abstract string Process(double amount);
+}
+
+public class TngPayment : PaymentMethod
+{
+    public override string Process(double amount)
+    {
+        return $"Processed RM{amount} via TNG";
+    }
+}
+
+public class CardPayment : PaymentMethod
+{
+    public override string Process(double amount)
+    {
+        return $"Processed RM{amount} via Card";
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        PaymentMethod[] methods = { new TngPayment(), new CardPayment() };
+        foreach (PaymentMethod m in methods)
+        {
+            Console.WriteLine(m.Process(25));
+        }
+    }
+}</pre>
+<pre class="tryit-output-src">Processed RM25 via TNG
+Processed RM25 via Card</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Public MustInherit Class PaymentMethod
+    Public MustOverride Function Process(amount As Double) As String
+End Class
+
+Public Class TngPayment
+    Inherits PaymentMethod
+    Public Overrides Function Process(amount As Double) As String
+        Return $"Processed RM{amount} via TNG"
+    End Function
+End Class
+
+Public Class CardPayment
+    Inherits PaymentMethod
+    Public Overrides Function Process(amount As Double) As String
+        Return $"Processed RM{amount} via Card"
+    End Function
+End Class
+
+Module Program
+    Sub Main()
+        Dim methods() As PaymentMethod = {New TngPayment(), New CardPayment()}
+        For Each m As PaymentMethod In methods
+            Console.WriteLine(m.Process(25))
+        Next
+    End Sub
+End Module</pre>
+<pre class="tryit-output-src">Processed RM25 via TNG
+Processed RM25 via Card</pre>
+</div>
+</div>
+<p><strong>Inheritance</strong>: both classes <code>: PaymentMethod</code> / <code>Inherits PaymentMethod</code>, inheriting its shape. <strong>Polymorphism</strong>: the loop calls <code>m.Process(25)</code> identically for both objects, but each runs its own version — the caller doesn't need to know or care which concrete class it's holding. <strong>Abstraction</strong>: <code>abstract</code>/<code>MustInherit</code> means <code>PaymentMethod</code> itself can never be instantiated directly (<code>new PaymentMethod()</code> is a compile error) — it exists purely to declare the contract every payment method must fulfil, exactly like <code>ITerminalService</code> in <a href="cs-04-classes.html">C# Fundamentals → Classes, Objects &amp; Interfaces</a>.</p>
+
+<h2>Best practice</h2>
+<p>Prefer an interface (<code>ITerminalService</code>-style) when unrelated classes need to share a contract with no shared implementation; prefer an abstract base class (like <code>PaymentMethod</code> above) when they also share some real, reusable logic. Reload uses interfaces for its Service layer contracts and — in InComm specifically — an abstract Template Method base for shared protocol logic (see <a href="design-03-patterns-in-reload.html">Design Patterns reload Actually Uses</a>).</p>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">In the payment example above, what specifically is the polymorphism?</p>
 <ul class="quiz-options">
-<li data-correct="false" data-explain="That's inheritance — both classes sharing a common parent. Polymorphism is about what happens when you call a method on them, not the shared parent itself." >Both classes extending PaymentMethod.</li>
-<li data-correct="true" data-explain="Polymorphism specifically means the same method call (m.process(25)) produces different behavior depending on the actual runtime type of the object — the loop doesn't need an if/else to check which class it has." >The loop calling m.process(25) identically on both objects, but getting different behavior from each.</li>
-<li data-correct="false" data-explain="Throwing an error in the base class is a design choice to force subclasses to override the method — it's related to abstraction, not the definition of polymorphism itself.">PaymentMethod.process() throwing an error if called directly.</li>
+<li data-correct="false" data-explain="That's inheritance — both classes sharing a common parent. Polymorphism is about what happens when you call a method on them, not the shared parent itself." >Both classes inheriting from PaymentMethod.</li>
+<li data-correct="true" data-explain="Polymorphism specifically means the same method call (m.Process(25)) produces different behavior depending on the actual runtime type of the object — the loop doesn't need an if/else to check which class it has." >The loop calling m.Process(25) identically on both objects, but getting different behavior from each.</li>
+<li data-correct="false" data-explain="Declaring PaymentMethod abstract/MustInherit is what enforces the contract (abstraction) — it's related but not itself the definition of polymorphism.">PaymentMethod being declared abstract/MustInherit.</li>
 </ul>
 </div>
 
@@ -82,6 +173,7 @@ for (const m of methods) {
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

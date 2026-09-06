@@ -340,6 +340,21 @@ pre.tryit-console .err { color: #ff8080; }
 pre.tryit-console .muted { color: #8a8f96; }
 
 .tryit.reveal-mode .tryit-editor { border-right: 1px solid var(--line); }
+
+.tryit-langtabs { display: flex; gap: 4px; }
+.tryit-langtab {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.tryit-langtab:hover { background: var(--paper-soft); }
+.tryit-langtab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
 .tryit-reveal-panel {
   margin: 0 14px 14px;
   padding: 10px 12px;
@@ -470,6 +485,100 @@ pre.tryit-console .muted { color: #8a8f96; }
 .track-card h3 { margin: 0 0 6px; font-size: 1.05rem; }
 .track-card p { margin: 0; font-size: 0.88rem; color: var(--ink-soft); }
 .track-card .count { font-size: 0.75rem; color: var(--green-dark); font-weight: 700; margin-top: 8px; display: block; }
+
+/* ---------- Inline jargon tooltips ---------- */
+
+.term {
+  position: relative;
+  color: var(--green-dark);
+  border-bottom: 1px dotted var(--green-dark);
+  font-weight: 600;
+  cursor: help;
+  text-decoration: none;
+}
+.term:hover, .term:focus-visible { text-decoration: none; }
+.term::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 0;
+  bottom: 130%;
+  background: var(--ink);
+  color: #fff;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.45;
+  width: max-content;
+  max-width: 280px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.28);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 60;
+}
+.term:hover::after, .term:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- Flow diagrams ---------- */
+
+.flow-diagram {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 12px;
+  margin: 1.4em 0 1.8em;
+}
+.flow-diagram svg { width: 100%; height: auto; display: block; }
+
+/* ---------- Sorting visualizer ---------- */
+
+.sort-viz {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px 18px;
+  margin: 1.4em 0 1.8em;
+  background: var(--paper-soft);
+}
+.sort-viz-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.sort-viz-btn {
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: #fff;
+  cursor: pointer;
+}
+.sort-viz-btn:hover { background: #eef3ff; }
+.sort-viz-btn.primary { background: var(--green); border-color: var(--green-dark); color: #0a1a06; }
+.sort-viz-btn.primary:disabled { opacity: 0.5; cursor: default; }
+.sort-viz-status { font-size: 0.8rem; color: var(--ink-soft); margin-left: auto; white-space: nowrap; }
+.sort-viz-stage {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.sort-bar {
+  position: absolute;
+  bottom: 0;
+  background: var(--green-dark);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: center;
+  border-radius: 3px 3px 0 0;
+  transition: left 0.35s ease, background 0.15s ease;
+  padding-top: 3px;
+}
+.sort-bar.comparing { background: #d99a2b; }
+.sort-bar.swapping { background: var(--danger); }
 
 /* ---------- Glossary ---------- */
 

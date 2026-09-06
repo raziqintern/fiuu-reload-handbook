@@ -36,6 +36,7 @@
     <li><strong>SQL</strong> — a real SQLite engine running in your browser via WebAssembly (<a href="https://sql.js.org" target="_blank" rel="noopener">sql.js</a>), pre-seeded with a small practice schema shaped like <code>reload_db</code>.</li>
     <li><strong>C# and VB.NET</strong> — these need a real compiler, which means a hosted backend. This site has none (by design — no server to maintain, no API key to manage, works offline). Instead you get <strong>Predict → Reveal</strong>: read the code, guess the output, then reveal the verified real answer. Copy the code into Visual Studio, <code>dotnet run</code>, or an online compiler any time you want to actually run it.</li>
   </ul>
+  <p>From <strong>Algorithms &amp; Data Structures</strong> onward, most examples carry a <strong>C# / VB.NET tab switcher</strong> right on the box — the same logic, shown in both of reload's real languages, so you can compare them side by side instead of guessing at the translation.</p>
 
   <h2>Source material</h2>
   <p>Everything in the <strong>Fiuu C# Conventions</strong>, <strong>Debugging Reload</strong>, and <strong>Architecture Map</strong> tracks is drawn from this repo's own <a href="../conventions/README.md">conventions/</a>, <a href="../gitlab-analysis/README.md">gitlab-analysis/</a>, and <a href="../architecture/README.md">architecture/</a> folders — reverse-engineered from the actual <code>reload</code>/<code>reload_db</code> code, not idealized guidelines. Read those source docs for the full depth; this site is the guided on-ramp into them.</p>
@@ -43,14 +44,16 @@
 </main>
 <script src="assets/js/nav-data.js"></script>
 <script src="assets/js/site.js"></script>
+<script src="assets/js/terms.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     const descriptions = {
       html: "Just enough markup to read reload_portal / web_app views.",
       js: "Variables, control flow, functions, and how to actually debug it.",
-      algo: "Big O, searching, sorting, recursion, and the data structures beyond a plain array — language-agnostic.",
+      algo: "Big O, searching, sorting, recursion, and the data structures beyond a plain array — shown in C# and VB.NET, with an animated sort visualizer.",
       csharp: "The language reload's class-library is written in.",
       vbnet: "Good to know — not currently used in reload, but common in the .NET world.",
+      theory: "Boxing, nullable types, async/await, threading, generics, garbage collection, and DLLs — the theory behind a real reload incident.",
       sql: "Real, runnable SQL against a reload_db-shaped practice schema.",
       design: "OOP, SOLID, the design patterns already hiding in reload's real code, Git, code review, testing, and security basics.",
       conventions: "The naming, layering, and error-handling patterns reload actually uses — reverse-engineered with file:line evidence.",

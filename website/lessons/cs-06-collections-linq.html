@@ -20,12 +20,12 @@
 <div class="tryit" data-lang="csharp">
 <pre class="tryit-src">using System.Linq;
 
-List<double> amounts = new List<double> { 10, 25.5, 100, 5 };
+List&lt;double&gt; amounts = new List&lt;double&gt; { 10, 25.5, 100, 5 };
 
 double total = amounts.Sum();
 Console.WriteLine("Total: " + total);
 
-List<double> large = amounts.Where(a => a > 20).ToList();
+List&lt;double&gt; large = amounts.Where(a => a > 20).ToList();
 Console.WriteLine("Over 20 count: " + large.Count);</pre>
 <pre class="tryit-output-src">Total: 140.5
 Over 20 count: 2</pre>
@@ -48,7 +48,7 @@ class Program
 {
     static void Main()
     {
-        var transactions = new List<Transaction>
+        var transactions = new List&lt;Transaction&gt;
         {
             new Transaction { TransNo = "TXN-1001", Amount = 10.0, Status = "Success" },
             new Transaction { TransNo = "TXN-1002", Amount = 25.5, Status = "Pending" },
@@ -87,6 +87,7 @@ That covers the C# fundamentals track. Next up: <strong>VB.NET Fundamentals</str
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

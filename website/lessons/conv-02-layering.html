@@ -37,7 +37,7 @@
     private IAccountService _accountCompo;
     private IAccountService AccountCompo
     {
-        get { return _accountCompo ?? (_accountCompo = EngineContext.Current.Resolve<IAccountService>()); }
+        get { return _accountCompo ?? (_accountCompo = EngineContext.Current.Resolve&lt;IAccountService&gt;()); }
     }</pre>
 <p class="code-cite">reload/class-library/Reloads/TNG/Services/TerminalService.cs:8-26</p>
 
@@ -52,7 +52,7 @@
 Modern .NET tutorials teach constructor injection almost exclusively. This codebase deliberately (if implicitly) uses the lazy-property service-locator pattern instead. Don't "fix" it to constructor injection in a PR unless that's the actual scope of the change — it's a working, consistent, if dated, pattern across the whole estate.
 </div>
 
-<h2>No repository/unit-of-work abstraction, no ORM</h2>
+<h2>No repository/unit-of-work abstraction, no <a class="term" data-term="orm">ORM</a></h2>
 <p>There's no generic <code>IRepository&lt;T&gt;</code>, no Entity Framework <code>DbContext</code>, and no transaction spanning multiple Provider calls. Each Provider method opens a connection, executes exactly one stored procedure, and returns. If a real operation needs multiple writes to stay consistent, that atomicity is expected to live inside the stored procedure itself — not orchestrated in C#.</p>
 
 <h2>Consistency isn't uniform — know where it breaks down</h2>
@@ -84,6 +84,7 @@ When you open a module you haven't seen before, look for the Model/Provider/Serv
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

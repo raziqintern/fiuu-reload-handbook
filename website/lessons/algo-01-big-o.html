@@ -14,40 +14,85 @@
 
 <span class="track-label">Algorithms &amp; Data Structures</span>
 <h1>Big O Notation</h1>
-<p class="lede">This track is language-agnostic computer-science fundamentals — the thinking tools that apply whether you're writing JavaScript, C#, or VB.NET. It sits here because you now know enough syntax (from HTML/JS Basics) to see it in real, runnable code.</p>
+<p class="lede">This track is language-agnostic computer-science fundamentals — the thinking tools that apply whether you're writing C#, VB.NET, or anything else. Examples from here on are shown in C# and VB.NET side by side (use the tabs on each box) — the two languages reload actually uses.</p>
+
+<h2>How to use this track</h2>
+<p>Read the concept, then read <em>both</em> language tabs on each example — the point isn't just learning the algorithm, it's learning to recognise the same idea in whichever of the two languages a given piece of reload code happens to be written in.</p>
 
 <h2>Big O measures growth, not stopwatch time</h2>
 <p>Big O notation describes how the amount of work a piece of code does grows as its input gets bigger — not how many milliseconds it takes on your specific machine. "This is O(n)" means "if you double the input size, expect roughly double the work," regardless of whether that machine is fast or slow.</p>
 
-<h2>See it happen: O(n) vs. O(n²)</h2>
-<p>Run this, then change <code>10</code> to <code>100</code> in both calls and run it again — watch how differently the two numbers scale.</p>
+<h2>Example: see it happen — O(n) vs. O(n²)</h2>
+<p>Predict both outputs, then reveal. Notice multiplying <code>n</code> by 10 multiplies the single-loop result by 10, but the nested-loop result by 100.</p>
 
-<div class="tryit" data-lang="js">
-<pre class="tryit-src">function countOperations(n) {
-  let count = 0;
-  for (let i = 0; i < n; i++) {
-    count++;
-  }
-  return count;
-}
-
-function countNestedOperations(n) {
-  let count = 0;
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      count++;
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">static int CountOperations(int n)
+{
+    int count = 0;
+    for (int i = 0; i < n; i++)
+    {
+        count++;
     }
-  }
-  return count;
+    return count;
 }
 
-console.log("Single loop,  n=10: ", countOperations(10));
-console.log("Nested loop,  n=10: ", countNestedOperations(10));
-console.log("Single loop,  n=100:", countOperations(100));
-console.log("Nested loop,  n=100:", countNestedOperations(100));</pre>
-</div>
+static int CountNestedOperations(int n)
+{
+    int count = 0;
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+            count++;
+        }
+    }
+    return count;
+}
 
-<p>Multiplying the input by 10 multiplies the single loop's work by 10 (linear — O(n)), but multiplies the nested loop's work by <strong>100</strong> (quadratic — O(n²)). That gap only gets more extreme as inputs grow — this is the entire reason Big O matters: it predicts which code will fall over first as real-world data grows.</p>
+static void Main()
+{
+    Console.WriteLine("Single loop, n=10:  " + CountOperations(10));
+    Console.WriteLine("Nested loop, n=10:  " + CountNestedOperations(10));
+    Console.WriteLine("Single loop, n=100: " + CountOperations(100));
+    Console.WriteLine("Nested loop, n=100: " + CountNestedOperations(100));
+}</pre>
+<pre class="tryit-output-src">Single loop, n=10:  10
+Nested loop, n=10:  100
+Single loop, n=100: 100
+Nested loop, n=100: 10000</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Function CountOperations(n As Integer) As Integer
+    Dim count As Integer = 0
+    For i As Integer = 0 To n - 1
+        count += 1
+    Next
+    Return count
+End Function
+
+Function CountNestedOperations(n As Integer) As Integer
+    Dim count As Integer = 0
+    For i As Integer = 0 To n - 1
+        For j As Integer = 0 To n - 1
+            count += 1
+        Next
+    Next
+    Return count
+End Function
+
+Sub Main()
+    Console.WriteLine("Single loop, n=10:  " & CountOperations(10))
+    Console.WriteLine("Nested loop, n=10:  " & CountNestedOperations(10))
+    Console.WriteLine("Single loop, n=100: " & CountOperations(100))
+    Console.WriteLine("Nested loop, n=100: " & CountNestedOperations(100))
+End Sub</pre>
+<pre class="tryit-output-src">Single loop, n=10:  10
+Nested loop, n=10:  100
+Single loop, n=100: 100
+Nested loop, n=100: 10000</pre>
+</div>
+</div>
 
 <h2>The classes you'll actually encounter</h2>
 <table>
@@ -59,6 +104,15 @@ console.log("Nested loop,  n=100:", countNestedOperations(100));</pre>
 <tr><td><code>O(n²)</code></td><td>Quadratic — a loop inside a loop over the same data</td><td>Comparing every item to every other item</td></tr>
 </table>
 
+<h2>Best practice</h2>
+<ul>
+<li>Know the Big O of any loop you write over data whose size isn't fixed and small — "this runs fine in testing" doesn't tell you how it behaves at 100x the data.</li>
+<li>Watch for accidental nesting: calling an O(n) method (like <code>.FirstOrDefault(predicate)</code>) inside a loop that already runs n times silently creates an O(n²) operation.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>If you find yourself nesting a search inside a loop over the same collection, a <code>Dictionary&lt;TKey, TValue&gt;</code> keyed lookup (O(1)) is very often the fix — see <a href="algo-06-stacks-queues.html">Stacks, Queues &amp; Dictionaries</a>.</p>
+
 <div class="callout warn">
 <span class="callout-title">Why a new engineer should care about this at all</span>
 Code that's "obviously correct" and works fine in testing with 10 rows can become a real production incident at 100,000 rows if it's secretly O(n²). Recall <a href="dbg-02-pitfalls.html">Debugging Reload → Known Patterns &amp; Pitfalls</a>'s review comment about unbounded report queries — that's this exact concern from a different angle: an operation whose cost scales with data size needs a limit, or its growth rate needs to be genuinely linear, not quadratic.
@@ -66,7 +120,7 @@ Code that's "obviously correct" and works fine in testing with 10 rows can becom
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
-<p class="quiz-q">A function loops through a list of n transactions once, doing a small fixed amount of work per transaction. What's its Big O?</p>
+<p class="quiz-q">A method loops through a list of n transactions once, doing a small fixed amount of work per transaction. What's its Big O?</p>
 <ul class="quiz-options">
 <li data-correct="false" data-explain="O(1) means the work doesn't grow with input size at all — looping through every item means it does grow, directly." >O(1) — it's fast.</li>
 <li data-correct="true" data-explain="One pass through n items, constant work per item, is the textbook definition of O(n): the total work scales directly and linearly with the input size." >O(n) — the work scales directly with the number of transactions.</li>
@@ -78,6 +132,7 @@ Code that's "obviously correct" and works fine in testing with 10 rows can becom
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

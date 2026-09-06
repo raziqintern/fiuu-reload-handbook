@@ -38,7 +38,7 @@ Recall from <a href="conv-05-data-access.html">Fiuu C# Conventions → Data Acce
 </div>
 
 <h2>Secrets: never in source code, never fully trust logs</h2>
-<p>You've already seen reload's real secrets story in <a href="conv-06-config-secrets.html">Configuration &amp; Secrets</a>: credentials live in AWS Secrets Manager, not hardcoded in source. The general principle behind that: a secret committed to source control is compromised the moment it's pushed, even if you delete it in a later commit — Git history keeps it. And recall <a href="conv-04-logging.html">Logging</a>'s warning that reload logs full request/response payloads unredacted — a secret or account number passed through a logged call is now sitting in a log file too, a second place it can leak from.</p>
+<p>You've already seen reload's real secrets story in <a href="conv-06-config-secrets.html">Configuration &amp; Secrets</a>: credentials live in AWS Secrets Manager, not hardcoded in source. The general principle behind that: a secret committed to source control is compromised the moment it's pushed, even if you delete it in a later commit — <a class="term" data-term="git">Git</a> history keeps it. And recall <a href="conv-04-logging.html">Logging</a>'s warning that reload logs full request/response payloads unredacted — a secret or account number passed through a logged call is now sitting in a log file too, a second place it can leak from.</p>
 
 <h2>Least privilege</h2>
 <p>Give code (and people) only the access they actually need, not the broadest access that happens to be convenient. A background job that only ever reads from <code>REPORTSUMMARY</code> shouldn't run with a database credential that also has write access to <code>CEPP</code> — if that job is ever compromised or has a bug, the blast radius is limited to what it actually needed.</p>
@@ -55,13 +55,14 @@ Recall from <a href="conv-05-data-access.html">Fiuu C# Conventions → Data Acce
 
 <div class="callout tip">
 <span class="callout-title">You've completed Software Design &amp; Best Practices</span>
-That's OOP, SOLID, the named patterns already hiding in reload's real code, Git, code review, testing, and security fundamentals. From here, the two Fiuu-specific tracks (<strong>Fiuu C# Conventions</strong> and <strong>Debugging Reload</strong>) will read very differently — you'll recognise the underlying principles behind almost everything they show you.
+That's <a class="term" data-term="oop">OOP</a>, <a class="term" data-term="solid">SOLID</a>, the named patterns already hiding in reload's real code, Git, code review, testing, and security fundamentals. From here, the two Fiuu-specific tracks (<strong>Fiuu C# Conventions</strong> and <strong>Debugging Reload</strong>) will read very differently — you'll recognise the underlying principles behind almost everything they show you.
 </div>
 
 <div id="lesson-footer"></div>
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

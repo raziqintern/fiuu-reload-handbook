@@ -38,7 +38,7 @@
 
 <h2>Try it yourself: would this pass review?</h2>
 <div class="tryit" data-lang="csharp">
-<pre class="tryit-src">public StockAdjustment GetLatestAdjustment(List<StockAdjustment> lstAdjustments)
+<pre class="tryit-src">public StockAdjustment GetLatestAdjustment(List&lt;StockAdjustment&gt; lstAdjustments)
 {
     var latest = lstAdjustments.FirstOrDefault(a => a.IsActive);
     Console.WriteLine("Latest adjustment reason: " + latest.CancellationReason);
@@ -49,7 +49,7 @@ class Program
 {
     static void Main()
     {
-        var empty = new List<StockAdjustment>();
+        var empty = new List&lt;StockAdjustment&gt;();
         GetLatestAdjustment(empty);
     }
 }
@@ -86,6 +86,7 @@ public class StockAdjustment
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>

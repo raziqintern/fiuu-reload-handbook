@@ -14,51 +14,102 @@
 
 <span class="track-label">Algorithms &amp; Data Structures</span>
 <h1>Searching: Linear vs. Binary</h1>
-<p class="lede">Two ways to find something in a list — and a live, counted comparison of exactly how much faster the second one is.</p>
+<p class="lede">Two ways to find something in a list — and a counted comparison of exactly how much faster the second one is.</p>
 
 <h2>Linear search: check everything, in order</h2>
-<p>This is what <code>.indexOf()</code>/<code>FirstOrDefault()</code> do internally — check element 0, then 1, then 2, until you find it or run out of elements. Works on any list, sorted or not.</p>
+<p>This is what <code>Array.IndexOf</code>/<code>FirstOrDefault()</code> do internally — check element 0, then 1, then 2, until you find it or run out of elements. Works on any list, sorted or not.</p>
 
 <h2>Binary search: only works on sorted data, but is dramatically faster</h2>
 <p>If the list is sorted, you don't need to check every element. Check the middle one: if it's too big, the answer must be in the left half; if it's too small, it must be in the right half. Throw away the half that can't contain the answer, and repeat on what's left.</p>
 
-<h2>Try it yourself: count the actual steps each one takes</h2>
-<div class="tryit" data-lang="js">
-<pre class="tryit-src">function linearSearch(arr, target) {
-  let steps = 0;
-  for (let i = 0; i < arr.length; i++) {
-    steps++;
-    if (arr[i] === target) return steps;
-  }
-  return -1;
+<h2>Example: count the actual steps each one takes</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">static int LinearSearch(int[] arr, int target)
+{
+    int steps = 0;
+    for (int i = 0; i < arr.Length; i++)
+    {
+        steps++;
+        if (arr[i] == target) return steps;
+    }
+    return -1;
 }
 
-function binarySearch(arr, target) {
-  let steps = 0;
-  let low = 0, high = arr.length - 1;
-  while (low <= high) {
-    steps++;
-    const mid = Math.floor((low + high) / 2);
-    if (arr[mid] === target) return steps;
-    if (arr[mid] < target) low = mid + 1;
-    else high = mid - 1;
-  }
-  return -1;
+static int BinarySearch(int[] arr, int target)
+{
+    int steps = 0;
+    int low = 0, high = arr.Length - 1;
+    while (low <= high)
+    {
+        steps++;
+        int mid = (low + high) / 2;
+        if (arr[mid] == target) return steps;
+        if (arr[mid] < target) low = mid + 1;
+        else high = mid - 1;
+    }
+    return -1;
 }
 
-// a sorted array of 16 numbers — binary search REQUIRES sorted data
-const sorted = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32];
+static void Main()
+{
+    // a sorted array of 16 numbers — binary search REQUIRES sorted data
+    int[] sorted = { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 };
 
-console.log("Linear search steps:", linearSearch(sorted, 32));
-console.log("Binary search steps:", binarySearch(sorted, 32));</pre>
+    Console.WriteLine("Linear search steps: " + LinearSearch(sorted, 32));
+    Console.WriteLine("Binary search steps: " + BinarySearch(sorted, 32));
+}</pre>
+<pre class="tryit-output-src">Linear search steps: 16
+Binary search steps: 5</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Function LinearSearch(arr() As Integer, target As Integer) As Integer
+    Dim steps As Integer = 0
+    For i As Integer = 0 To arr.Length - 1
+        steps += 1
+        If arr(i) = target Then Return steps
+    Next
+    Return -1
+End Function
+
+Function BinarySearch(arr() As Integer, target As Integer) As Integer
+    Dim steps As Integer = 0
+    Dim low As Integer = 0
+    Dim high As Integer = arr.Length - 1
+    While low <= high
+        steps += 1
+        Dim mid As Integer = (low + high) \ 2
+        If arr(mid) = target Then Return steps
+        If arr(mid) < target Then
+            low = mid + 1
+        Else
+            high = mid - 1
+        End If
+    End While
+    Return -1
+End Function
+
+Sub Main()
+    ' a sorted array of 16 numbers — binary search REQUIRES sorted data
+    Dim sorted() As Integer = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32}
+
+    Console.WriteLine("Linear search steps: " & LinearSearch(sorted, 32))
+    Console.WriteLine("Binary search steps: " & BinarySearch(sorted, 32))
+End Sub</pre>
+<pre class="tryit-output-src">Linear search steps: 16
+Binary search steps: 5</pre>
+</div>
 </div>
 
-<p>Try changing <code>32</code> to <code>2</code> (the first element) and re-running — linear search gets lucky and takes just 1 step, but binary search still takes roughly the same number of steps either way. That's the real trade-off: binary search's worst case is consistently good; linear search's worst case is genuinely bad.</p>
+<p>Try changing <code>32</code> to <code>2</code> (the first element) and re-tracing by hand — linear search gets lucky and takes just 1 step, but binary search still takes roughly the same number of steps either way. That's the real trade-off: binary search's worst case is consistently good; linear search's worst case is genuinely bad.</p>
 
 <div class="callout warn">
 <span class="callout-title">The one non-negotiable requirement</span>
 Binary search only works correctly on already-sorted data. Run it on an unsorted array and it will silently give you wrong answers sometimes — not an error, a wrong result, which is far more dangerous. Never reach for binary search without confirming the data is actually sorted first.
 </div>
+
+<h2>Best practice</h2>
+<p>Don't hand-write binary search in real code unless you're building the teaching example — use <code>Array.BinarySearch(arr, target)</code> in C#/VB.NET, which does exactly this, correctly, with edge cases already handled.</p>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -74,6 +125,7 @@ Binary search only works correctly on already-sorted data. Run it on an unsorted
 </main>
 <script src="../assets/js/nav-data.js"></script>
 <script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>
 <script src="../assets/js/quiz.js"></script>
 </body>
