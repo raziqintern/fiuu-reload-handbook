@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heaps & Priority Queues · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="algo-09-heaps">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Algorithms &amp; Data Structures</span>
+<h1>Heaps &amp; Priority Queues</h1>
+<p class="lede">A <a href="algo-06-stacks-queues.html">Queue</a> processes things in the order they arrived. Sometimes that's wrong — you need to process the most <em>urgent</em> thing next, regardless of when it showed up.</p>
+
+<h2>The problem a plain queue can't solve</h2>
+<p>Imagine a retry queue for failed transactions, where some failures are far more urgent than others (a payment stuck mid-flight vs. a low-priority report regeneration). A <code>Queue&lt;T&gt;</code> would retry them in arrival order, ignoring urgency entirely. A <strong>priority queue</strong> is exactly this: a queue where each item has a priority, and <code>Dequeue()</code> always returns the highest-priority item currently waiting, not the oldest one.</p>
+
+<h2>Example: .NET's real, built-in PriorityQueue</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">using System.Collections.Generic;
+
+var retryQueue = new PriorityQueue&lt;string, int&gt;();
+retryQueue.Enqueue("TXN-1001", 3); // priority 3 = least urgent
+retryQueue.Enqueue("TXN-1002", 1); // priority 1 = most urgent
+retryQueue.Enqueue("TXN-1003", 2);
+
+while (retryQueue.Count > 0)
+{
+    Console.WriteLine(retryQueue.Dequeue());
+}</pre>
+<pre class="tryit-output-src">TXN-1002
+TXN-1003
+TXN-1001</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Imports System.Collections.Generic
+
+Dim retryQueue As New PriorityQueue(Of String, Integer)()
+retryQueue.Enqueue("TXN-1001", 3) ' priority 3 = least urgent
+retryQueue.Enqueue("TXN-1002", 1) ' priority 1 = most urgent
+retryQueue.Enqueue("TXN-1003", 2)
+
+While retryQueue.Count > 0
+    Console.WriteLine(retryQueue.Dequeue())
+End While</pre>
+<pre class="tryit-output-src">TXN-1002
+TXN-1003
+TXN-1001</pre>
+</div>
+</div>
+
+<p>Notice <code>TXN-1001</code> was enqueued <em>first</em> but comes out <em>last</em> — arrival order is completely irrelevant here. Only the priority number matters, and by default, lower numbers come out first (a "min-heap" — see below for why that's the name).</p>
+
+<h2>What's actually inside a priority queue: a heap</h2>
+<p>A <strong>heap</strong> is a tree (usually binary, like <a href="algo-07-trees.html">Trees &amp; Hierarchies</a>) with one extra rule: every parent's value is <code>&lt;=</code> both its children's values (a <strong>min-heap</strong> — the smallest value is always the root; a <strong>max-heap</strong> flips the comparison). That single rule is enough to guarantee the smallest item is always instantly available at the root, while insert and remove only need to fix up one path through the tree — O(log n) each, not a full re-sort of everything.</p>
+
+<table>
+<tr><th>Operation</th><th>Cost</th><th>Why</th></tr>
+<tr><td>Peek at the top priority item</td><td>O(1)</td><td>It's always sitting at the root — no searching needed.</td></tr>
+<tr><td>Insert a new item</td><td>O(log n)</td><td>Add it, then swap it upward until the heap rule holds again.</td></tr>
+<tr><td>Remove the top item</td><td>O(log n)</td><td>Move the last item to the root, then swap it downward until the rule holds again.</td></tr>
+</table>
+
+<div class="callout tip">
+<span class="callout-title">You don't need to hand-write one</span>
+<code>System.Collections.Generic.PriorityQueue&lt;TElement, TPriority&gt;</code> (available since .NET 6) is a real, correct, built-in heap — exactly like <code>List&lt;T&gt;</code>/<code>Dictionary&lt;TKey,TValue&gt;</code> from earlier lessons, there's essentially never a reason to hand-roll this data structure in real code.
+</div>
+
+<h2>Best practice</h2>
+<ul>
+<li>Reach for a priority queue specifically when "process the most urgent thing next" is a real requirement — not as a fancier-sounding substitute for a plain queue when arrival order was actually fine.</li>
+<li>Be explicit about what "priority 1" means in your own code (most urgent, as in the example above, or least urgent) — <code>PriorityQueue&lt;T,P&gt;</code> defaults to smallest-value-first, which surprises anyone assuming "higher number = higher priority" without checking.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>If you need max-value-first behavior instead of the default min-first, don't invert your priority numbers everywhere as a workaround — <code>PriorityQueue</code> accepts a custom <code>IComparer&lt;T&gt;</code> in its constructor, letting you flip the ordering once, in one place, instead of remembering to negate every priority value at every call site.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why is peeking at the highest-priority item in a heap O(1), when peeking at the smallest item in an unsorted array would be O(n)?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="The heap property guarantees the minimum (or maximum, for a max-heap) is always at the root — no searching required, unlike an unsorted array where you'd have to check every element to be sure you'd found the smallest." >The heap's defining rule guarantees the smallest (or largest) value is always sitting at the root — no search needed.</li>
+<li data-correct="false" data-explain="A heap is not fully sorted — only the parent-child rule holds, which is weaker than full sorting but cheaper to maintain." >A heap keeps every element fully sorted at all times.</li>
+<li data-correct="false" data-explain="Heaps don't use hashing at all — that's how Dictionary achieves fast lookups, a different data structure with a different mechanism." >It uses the same hashing mechanism as a Dictionary.</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You've completed Algorithms &amp; Data Structures</span>
+That's the full track — Big O, arrays, searching, sorting, recursion, stacks, queues, dictionaries, trees, graphs, and heaps, all shown in the two languages reload actually uses. Next up: <strong>C# Fundamentals</strong>.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

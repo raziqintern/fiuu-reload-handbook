@@ -37,6 +37,7 @@ const SITE_TRACKS = [
       { id: "algo-06-stacks-queues", title: "6. Stacks, Queues & Dictionaries", file: "algo-06-stacks-queues.html" },
       { id: "algo-07-trees", title: "7. Trees & Hierarchies", file: "algo-07-trees.html" },
       { id: "algo-08-graphs", title: "8. Graphs & Traversal", file: "algo-08-graphs.html" },
+      { id: "algo-09-heaps", title: "9. Heaps & Priority Queues", file: "algo-09-heaps.html" },
     ],
   },
   {
