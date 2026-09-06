@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graphs & Traversal · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="algo-08-graphs">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Algorithms &amp; Data Structures</span>
+<h1>Graphs &amp; Traversal</h1>
+<p class="lede">Drop the "exactly one parent" rule from a tree and you get a graph — nodes and connections where more than one path can lead to the same place. You've already seen a real one, drawn on this site.</p>
+
+<h2>The shape: nodes and edges, paths can converge</h2>
+<p>A graph is a set of nodes and a set of edges connecting them. Unlike a tree, a node can be reached from more than one other node, and cycles are allowed. That "more than one path leads here" property is exactly what makes graph traversal need one extra piece of bookkeeping a tree traversal doesn't: a record of what's already been visited.</p>
+
+<div class="callout real">
+<span class="callout-title">You've already seen this exact shape</span>
+The reload_db data-flow diagram from <a href="arch-02-reload-db.html">Architecture Map → reload_db</a> — <code>TRANSACTION</code> routing to <code>TNG</code>/<code>BILL_PAYMENT</code>/<code>TICKET</code>, all of which reference <code>CEPP</code> — is a real graph, not a tree. <code>CEPP</code> is reachable from every one of those databases; it has multiple incoming edges. That's precisely the shape a tree structurally cannot represent.
+</div>
+
+<h2>Example: Breadth-First Search (BFS)</h2>
+<p>BFS explores a graph one "layer" out at a time, using a queue — visit a node, then all of its direct neighbors, then all of <em>their</em> unvisited neighbors, and so on.</p>
+
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">static Dictionary&lt;string, List&lt;string&gt;&gt; graph = new Dictionary&lt;string, List&lt;string&gt;&gt;
+{
+    ["TRANSACTION"] = new List&lt;string&gt; { "TNG", "BILL_PAYMENT", "CEPP" },
+    ["TNG"] = new List&lt;string&gt; { "CEPP" },
+    ["BILL_PAYMENT"] = new List&lt;string&gt; { "CEPP" },
+    ["CEPP"] = new List&lt;string&gt;()
+};
+
+static List&lt;string&gt; BreadthFirstSearch(string start)
+{
+    var visited = new HashSet&lt;string&gt;();
+    var queue = new Queue&lt;string&gt;();
+    var order = new List&lt;string&gt;();
+
+    queue.Enqueue(start);
+    visited.Add(start);
+
+    while (queue.Count > 0)
+    {
+        string current = queue.Dequeue();
+        order.Add(current);
+        foreach (string neighbor in graph[current])
+        {
+            if (!visited.Contains(neighbor))
+            {
+                visited.Add(neighbor);
+                queue.Enqueue(neighbor);
+            }
+        }
+    }
+    return order;
+}
+
+static void Main()
+{
+    Console.WriteLine(string.Join(" -> ", BreadthFirstSearch("TRANSACTION")));
+}</pre>
+<pre class="tryit-output-src">TRANSACTION -> TNG -> BILL_PAYMENT -> CEPP</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Dim graph As New Dictionary(Of String, List(Of String)) From {
+    {"TRANSACTION", New List(Of String) From {"TNG", "BILL_PAYMENT", "CEPP"}},
+    {"TNG", New List(Of String) From {"CEPP"}},
+    {"BILL_PAYMENT", New List(Of String) From {"CEPP"}},
+    {"CEPP", New List(Of String)()}
+}
+
+Function BreadthFirstSearch(start As String) As List(Of String)
+    Dim visited As New HashSet(Of String)()
+    Dim queue As New Queue(Of String)()
+    Dim order As New List(Of String)()
+
+    queue.Enqueue(start)
+    visited.Add(start)
+
+    While queue.Count > 0
+        Dim current As String = queue.Dequeue()
+        order.Add(current)
+        For Each neighbor As String In graph(current)
+            If Not visited.Contains(neighbor) Then
+                visited.Add(neighbor)
+                queue.Enqueue(neighbor)
+            End If
+        Next
+    End While
+    Return order
+End Function
+
+Sub Main()
+    Console.WriteLine(String.Join(" -> ", BreadthFirstSearch("TRANSACTION")))
+End Sub</pre>
+<pre class="tryit-output-src">TRANSACTION -> TNG -> BILL_PAYMENT -> CEPP</pre>
+</div>
+</div>
+
+<p>Trace the <code>visited</code> set by hand: <code>CEPP</code> is a neighbor of <em>three</em> different nodes (<code>TRANSACTION</code>, <code>TNG</code>, <code>BILL_PAYMENT</code>), but it only appears once in the output — the first time it's discovered, it's marked visited, and every later attempt to re-queue it is skipped. Remove the <code>visited</code> check entirely and this exact graph would queue <code>CEPP</code> three times over (and on a graph with actual cycles, it would loop forever) — the check isn't optional bookkeeping, it's what makes graph traversal terminate correctly at all.</p>
+
+<h2>BFS vs. DFS</h2>
+<table>
+<tr><th></th><th>Breadth-First Search</th><th>Depth-First Search</th></tr>
+<tr><td>Structure used</td><td>Queue (FIFO)</td><td>Stack (LIFO), or plain recursion</td></tr>
+<tr><td>Explores</td><td>Layer by layer, outward</td><td>As deep as possible down one path before backtracking</td></tr>
+<tr><td>Good for</td><td>Shortest path in an unweighted graph</td><td>"Does any path exist," exhaustive exploration, simpler code</td></tr>
+</table>
+
+<h2>Best practice</h2>
+<ul>
+<li>Always track visited nodes in a graph traversal — unlike a tree, a graph can have cycles, and skipping this check risks an infinite loop, not just repeated work.</li>
+<li>Reach for BFS specifically when you need the <em>shortest</em> path in an unweighted graph — DFS will find <em>a</em> path, not necessarily the shortest one.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>The graph above is small enough to write by hand as a <code>Dictionary&lt;string, List&lt;string&gt;&gt;</code> (an adjacency list). For a graph with weighted edges (e.g. "this route costs 3 hops, this one costs 1"), plain BFS no longer guarantees the cheapest path — that's what Dijkstra's algorithm exists for, a natural next step once BFS/DFS feel comfortable.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">In the BFS example above, why does <code>CEPP</code> appear only once in the output despite being a neighbor of three different nodes?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Dictionaries in C#/VB.NET don't deduplicate list values across different keys automatically — nothing about the graph's own structure prevents CEPP from being queued multiple times on its own." >Dictionary keys are automatically deduplicated by the language.</li>
+<li data-correct="true" data-explain="The visited set records CEPP the first time any node discovers it, and every later attempt from TNG or BILL_PAYMENT to enqueue it again is skipped by the 'if not visited' check — that's specifically why the check exists." >The visited set ensures each node is only ever enqueued the first time it's discovered, regardless of how many other nodes point to it.</li>
+<li data-correct="false" data-explain="CEPP genuinely has three separate incoming edges in this graph — the graph's structure isn't being simplified, the traversal's bookkeeping is what prevents the duplicate visits." >CEPP only actually has one real connection; the others are duplicates in the graph definition.</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You've completed Algorithms &amp; Data Structures</span>
+That's the full track — Big O, arrays, searching, sorting, recursion, stacks/queues/dictionaries, trees, and graphs, all shown in the two languages reload actually uses. Next up: <strong>C# Fundamentals</strong>.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

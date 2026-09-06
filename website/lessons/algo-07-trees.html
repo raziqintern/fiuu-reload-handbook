@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trees & Hierarchies · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="algo-07-trees">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Algorithms &amp; Data Structures</span>
+<h1>Trees &amp; Hierarchies</h1>
+<p class="lede">A tree is what you get when a hierarchy has exactly one parent per item — and reload's real domain has a genuine one, not a contrived teaching example.</p>
+
+<h2>The shape: one root, no cycles, each node has children</h2>
+<p>A tree is a node with a value and a list of child nodes, each of which is itself a tree — the same recursive shape you just spent a whole lesson on. There's exactly one root (no parent), and no node can be its own ancestor.</p>
+
+<div class="callout real">
+<span class="callout-title">This isn't a contrived example — it's CEPP's actual structure</span>
+Recall from the Architecture Map track: <code>CEPP</code>, reload's master-data hub, organizes its org hierarchy as <strong>Company → Dealers → Stores → Terminals</strong> — a real, four-level tree. Every terminal belongs to exactly one store, every store to exactly one dealer, every dealer to exactly one company. That's a tree, not a graph, specifically because there's no scenario where a terminal belongs to two stores at once.
+</div>
+
+<h2>Example: counting terminals with a recursive traversal</h2>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">public class OrgNode
+{
+    public string Name;
+    public List&lt;OrgNode&gt; Children = new List&lt;OrgNode&gt;();
+}
+
+static int CountTerminals(OrgNode node)
+{
+    if (node.Children.Count == 0)
+        return node.Name.StartsWith("Terminal") ? 1 : 0;
+
+    int total = 0;
+    foreach (var child in node.Children)
+    {
+        total += CountTerminals(child);
+    }
+    return total;
+}
+
+static void Main()
+{
+    var store = new OrgNode { Name = "Store A" };
+    store.Children.Add(new OrgNode { Name = "Terminal-01" });
+    store.Children.Add(new OrgNode { Name = "Terminal-02" });
+
+    var dealer = new OrgNode { Name = "Dealer X" };
+    dealer.Children.Add(store);
+
+    var company = new OrgNode { Name = "Company" };
+    company.Children.Add(dealer);
+
+    Console.WriteLine(CountTerminals(company));
+}</pre>
+<pre class="tryit-output-src">2</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Public Class OrgNode
+    Public Name As String
+    Public Children As New List(Of OrgNode)()
+End Class
+
+Function CountTerminals(node As OrgNode) As Integer
+    If node.Children.Count = 0 Then
+        Return If(node.Name.StartsWith("Terminal"), 1, 0)
+    End If
+
+    Dim total As Integer = 0
+    For Each child As OrgNode In node.Children
+        total += CountTerminals(child)
+    Next
+    Return total
+End Function
+
+Sub Main()
+    Dim store As New OrgNode() With {.Name = "Store A"}
+    store.Children.Add(New OrgNode() With {.Name = "Terminal-01"})
+    store.Children.Add(New OrgNode() With {.Name = "Terminal-02"})
+
+    Dim dealer As New OrgNode() With {.Name = "Dealer X"}
+    dealer.Children.Add(store)
+
+    Dim company As New OrgNode() With {.Name = "Company"}
+    company.Children.Add(dealer)
+
+    Console.WriteLine(CountTerminals(company))
+End Sub</pre>
+<pre class="tryit-output-src">2</pre>
+</div>
+</div>
+
+<p>Notice this is the exact same shape as <a href="algo-05-recursion.html">Recursion</a>'s base-case/recursive-case pattern: a leaf node (no children) is the base case; a branch node recurses into each child and combines the results. Trees and recursion are a natural pair because a tree is, by definition, recursively structured — a tree is a node plus a list of smaller trees.</p>
+
+<h2>A special case you've already met: the binary search tree</h2>
+<p>A <strong>binary tree</strong> is a tree where every node has at most two children. A <strong>binary search tree</strong> keeps them ordered (left child smaller, right child larger) — which means <a href="algo-03-searching.html">Binary Search</a>'s halve-the-remaining-space idea is really just walking down one of these, left or right, at each step.</p>
+
+<h2>Best practice</h2>
+<ul>
+<li>Use a recursive traversal by default — it's the most natural fit for a tree's own recursive definition, and it's usually the most readable option.</li>
+<li>Watch traversal depth on a tree that could be unexpectedly deep (a hierarchy with no practical limit on nesting) — very deep recursion risks the same call-stack exhaustion from <a href="algo-05-recursion.html">Recursion</a>.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>For a tree that might be very deep or very wide, an iterative traversal using an explicit <code>Stack&lt;T&gt;</code> (depth-first) or <code>Queue&lt;T&gt;</code> (breadth-first) — from <a href="algo-06-stacks-queues.html">Stacks, Queues &amp; Dictionaries</a> — avoids the call stack's fixed depth limit entirely, at the cost of slightly more code than the recursive version above.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why is CEPP's Company → Dealers → Stores → Terminals structure a tree rather than some other shape?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="A tree specifically requires each node to have exactly one parent — every terminal belongs to exactly one store, every store to exactly one dealer, and so on, with no node reachable via two different paths." >Because every terminal, store, and dealer has exactly one parent — no item belongs to two parents at once.</li>
+<li data-correct="false" data-explain="A tree can absolutely have more than two children per node (a dealer can have many stores) — 'at most two children' specifically describes a binary tree, a special case, not trees in general." >Because it only ever has at most two children per node.</li>
+<li data-correct="false" data-explain="Ordering isn't what makes something a tree — that's specifically the extra property of a binary search tree. A tree just needs the one-parent-per-node hierarchy shape." >Because the terminals are stored in sorted order.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

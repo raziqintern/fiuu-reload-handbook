@@ -35,6 +35,8 @@ const SITE_TRACKS = [
       { id: "algo-04-sorting", title: "4. Sorting: How & Why", file: "algo-04-sorting.html" },
       { id: "algo-05-recursion", title: "5. Recursion", file: "algo-05-recursion.html" },
       { id: "algo-06-stacks-queues", title: "6. Stacks, Queues & Dictionaries", file: "algo-06-stacks-queues.html" },
+      { id: "algo-07-trees", title: "7. Trees & Hierarchies", file: "algo-07-trees.html" },
+      { id: "algo-08-graphs", title: "8. Graphs & Traversal", file: "algo-08-graphs.html" },
     ],
   },
   {
