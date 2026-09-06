@@ -10,6 +10,15 @@ gitlab-analysis/raw/
 # Office temp files
 exports/~$*.docx
 
+# Scratch diagram-render pipeline output (rendered PNGs, the local render
+# harness HTML, and the save server's own request log) -- regenerable from
+# the markdown via exports/render_diagrams.py, not tracked content.
+exports/_diagram_renders/
+
 # OS
 Thumbs.db
 .DS_Store
+
+# Python
+__pycache__/
+*.pyc
