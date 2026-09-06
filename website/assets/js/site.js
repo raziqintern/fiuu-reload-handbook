@@ -22,6 +22,27 @@
     return IS_LESSON_DIR ? l.file : "lessons/" + l.file;
   }
 
+  function getTheme() {
+    try {
+      return localStorage.getItem("fra:theme");
+    } catch (e) {
+      return null;
+    }
+  }
+  function setTheme(theme) {
+    try {
+      if (theme) localStorage.setItem("fra:theme", theme);
+      else localStorage.removeItem("fra:theme");
+    } catch (e) {}
+    if (theme) document.documentElement.setAttribute("data-theme", theme);
+    else document.documentElement.removeAttribute("data-theme");
+  }
+  function isDarkNow() {
+    const saved = getTheme();
+    if (saved) return saved === "dark";
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+
   function renderHeader() {
     const host = document.getElementById("site-header");
     if (!host) return;
@@ -33,10 +54,17 @@
       <div class="header-right">
         <span>${done}/${total} lessons complete</span>
         <a href="${IS_LESSON_DIR ? "glossary.html" : "lessons/glossary.html"}" style="color:#cfd4d2;">Glossary</a>
+        <button id="theme-toggle" aria-label="Toggle dark mode">${isDarkNow() ? "☀" : "☾"}</button>
       </div>
     `;
     const toggle = document.getElementById("menu-toggle");
     toggle.addEventListener("click", () => document.body.classList.toggle("nav-open"));
+
+    const themeBtn = document.getElementById("theme-toggle");
+    themeBtn.addEventListener("click", () => {
+      setTheme(isDarkNow() ? "light" : "dark");
+      themeBtn.textContent = isDarkNow() ? "☀" : "☾";
+    });
   }
 
   function renderSidebar() {
