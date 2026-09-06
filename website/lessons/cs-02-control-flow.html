@@ -92,6 +92,15 @@ Console.WriteLine("Batch valid? " + allValid);</pre>
 Batch valid? False</pre>
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Use <code>switch</code> once you have three or more branches on the same value — it's more readable than a long <code>if</code>/<code>else if</code> chain, and the compiler enforces every case ends cleanly.</li>
+<li>Prefer <code>foreach</code> over an indexed <code>for</code> loop whenever you don't need the index itself — it reads clearer and removes an entire class of off-by-one mistakes.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>A modern C# alternative worth knowing: switch <em>expressions</em> (<code>var msg = status switch { "Success" =&gt; "...", "Pending" =&gt; "...", _ =&gt; "..." };</code>) replace the older statement form above for cases that just compute a single value — more compact, and the compiler can warn you if a case is missing.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">What happens if you leave out <code>break;</code> at the end of a <code>switch</code> case in C#?</p>

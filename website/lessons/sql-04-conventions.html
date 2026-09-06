@@ -73,6 +73,15 @@ dbo.ApiStockOrders_Add_Column_RMSO-219.sql
 dbo.ReconMOLPayDetails_Temp_Alter_Column_GIT#1114.sql</pre>
 <p>At least four ticket-tag spellings are in simultaneous use (<code>RMSO-nnn</code>, <code>GIT-nnn</code>, <code>GIT_nnn</code>, <code>GITnnnn</code>), with no single "correct" format ever unified. If you're searching for every script touching a given ticket, you cannot rely on one consistent grep pattern.</p>
 
+<h2>Best practice</h2>
+<ul>
+<li>Follow the <code>&lt;Schema&gt;.&lt;Table&gt;_&lt;Verb&gt;</code> naming exactly when adding a new stored procedure to an existing module — inconsistent naming here breaks the informal but load-bearing convention linking it to its C# constant.</li>
+<li>Know that <code>WITH (NOLOCK)</code> means "I accept dirty reads" — reach for it deliberately for high-volume reporting reads, not as an unconsidered copy-paste habit for every query regardless of consistency needs.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p><code>SCOPE_IDENTITY()</code> is the safer alternative to <code>@@IDENTITY</code> for retrieving a just-inserted row's id — it returns the id from the current scope's insert specifically, immune to a trigger on the table inserting its own row and returning the wrong id instead.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">Why does renaming a stored procedure in reload_db without updating the C# side silently break things, instead of failing to compile?</p>

@@ -88,6 +88,15 @@ Login result: True</pre>
 <code>ITerminalService</code> and <code>TerminalService</code> are real types in reload's <code>class-library</code> (<code>Reloads/TNG/Services/TerminalService.cs</code>). The <code>I</code>-prefix-on-interfaces convention shown here is followed with zero exceptions across the entire sampled codebase — see <a href="conv-01-naming.html">Fiuu C# Conventions → Naming</a> for the full picture, including where other naming conventions in this codebase are <em>not</em> so consistent.
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Give every class a constructor that leaves it in a valid state — <code>Terminal</code>'s constructor sets <code>IsOnline = true</code> so there's never a moment where a <code>Terminal</code> object exists half-initialized.</li>
+<li>Depend on the interface (<code>ITerminalService</code>), not the concrete class, in any code that calls a Service — it's what makes the implementation swappable later, and it's the real, consistent pattern in reload's own code.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>Auto-properties (<code>{ get; set; }</code>) are convenient but let any caller freely overwrite a value that maybe shouldn't be freely overwritable — <code>t.IsOnline = false</code> from anywhere, any time. A more deliberate design exposes a method (<code>t.GoOffline()</code>) instead of a public setter when the change is really a meaningful action with its own rules, not just a raw field write — the same encapsulation idea from <a href="design-01-oop-pillars.html">Software Design → OOP Pillars</a>.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">Why declare <code>ITerminalService service = new TerminalService();</code> instead of just <code>TerminalService service = new TerminalService();</code>?</p>

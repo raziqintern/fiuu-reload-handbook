@@ -58,6 +58,15 @@ break; // TODO: might not be correct. Was : Exit For</pre>
 That's every convention this track set out to cover: naming, layering, error handling, logging, data access, configuration, and comment style — all reverse-engineered from real code, not written down anywhere official until this handbook. Next: <strong>Debugging Reload</strong>, which builds directly on everything you just learned.
 </div>
 
+<h2>Best practice — for working inside this specific codebase</h2>
+<ul>
+<li>Write an inline comment when you're encoding a genuine business rule or a non-obvious magic number — not to restate what well-named code already says. That's the actual pattern this codebase's better comments follow, even though most methods have none at all.</li>
+<li>Don't expect to find XML doc comments on a Service/Provider method — read the method name, parameters, and layer suffix instead, and don't spend time writing doc comments nobody else in this codebase currently reads via IntelliSense either.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>If you're adding genuinely dense, magic-number-heavy logic (in the spirit of <code>CardNumberValidator</code>), a short overview comment at the top of the file or method — explaining the overall scheme, not each line — pays for itself far more than scattered inline comments on individual expressions. That's the gap the real <code>CardNumberValidator</code> example is missing, not a lack of comments generally.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">You're trying to understand what a public Service method does and there's no XML doc comment on it. What should you actually rely on, based on this codebase's real documentation philosophy?</p>

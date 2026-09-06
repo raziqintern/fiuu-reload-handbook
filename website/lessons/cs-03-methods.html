@@ -68,6 +68,15 @@ Payment method required</pre>
 Reload's real methods (<code>TerminalService.Login</code>, <code>TerminalProvider.GetTerminalSummaryByTransNo</code>, and so on) follow exactly this shape — a verb-ish name, a typed parameter list, an explicit return type. The <a href="conv-01-naming.html">Fiuu C# Conventions → Naming</a> lesson is where you'll see the real, sometimes inconsistent, naming patterns this codebase actually uses.
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Keep a method's parameter list short — beyond three or four parameters, a small parameter object or the caller's own object usually reads better than a long, easy-to-misorder argument list.</li>
+<li>Validate at the top of a method and return/throw immediately, before doing any real work — mirroring <code>ValidateReload</code>'s early-return shape means a reader never has to hold "but what if amount was invalid" in their head past the first few lines.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>Returning a plain string for both success and every failure reason (as above) is fine for a teaching example, but in real reload code this is exactly the ambiguous-sentinel shape flagged in <a href="conv-03-error-handling.html">Fiuu C# Conventions → Error Handling</a> — a caller has to string-compare against <code>"OK"</code> to know if it worked. A real API would more often return a proper result type or throw a specific exception, so success/failure can't be confused with "some other string I forgot to check for."</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">What does a C# method's return type declaration do that JavaScript's function syntax doesn't?</p>

@@ -70,6 +70,15 @@ End Module</pre>
 <pre class="tryit-output-src">Amount: 25, Fee: 0.5</pre>
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Match whatever casing convention the surrounding file already uses. VB.NET is case-insensitive, so <code>amount</code> and <code>Amount</code> are the same identifier to the compiler — but a file mixing both looks like two different variables to a human reader, which is exactly the confusing situation case-insensitivity can quietly create.</li>
+<li>Always use <code>Option Strict On</code> at the top of a real VB.NET file if you have the choice — it disables silent, potentially lossy type conversions that VB.NET otherwise allows by default.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>The comment marker in <a href="../../conventions/comment-style.md">Fiuu C# Conventions → Comment Style</a>'s real example — <code>// TODO: might not be correct. Was : Exit For</code> — is a tell for code mechanically ported from VB.NET to C# without a careful rewrite. If you ever do this kind of port yourself, treat it as a rewrite opportunity, not a find-and-replace exercise — the two languages' idioms (exception-only control flow vs. VB's historical <code>On Error</code> style, for one) don't map one-to-one.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">Why does VB.NET generally prefer <code>&amp;</code> over <code>+</code> for joining strings, even though both compile?</p>

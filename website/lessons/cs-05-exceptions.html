@@ -71,6 +71,15 @@ Cleanup: closing connection</pre>
 <code>catch (Exception ex)</code> catches literally everything, including bugs you'd rather see crash loudly (like a null reference from your own typo). Catch the most specific exception type you're actually expecting to handle. Reload's own code has plenty of blanket <code>catch (Exception)</code> blocks that just log and swallow — that's a real, documented pattern in this codebase, not a theoretical anti-pattern. See <a href="conv-03-error-handling.html">Fiuu C# Conventions → Error Handling</a>.
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Catch the most specific exception type you actually know how to handle — <code>catch (DivideByZeroException ex)</code> above, not a blanket <code>catch (Exception ex)</code> that would also silently swallow a bug you'd rather see fail loudly.</li>
+<li>Put cleanup that must always happen (closing a connection, releasing a resource) in <code>finally</code> — or better, in a <code>using</code> block, which you'll meet properly in <a href="theory-07-garbage-collection.html">C#/.NET Deep Dives → Garbage Collection &amp; Object Lifetime</a>.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>Reload's own real code frequently catches broadly and logs-then-swallows (<a href="conv-03-error-handling.html">Fiuu C# Conventions → Error Handling</a>) — a deliberate, if debated, house pattern for this specific codebase. That's a real, working choice for a production system where an unhandled exception in one transaction shouldn't take down the whole process — but it's not the default you should reach for in new, general-purpose code without that same reasoning behind it.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">In the first example, why does "10" (or any result value) never get printed?</p>

@@ -69,6 +69,15 @@ console.log(transNos);</pre>
 When you inspect a Network request in DevTools and see a response body, it's almost always exactly this: an array of objects, or a single object. Reading it is the same skill as reading the code above.
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Prefer <code>.filter()</code>/<code>.map()</code>/<code>.reduce()</code> over a hand-written loop that builds up a result array — they say what you want (filter, transform, combine) instead of how to loop, and are far harder to get subtly wrong.</li>
+<li>Don't mutate an array/object you don't own (one passed in as a parameter) unless the function's whole job is explicitly to do that — an unexpected mutation is one of the most common "spooky action at a distance" bugs, and you'll see the formal reason why in <a href="theory-01-value-reference-types.html">C#/.NET Deep Dives → Value vs. Reference Types</a>.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>Chaining several array methods (<code>.filter(...).map(...)</code>) reads cleanly for two or three steps, but a long chain of five or six can get hard to debug, since you can't easily inspect the intermediate results. For anything that complex, breaking it into named intermediate variables (<code>const pending = ...; const pendingIds = pending.map(...)</code>) trades a few extra lines for something you can actually step through.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q"><code>transactions.filter(t =&gt; t.status === "Pending")</code> — what does this return?</p>

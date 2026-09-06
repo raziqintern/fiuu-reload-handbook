@@ -70,6 +70,15 @@ for (const amt of amounts) {
 console.log("Batch valid?", allValid);</pre>
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Handle the "invalid" cases first and return/exit early, rather than nesting the "happy path" three levels deep inside <code>if</code>s — you saw this shape already in the batch-validation example above.</li>
+<li>Prefer <code>for...of</code> over a classic indexed <code>for</code> loop when you don't actually need the index — it removes an entire class of off-by-one bugs (wrong start value, <code>&lt;=</code> vs <code>&lt;</code>) by construction.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>The batch-validation loop above works, but <code>amounts.every(amt =&gt; amt &lt;= limit)</code> says the same thing in one line, without a manually-managed <code>allValid</code> flag. Array methods like <code>.every()</code>/<code>.some()</code> (and <code>.filter()</code>/<code>.map()</code> from the next lesson) often replace a hand-written loop entirely once you know them — worth reaching for once the basic loop shape feels automatic.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="predict" data-answer="false">
 <p class="quiz-q">In the "Try it yourself" example above, what does the final <code>console.log("Batch valid?", allValid)</code> print for <code>allValid</code> — <code>true</code> or <code>false</code>?</p>

@@ -40,6 +40,15 @@ Full request/response bodies get logged as <a class="term" data-term="json">JSON
 <h2>Practical debugging habit: search for the correlation key</h2>
 <p>Given the <code>[Key: ...]</code> convention above, the fastest way to trace one specific transaction through the logs is to search for its reference id as the correlation key — not to read logs chronologically. This is the direct log-side analogue of the JS/browser habit from earlier: search for the specific thing that's wrong, don't scroll from the top.</p>
 
+<h2>Best practice — for working inside this specific codebase</h2>
+<ul>
+<li>When adding a new outbound integration, follow the real <code>&gt;&gt;&gt;</code>/<code>&lt;&lt;&lt;</code> bracket-and-correlation-key convention — it's the closest thing to a genuine house standard, and it's what makes a future incident traceable by search.</li>
+<li>Check which <code>LogHelper</code> the file you're editing already imports before writing a log call — don't assume a method signature from a different module's helper will compile or behave the same way.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>If you're ever in a position to influence it, consolidating the three module-specific <code>LogHelper</code>s onto one shared façade (already flagged as tech debt in this codebase's own tracked backlog — see <a href="../../gitlab-analysis/reload-tribal-knowledge.md">gitlab-analysis/reload-tribal-knowledge.md</a> §4) would remove an entire class of "this code compiles in one module but not another" friction. Not a change to make casually inside an unrelated bug fix, though — it's exactly the kind of cross-cutting change that deserves its own dedicated, reviewed effort.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">You need to trace exactly what an outbound API call sent and received for transaction ref <code>TXN-1002</code>. Based on the real logging convention here, what's the fastest approach?</p>

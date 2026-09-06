@@ -58,6 +58,15 @@ INNER JOIN Terminals t ON ta.TerminalId = t.TerminalId
 WHERE ta.Amount > 15;</pre>
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Always alias your tables in a join (<code>ta</code>, <code>t</code> above) and qualify every column with its alias — once a query joins three or four tables, an unqualified column name becomes genuinely ambiguous to a reader (and sometimes to the database itself).</li>
+<li>Default to <code>INNER JOIN</code> and only reach for <code>LEFT JOIN</code> when you've deliberately decided "no match" is a valid, meaningful result you want to keep — an accidental <code>LEFT JOIN</code> can quietly let bad/incomplete data through a report that should have excluded it.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>A query that joins many tables and applies several filters can get hard to read as one long statement. Splitting it with a Common Table Expression (<code>WITH RecentActivity AS (...) SELECT ... FROM RecentActivity ...</code>) names each intermediate step, which is often far more debuggable than one deeply nested query — worth reaching for once a query stops fitting comfortably on one screen.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">You need a report that lists every terminal, including ones with zero transactions ever. Which join do you use?</p>

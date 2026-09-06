@@ -72,6 +72,15 @@ catch
 <p class="code-cite">reload/class-library/Reloads/Game/Helpers/LogHelper.cs:66-71</p>
 <p>This is the one blanket empty <code>catch</code> in the sampled codebase that's clearly <em>intentional</em>, not incidental — and it's commented as such. The reasoning: a failure in logging infrastructure should never be allowed to crash or corrupt a real transaction in progress.</p>
 
+<h2>Best practice — for working inside this specific codebase</h2>
+<ul>
+<li>When adding a new catch block, check whether the caller already logs the same exception — if so, don't add a second log call here too (the double-exception-logging complaint from <a href="dbg-01-logs.html">Debugging Reload → Reading the Logs First</a>).</li>
+<li>Prefer the named <code>SqlExceptionNumber</code> enum over re-inlining raw error numbers like <code>2601</code>/<code>2627</code> when you're the one writing the check — even though existing code sometimes does the opposite.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>The catch-log-return-sentinel pattern is a real, working house style, not a mistake to "fix" wholesale — but if you're adding a <em>new</em> code path (not modifying an existing one), consider whether a proper result type distinguishing "genuinely not found" from "an exception happened" would serve the caller better than an overloaded <code>-1</code>. That's a design choice to make deliberately, not a blanket rule to apply retroactively.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">You call a reload Provider method and it returns <code>-1</code>. Based on the dominant error-handling pattern, what does that tell you?</p>

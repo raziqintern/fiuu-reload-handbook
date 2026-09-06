@@ -70,6 +70,15 @@ Modern .NET tutorials teach constructor injection almost exclusively. This codeb
 When you open a module you haven't seen before, look for the Model/Provider/Service split first — it'll almost certainly be there. Don't assume anything else (base classes, DI style, inheritance) is shared with the last module you read; check that module's own conventions before copying a pattern across module boundaries.
 </div>
 
+<h2>Best practice — for working inside this specific codebase</h2>
+<ul>
+<li>When adding a new Service in an existing module, follow that module's existing pattern for cross-Service dependencies (the lazy-resolve property shown above) rather than introducing constructor injection — a mixed style in one module is more confusing than either style used consistently.</li>
+<li>New Providers should be <code>new</code>'d up directly from their owning Service, matching every sampled example — don't route Provider creation through the DI container just because Services already use one.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>If you're building something genuinely new rather than extending an existing module, constructor injection is the more testable, more modern pattern the wider .NET ecosystem has moved toward — it makes a class's dependencies visible in one place (its constructor signature) instead of hidden inside lazy-resolve properties scattered through the class body. Just don't retrofit it onto existing, working modules as an unscoped "improvement."</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">A <code>TerminalService</code> needs to call another module's <code>IAccountService</code>. Based on the real pattern above, how does it get that dependency?</p>

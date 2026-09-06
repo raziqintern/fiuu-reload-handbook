@@ -49,6 +49,9 @@ Windows serializes access to crypto key material. As unreleased handles piled up
 "Things get slow over time, and a restart fixes it" is the signature of a <strong>per-request resource leak</strong> (a file handle, a crypto key, a connection, a lock) that never gets released — especially dangerous when it sits inside a per-account or per-resource lock, because the lock turns a small per-request slowdown into a compounding queue. When you see this shape, go looking for something opened inside a hot path with no matching <code>Dispose()</code>/release — not for a logic bug in the transaction itself.
 </div>
 
+<h2>Best practice</h2>
+<p>When a symptom description arrives ("it's slow," "the amount is wrong," "duplicate records appeared"), resist jumping straight to the code — spend the first few minutes narrowing which <em>shape</em> of bug it is (resource leak, unit/format mismatch, race condition, unbounded query) before opening a single file. The shape tells you where to look; guessing at code first usually means reading the wrong file first.</p>
+
 <h2>Try applying it: which pattern does each symptom match?</h2>
 
 <div class="quiz" data-type="mcq">

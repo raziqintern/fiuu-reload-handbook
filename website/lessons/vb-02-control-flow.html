@@ -65,6 +65,12 @@ Console.WriteLine("Batch valid? " & allValid)</pre>
 Batch valid? False</pre>
 </div>
 
+<h2>Best practice</h2>
+<p>When translating a loop bound between C# and VB.NET (or reading one written by someone translating the other way), explicitly write out the first and last value each loop actually touches before trusting it — <code>For i = 0 To n - 1</code> is the correct VB.NET translation of C#'s <code>for (int i = 0; i &lt; n; i++)</code>, and it's easy to get subtly wrong under time pressure.</p>
+
+<h2>Better ways</h2>
+<p><code>For Each</code> sidesteps the inclusive/exclusive bound question entirely, since there's no index to get wrong — prefer it over an indexed <code>For</code> loop whenever you don't actually need the index itself, exactly as in C#'s <code>foreach</code>.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="predict" data-answer="3">
 <p class="quiz-q">How many times does the loop body run for <code>For i As Integer = 1 To 3</code>? (just the number)</p>

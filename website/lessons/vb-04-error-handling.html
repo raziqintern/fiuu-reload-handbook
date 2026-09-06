@@ -62,6 +62,12 @@ Cleanup: closing connection</pre>
 That's the VB.NET track — deliberately short, since it's a "read it when you meet it" skill rather than a daily one on this codebase. Next: <strong>C#/.NET Deep Dives</strong> — the theory (boxing, nullable types, async/await, GC, and more) behind why both languages behave the way they do — before <strong>SQL &amp; reload_db</strong> and eventually <strong>Fiuu C# Conventions</strong>, the track that actually teaches you this specific codebase.
 </div>
 
+<h2>Best practice</h2>
+<p>Modern VB.NET's <code>Try</code>/<code>Catch</code>/<code>Finally</code> is the one to use in new code — but if you ever encounter VB6-era <code>On Error Goto</code> style error handling in genuinely old code, know that it's a different, older model entirely (a jump target, not structured exception handling) and don't try to mix the two styles in the same procedure.</p>
+
+<h2>Better ways</h2>
+<p>Just as in C#, catch the most specific exception type you actually expect (<code>DivideByZeroException</code> above), not a blanket <code>Catch ex As Exception</code> that would also hide a genuine bug you'd rather see fail loudly and get fixed.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">Why do VB.NET and C# use the exact same exception types (Exception, DivideByZeroException, etc.)?</p>

@@ -48,6 +48,15 @@
 &lt;/html&gt;</pre>
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Write link text that makes sense out of context — "View full activity log" beats "Click here." A screen reader user tabbing through a page's links hears only the link text itself, not the surrounding sentence.</li>
+<li>Never fake a list with manual <code>&lt;br&gt;</code>-separated lines when <code>&lt;ul&gt;</code>/<code>&lt;ol&gt;</code> exists — the real list tag gets you correct spacing and semantics for free.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>Reaching for <code>&lt;br&gt;</code> to add vertical space between unrelated elements is a common shortcut that breaks down fast — it's meant for line breaks <em>within</em> one logical block of text (an address, a poem), not for layout spacing between separate elements. Real spacing between elements belongs in CSS (<code>margin</code>), which you'll meet properly once you're editing real page styles.</p>
+
 <h2>Check your understanding</h2>
 
 <div class="quiz" data-type="mcq">

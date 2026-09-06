@@ -40,6 +40,9 @@ Log in exactly one place per exception. Either let it propagate unlogged to a ha
 <h2>What actually gets logged — and what doesn't</h2>
 <p>Full outbound request/response JSON payloads, generally. Exceptions, with whatever <code>customMessage</code> the author bothered to add. Row-count/no-op conditions, sometimes, as informational writes rather than errors. What's <em>not</em> guaranteed: a consistent method surface across modules (each module's <code>LogHelper</code> is different — see <a href="conv-04-logging.html">Logging</a>), or redaction of sensitive fields before logging.</p>
 
+<h2>Best practice</h2>
+<p>Before re-reading C# a third time on a "why did this silently not work" report, go straight to the log and search by the transaction's reference id or terminal id — the correlation-key convention exists specifically so you don't have to scroll chronologically.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">You find the same exception message logged twice for one transaction, with slightly different surrounding text. What should you suspect first?</p>

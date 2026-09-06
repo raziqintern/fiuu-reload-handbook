@@ -60,6 +60,12 @@ End Module</pre>
 
 <p>Compare this to the C# version in <a href="cs-04-classes.html">C# Fundamentals → Classes</a> — same three properties, same constructor logic. <code>Public Property X As T</code> is VB's equivalent of C#'s <code>public T X { get; set; }</code>; the constructor is always named <code>New</code> instead of repeating the class name; <code>Me</code> is VB's <code>this</code>.</p>
 
+<h2>Best practice</h2>
+<p>If a <code>Sub</code> starts needing to hand information back to its caller (beyond a <code>ByRef</code> parameter), that's a sign it should probably be a <code>Function</code> instead — trying to bolt a return value onto a <code>Sub</code> after the fact usually means reworking every call site anyway.</p>
+
+<h2>Better ways</h2>
+<p><code>Public Property X As T</code> auto-properties are convenient, exactly like C#'s <code>{ get; set; }</code> — but the same caution applies: if setting the property is really a meaningful action with rules attached (not just a raw field write), a real method (<code>Sub Deactivate()</code>) communicates that intent better than a property anyone can silently overwrite.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">You're reading a VB.NET class and see a method declared with <code>Sub</code>. What does that tell you?</p>

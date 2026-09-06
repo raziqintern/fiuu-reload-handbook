@@ -37,6 +37,9 @@
 The original internal vault claimed "16 separate databases." Tracing the live <code>MAINT/</code> folders directly found <strong>at least 20</strong> — the vault's 16 plus <code>EINVOICE</code> and <code>SAP</code>, both genuine, actively-patched databases with zero mentions anywhere in the team's existing 260KB schema vault. This is a useful reminder: even "official" internal documentation here can lag behind what's actually running in production — cross-check against the live <code>MAINT/</code> scripts, not just whatever doc you find first.
 </div>
 
+<h2>Best practice</h2>
+<p>Cross-check an internal architecture doc against the live <code>MAINT/</code> folders before trusting it as current — the team's own 260KB schema vault was missing two entire live databases (<code>EINVOICE</code>, <code>SAP</code>) until this handbook's own tracing found them. "Official" documentation lagging reality is a real, demonstrated risk in this specific codebase, not a hypothetical caution.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">You're trying to figure out how a specific application connects to the LOGGING database. Where should the connection string actually be, based on this codebase's real mechanism?</p>

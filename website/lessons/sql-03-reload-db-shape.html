@@ -50,6 +50,12 @@ If a merchant's reload succeeded in <code>TRANSACTION</code> but never showed up
 
 <p>One consequence worth internalising: a single business change ("add a column, and a stored proc to use it") lands as <strong>two separate files in two separate folders</strong>, tied together only by a shared ticket number in the filename. There's no single commit or PR-diff view that shows you "everything this ticket changed" the way you might expect from an application codebase.</p>
 
+<h2>Best practice</h2>
+<p>Before touching an unfamiliar table, check which database it actually lives in and what else references it — a change that looks locally correct in <code>TRANSACTION</code> can have downstream effects in <code>REPORTSUMMARY</code> or <code>DataWarehouse</code> that aren't visible from that one table alone.</p>
+
+<h2>Better ways</h2>
+<p>When a fix genuinely needs to touch both a table and a related stored procedure, note the shared ticket number in both filenames even though MAINT's folder structure keeps them physically apart (see <a href="sql-04-conventions.html">Stored Procs, MAINT &amp; NOLOCK</a>) — it's the only thing that lets a future reader reconstruct "everything this change touched" later.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">A reload transaction exists in TRANSACTION but is missing from a settlement report. Based on the data flow above, where's the most likely place to start looking?</p>

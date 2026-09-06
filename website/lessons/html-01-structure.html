@@ -71,6 +71,15 @@ When a merchant reports "the reload page looks broken", your first move is often
 &lt;/html&gt;</pre>
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Exactly one <code>&lt;h1&gt;</code> per page — it's the page's title, not a size setting. Use <code>&lt;h2&gt;</code>/<code>&lt;h3&gt;</code> for subsections, and don't skip a level just because a smaller size looks better (use CSS for that).</li>
+<li>Indent nested tags consistently. It costs nothing and it's the difference between spotting a missing closing tag in two seconds versus two minutes.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>A page built entirely from <code>&lt;div&gt;</code>s (a "div soup") works, but tells a screen reader or search engine nothing about what each part <em>is</em>. Real semantic tags — <code>&lt;header&gt;</code>, <code>&lt;nav&gt;</code>, <code>&lt;main&gt;</code>, <code>&lt;footer&gt;</code>, <code>&lt;article&gt;</code> — are just <code>&lt;div&gt;</code> with a meaning attached, and cost nothing extra to use. You'll see this distinction matter more once you're reading a real rendered page's DevTools tree.</p>
+
 <h2>Check your understanding</h2>
 
 <div class="quiz" data-type="mcq">

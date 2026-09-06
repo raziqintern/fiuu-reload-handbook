@@ -73,6 +73,15 @@ TXN-1001, TXN-1002, TXN-1003</pre>
 That covers the C# fundamentals track. Next up: <strong>VB.NET Fundamentals</strong> for comparison, then <strong>SQL</strong> and <strong>Software Design &amp; Best Practices</strong>, before <strong>Fiuu C# Conventions</strong> — the same language, but the actual patterns, naming quirks, and inconsistencies this specific codebase has. That's the track that turns "I know C#" into "I can read reload."
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Prefer LINQ (<code>.Where</code>/<code>.Select</code>/<code>.Sum</code>) over hand-written loops for filtering, transforming, and aggregating — it's shorter, and it says <em>what</em> you want instead of <em>how</em> to loop to get it.</li>
+<li>Call <code>.FirstOrDefault(...)</code>, not <code>.First(...)</code>, whenever "no match" is a real possible outcome — <code>.First()</code> throws on an empty result, <code>.FirstOrDefault()</code> returns <code>null</code>/default, matching the real reviewer complaint about unguarded <code>FirstOrDefault()</code> results in <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a>.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>Chaining <code>.Where(...).ToList()</code> and then immediately calling <code>.Select(...)</code> on the result (as in the example above) works, but each <code>.ToList()</code> forces the whole sequence to materialize before the next step runs. For a longer pipeline, skipping the intermediate <code>.ToList()</code> calls lets LINQ's lazy evaluation combine the steps more efficiently — worth knowing once you're chaining more than two or three operations together.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q"><code>transactions.Select(t =&gt; t.TransNo)</code> — what does this produce?</p>

@@ -59,6 +59,15 @@ No inline dynamic SQL, no string-built SELECT/UPDATE statements, no LINQ-to-SQL 
 There is no example anywhere in class-library of composing multiple writes into one ADO.NET transaction across Provider calls. If an operation needs "insert this, then update that" to happen atomically, that atomicity is expected to live inside a single stored procedure doing everything server-side — not orchestrated by a C# unit-of-work. If you're tempted to add a <code>TransactionScope</code> around two Provider calls to fix a consistency bug, that would be a new pattern for this codebase, not an existing one — think carefully, and check whether the real fix belongs in the stored procedure instead.
 </div>
 
+<h2>Best practice — for working inside this specific codebase</h2>
+<ul>
+<li>Never write inline dynamic SQL or a string-built query, even for a "quick" one-off — it's the one universal, zero-exception rule across every module and every data-access pattern sampled here.</li>
+<li>When adding a new Provider, pick whichever of the three coexisting patterns (<code>SqlAccessor</code>, <code>BaseProvider&lt;T&gt;</code>, or a Dapper singleton) the sibling Provider in the same module/database already uses — there's no single "correct" one to introduce fresh.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>If you're the one adding a brand-new module with no existing sibling Provider to match, Pattern 3's plain Dapper usage (typed <code>Query&lt;T&gt;</code> directly against the domain model) is the lightest-weight and closest to how a modern Dapper-based data-access layer is normally written — arguably the best of the three to default to when nothing existing constrains the choice.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">You need to find the actual query behind a bug in a value coming back from <code>AccountProvider.GetAccountModel</code>. Where do you look?</p>

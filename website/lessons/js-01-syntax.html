@@ -58,6 +58,15 @@ console.log(typeof quantity);
 console.log(typeof price);</pre>
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Default to <code>const</code>; switch to <code>let</code> only when you actually need to reassign. A codebase full of <code>const</code> tells a reader at a glance which values never change.</li>
+<li>Convert data from an external source (a form field, an API response) to its real type explicitly and immediately, right where it enters your code — don't let a "string that's secretly always a number" drift through several functions before something finally breaks on it.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p><code>Number(quantity)</code> is one of several conversion options and it's a reasonable default, but it silently returns <code>NaN</code> for genuinely invalid input rather than telling you something's wrong. For code that must actively reject bad input rather than quietly limp along with <code>NaN</code>, check <code>isNaN(...)</code> (or validate the string's shape) before trusting the converted value.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="predict" data-answer="1010">
 <p class="quiz-q">What does <code>console.log(10 + "10")</code> print? (type exactly what would appear)</p>

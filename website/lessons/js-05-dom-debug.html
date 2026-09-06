@@ -62,6 +62,15 @@ console.log("About to read a property...");
 console.log(terminal.merchantName); // this line throws</pre>
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>When something breaks, read the Console tab's <em>first</em> error before any that follow — a single root-cause error thrown early often stops later script from running, producing a cascade of confusing follow-on errors that all trace back to the first one.</li>
+<li>Reach for <code>console.table(someArray)</code> instead of <code>console.log</code> when inspecting an array of objects (like an API response) — it renders as an actual readable table instead of a wall of nested braces.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>Sprinkling <code>console.log</code> everywhere and re-running is the fastest first move, but real browser DevTools also have a proper step-through debugger: click a line number in the Sources tab to set a breakpoint, reload, and the browser pauses execution right there, letting you inspect every variable's live value without editing the code at all. Worth learning once you're debugging something console.log alone can't pin down.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">You see "Cannot read properties of undefined (reading 'merchantName')" in the console. What's the most likely cause?</p>

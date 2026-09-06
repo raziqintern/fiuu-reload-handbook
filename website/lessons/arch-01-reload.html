@@ -126,6 +126,9 @@ Don't assume "app X depends on module Y" as a blanket rule — verify it via the
 
 <p>This mirrors the reload_db-side flow from the SQL track — the application-side <code>Reloads/Terminal/Api</code> is what actually lands rows in <code>TRANSACTION</code> in the first place. Almost every step along the way reads shared reference data out of <code>CEPP</code> (the dashed connections) without that being part of the main request path itself.</p>
 
+<h2>Best practice</h2>
+<p>Verify an architectural claim against the actual <code>.csproj</code>/<code>ProjectReference</code>/<code>HintPath</code> entries before repeating it as fact — this whole topology doc exists because the natural first assumption (separate repos per app) turned out to be wrong, and the three-tier shared-library situation means "app X depends on module Y" needs a specific file citation, not a guess by module name.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">A new hire asks "which repo is the reload_portal code in?" Based on what's actually been verified, what's the accurate answer?</p>

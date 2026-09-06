@@ -54,6 +54,15 @@ param.Add("@MTransStatusId", DbType.Int32, activity.TransStatus);</pre>
 
 <p>Seen across unrelated modules (<code>MServiceTypeId</code>, <code>MSourceTypeId</code>, <code>MDeliveryStatusId</code>, <code>MRequestStageId</code>) — this one really is a house convention, not module-local. Note the model property itself sometimes drops the <code>M</code> and exposes a friendly enum name (<code>TransStatus</code>) while the raw DB parameter keeps <code>MTransStatusId</code> — the mapping is done by hand, field by field, in a <code>Get*Model(DataRow dr)</code> method (more on this in <a href="conv-05-data-access.html">Data Access</a>).</p>
 
+<h2>Best practice — for working inside this specific codebase</h2>
+<ul>
+<li>Match the file, not a textbook rule. If the file you're editing uses Hungarian prefixes, use them for your new variables too; if it doesn't, don't introduce them. Consistency <em>within a file</em> matters more here than consistency with an external standard.</li>
+<li>Always apply the <code>M</code>-prefix to a new foreign-key-into-a-lookup-table column or parameter — it's the one naming rule that's genuinely universal across this codebase, not module-local.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>If you're ever asked to clean up naming in a file you're already touching for another reason, do it in a separate, clearly-labeled commit/MR from the actual functional change — mixing a rename with real logic changes makes the diff much harder for a reviewer to verify correctness on.</p>
+
 <h2>Check your understanding</h2>
 
 <div class="quiz" data-type="mcq">

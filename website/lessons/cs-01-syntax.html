@@ -69,6 +69,15 @@ Console.WriteLine("Total: " + (amount + fee));</pre>
 Total: 25.5</pre>
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Use <code>var</code> only when the type is already obvious from the right-hand side (<code>var t = new Terminal();</code>) — not as a way to avoid thinking about types. Reload's real code declares types explicitly almost everywhere sampled.</li>
+<li>Use <code>decimal</code> for every money value without exception, including intermediate calculations — mixing <code>double</code> into a calculation that's otherwise all <code>decimal</code> reintroduces the exact rounding risk you were trying to avoid.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>String concatenation with <code>+</code> works for two or three pieces, but a longer message with many interpolated values gets hard to read fast. String interpolation (<code>$"Amount: {amount}, Fee: {fee}"</code>) scales much better and is what you'll see far more often in real, current C#.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="predict" data-answer="False">
 <p class="quiz-q">What does <code>Console.WriteLine(false)</code> print in C#? (mind the capitalization)</p>

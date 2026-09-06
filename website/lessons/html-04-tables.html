@@ -56,6 +56,12 @@
 <li>Check the <em>Console</em> tab for JavaScript errors — a thrown error often stops later script from running at all, which explains "half the page works."</li>
 </ol>
 
+<h2>Best practice</h2>
+<p>Use <code>&lt;table&gt;</code> for genuinely tabular data (rows and columns of related values) — not as a general-purpose layout tool for positioning unrelated page elements. That older "layout tables" habit predates CSS layout and actively confuses screen readers, which announce table structure as if it were meaningful data.</p>
+
+<h2>Better ways</h2>
+<p>A large real table (hundreds or thousands of transaction rows) rendered all at once will make a browser tab sluggish. Real admin screens handle this with server-side pagination or a "virtualized" list that only renders the rows currently in view — worth knowing the term for when you eventually need to explain why a report page is slow.</p>
+
 <div class="callout tip">
 <span class="callout-title">You now know enough HTML</span>
 That's the full HTML track. It's deliberately shallow — enough to read and lightly edit a rendered page, not to build one from scratch. Next up: JavaScript, which is what actually makes those pages interactive (and breaks in more interesting ways).

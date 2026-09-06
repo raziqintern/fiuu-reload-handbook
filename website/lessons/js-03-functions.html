@@ -64,6 +64,15 @@ console.log(validateReload(-5, "tng"));
 console.log(validateReload(50, null));</pre>
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Give a function one job. <code>validateReload</code> only validates — it doesn't also save the reload or send a confirmation. This is the same Single Responsibility idea you'll meet formally in <a href="design-02-solid.html">Software Design → SOLID Principles</a>, just at function scale instead of class scale.</li>
+<li>Name a function by what it does, as a verb phrase (<code>validateReload</code>, not <code>reloadStuff</code>) — the name should make a call site readable without needing to jump to the definition.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>Returning a human-readable error string works for a quick example, but doesn't scale to a real app that needs to react differently to different failures (show a specific field error, retry automatically, log differently). A common upgrade: return a small object or code (<code>{ ok: false, reason: "AMOUNT_TOO_LOW" }</code>) that calling code can branch on programmatically, and translate to user-facing text only at the very end, near the UI.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">A variable declared with <code>let</code> inside a function — where can it be read from?</p>

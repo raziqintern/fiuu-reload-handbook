@@ -75,6 +75,9 @@ Console.WriteLine("MYR " + amountInCents.ToString("N2"));</pre>
 Whenever a value crosses a partner boundary (amount, date, timestamp), check the unit/format <em>the partner</em> expects or sends — not what's convenient internally. Cents-vs-ringgit and date-only-vs-datetime are both real, previously-shipped bugs in this exact codebase, not hypothetical warnings.
 </div>
 
+<h2>Best practice</h2>
+<p>Treat every pattern on this page as a checklist item when reviewing a diff in an unfamiliar part of this codebase, not just trivia — a dropdown reset to its placeholder, a value crossing a partner boundary, an unused function about to be deleted. Recognising the shape is what turns "this looks fine to me" into "wait, isn't this the same thing that broke in #2190?"</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">A report scheduler was changed to remove its row limit, "since we want all the data now." What should a reviewer flag, based on real review history?</p>

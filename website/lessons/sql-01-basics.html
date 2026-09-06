@@ -63,6 +63,15 @@ Leave off the <code>WHERE</code> clause on an <code>UPDATE</code> or <code>DELET
 SELECT * FROM Terminals WHERE MStatusId = 1;</pre>
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Never write <code>UPDATE</code> or <code>DELETE</code> without a <code>WHERE</code> clause already typed — some teams enforce this by running ad hoc updates inside a transaction you can roll back if the affected-row count looks wrong, before committing.</li>
+<li>Name columns explicitly in a real <code>SELECT</code> instead of <code>*</code> — it documents exactly what the query actually needs, and doesn't silently break if someone adds a new column later.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>For anything beyond a one-off exploratory query, wrap the change in an explicit transaction (<code>BEGIN TRAN</code> / <code>COMMIT</code> / <code>ROLLBACK</code> in SQL Server) so you can verify the affected row count before making it permanent — the safety net a bare <code>UPDATE</code> doesn't give you.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">What does running <code>UPDATE Terminals SET MStatusId = 0;</code> with no <code>WHERE</code> clause do?</p>

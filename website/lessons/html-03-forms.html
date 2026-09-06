@@ -55,6 +55,15 @@
 When a "reload failed" ticket comes in, one of the first things to check is: did the form actually send the field the server expected? A mismatched <code>name</code> attribute, or a field disabled by JavaScript (disabled fields aren't submitted at all), is a classic silent-failure cause you can spot in seconds with DevTools' Network tab, before touching any server code.
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li>Always pair an input with a real <code>&lt;label&gt;</code>, linked by matching <code>for</code>/<code>id</code> — it's what makes the label clickable to focus the field, and it's what a screen reader announces when the field gets focus.</li>
+<li>Set sensible HTML-level constraints (<code>min</code>, <code>max</code>, <code>required</code>) as a first line of defense for user experience — but never as the only validation. They're trivially bypassed by anyone calling the API directly.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>Client-side constraints improve the experience for a well-behaved browser user; they do nothing for a malicious or buggy API caller who skips the form entirely. The actual security/correctness boundary has to be server-side — exactly why reload validates again at the C# layer (<a href="cs-03-methods.html">C# Fundamentals → Methods &amp; Parameters</a>'s <code>ValidateReload</code> example) regardless of what the form already checked.</p>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">A checkbox field is missing from the data the server receives when a form is submitted. What's the most likely HTML-side cause?</p>
