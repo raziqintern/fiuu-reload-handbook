@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/configuration]
+---
+
 # CONFIGURATION
 
 **Database:** `CONFIGURATION` · **Schema:** `dbo` only · **Tables:** 3 ·
@@ -34,3 +38,9 @@ FK-by-convention into `CEPP.dbo.Country`, rather than being read from CEPP).
 ## Drift vs. vault
 
 None found — table list and shapes matched the vault exactly.
+
+## Related
+
+- [[conventions/configuration-and-secrets]] — mechanism #2, the `AWSCore.Providers.ConfigurationProvider` that reads this database by config-group name
+- [[architecture/reload/class-library/awscore]] — the module confirmed calling `CONFIGURATION.dbo.ConfigDetails_Sel_ByConfigName`
+- [[architecture/reload_db/rms-offline]] — the separate, near-identical `Config`/`ConfigDetails` pair duplicated in that database

@@ -1,3 +1,8 @@
+---
+tags: [gitlab-analysis, repo/reload]
+aliases: ["Reload Tribal Knowledge"]
+---
+
 # Reload — Tribal Knowledge
 
 Synthesized from the full issue history of `offline-teams/reload` on git2u.fiuu.com
@@ -291,3 +296,11 @@ incidents, ~15 `Type::bug`/high-severity issues. `Patch Request` (445) and
 `Variance` (205) analysis is keyword/title-pattern-based across the full set,
 not a full read of every ticket body — the citations above are representative
 examples pulled from those patterns, not the complete list of every occurrence.
+
+## Related
+
+- [[architecture/reload/class-library/reloads-pin]] — the Pin/Pinless split behind §2.3
+- [[architecture/reload/class-library/reloads-tng-game]] — the TNG crypto/session-leak incident, §2.6
+- [[architecture/reload/class-library/reloads-restorify]] — the carbon-offset product line named in §5
+- [[gitlab-analysis/reload-mr-review-checklist]] — the double-exception-logging complaint (§2.8) traced to specific MRs
+- [[gitlab-analysis/reload-timeline]] — chronological view of the same incidents and migrations

@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/einvoice]
+---
+
 # EINVOICE
 
 **Database:** `EINVOICE` · **Schemas:** `TRANS` (data), `dbo` (reporting
@@ -80,3 +84,10 @@ not confirmed) relationship to `SAP`.
   not resolved from the schema alone. The two `Submissions` tables (this one
   and SAP's) look parallel rather than linked by any visible FK-by-convention
   column.
+
+## Related
+
+- [[architecture/reload/class-library/einvoice]] — the `EInvoice/Core` application code that submits to this database
+- [[architecture/reload/diagrams/einvoice-submission-flow]] — the traced scheduled-batch submission sequence
+- [[architecture/reload_db/sap]] — the parallel `TRANS.Submissions` table this doc's open question compares against
+- [[architecture/reload_db/vault-drift-notes]] — this database's complete absence from the original vault (§1)

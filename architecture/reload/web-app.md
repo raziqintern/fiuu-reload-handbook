@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture]
+---
+
 # `web_app` → `BackOffice/Web`
 
 See [`00-topology.md`](00-topology.md) §3 — no folder is literally named `web_app`. The
@@ -71,3 +75,10 @@ absence of such a page somewhere else.
 - No direct partner integration code was found in this project itself; any partner
   calls it triggers would go through `Components/CEPP` service classes, same as the
   API (see [`web-api.md`](web-api.md)).
+
+## Related
+
+- [[architecture/reload/reload-portal]] — the open question of whether "reload_portal" refers to this same app
+- [[architecture/reload/class-library/cepp]] — the domain layer this portal's dealer/store/terminal admin pages sit on top of
+- [[architecture/reload/class-library/lookup]] — the direct source-level `Fiuu.Lookup` dependency confirmed above
+- [[gitlab-analysis/reload-tribal-knowledge]] — the validator-scope bugs (§2.1, §2.2) specific to this WebForms portal

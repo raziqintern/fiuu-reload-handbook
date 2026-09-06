@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/transaction, diagram]
+---
+
 # TRANSACTION — ER diagrams
 
 144+ tables across 19+ schemas (vault says 144 tables / 14 schemas — both

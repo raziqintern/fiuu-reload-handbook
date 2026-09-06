@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/secure]
+---
+
 # Secure (Astro, Incomm, Telekom)
 
 **Source:** `reload/class-library/Secure/{Astro,Incomm,Telekom}` — three independent
@@ -62,3 +66,9 @@ these three depending on `AWSCore` — was confirmed). Given the naming, the mos
 likely direct consumer is `Components/CEPP/Payment/*` (the per-partner payment
 sub-projects) and/or the terminal socket server's `MessageHandlers`, but this is
 inference, not a traced call chain.
+
+## Related
+
+- [[architecture/reload/class-library/awscore]] — the confirmed shared dependency behind the "Secure" naming pattern
+- [[architecture/reload/diagrams/giftcard-incomm-flow]] — the live HTTP+JSON INCOMM path this module's ISO 8583 stand-in path is an alternative to
+- [[architecture/reload/class-library/cepp]] — the INCOMM payment sub-project that plausibly consumes this module's `ActivationStandInService`

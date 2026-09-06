@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/lookup]
+---
+
 # Lookup
 
 **Source:** `reload/web/DEV/NET/Components/Lookup` (32 tracked files,
@@ -33,3 +37,10 @@ profiles, application registry, and wallet limits per account type.
   `Components/Lookup/Fiuu.Lookup.csproj` (source-level, not the DLL) — see
   [`../web-app.md`](../web-app.md). So the same logical module is consumed two
   different ways by two different callers; not unified.
+
+## Related
+
+- [[architecture/reload/class-library/cepp]] — the confirmed `HintPath` consumer of `Fiuu.Lookup.dll`
+- [[architecture/reload/class-library/masterframework]] — the DI/caching mechanism this module's `DependencyRegistrar`/`Caching.cs` plug into
+
+Note: this module's `LookupCodes`/`Region`/`Country` models plausibly correspond to either `CEPP.dbo.LookupCodes`/`Regions` or the separate `MLookUp` database (see [[architecture/reload_db/mlookup]], which explicitly warns these are physically distinct tables) — which one `Fiuu.Lookup` actually queries wasn't confirmed in this pass, so no link is asserted here to avoid guessing.

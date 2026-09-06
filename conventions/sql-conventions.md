@@ -1,3 +1,7 @@
+---
+tags: [conventions]
+---
+
 # SQL-side Conventions (`reload_db/MAINT`)
 
 ## Folder structure: one folder per database, one subfolder per object type
@@ -179,3 +183,11 @@ The header names an author and date but the "why these specific dealers"
 context lives only in the linked ticket (RMSO-30, from the filename) — the
 script itself is not self-explanatory, and there's no corresponding rollback
 script alongside it.
+
+## Related
+
+- [[architecture/reload_db/patch-script-conventions]] — the folder-level (MAINT tree) versioning story this doc's per-object-file naming sits inside
+- [[conventions/naming]] — the `M`-prefix and C#-side naming this SQL naming mirrors
+- [[conventions/data-access]] — how the C# side calls these stored procedures by generated constant
+- [[conventions/comment-style]] — the SSMS-template header block seen on nearly every procedure here
+- [[gitlab-analysis/reload_db-mr-review-checklist]] — how reviewers actually enforce (or don't) these naming conventions

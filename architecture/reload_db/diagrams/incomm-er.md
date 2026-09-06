@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/incomm, diagram]
+---
+
 # INCOMM — ER diagram
 
 14 tables, one `dbo` schema.

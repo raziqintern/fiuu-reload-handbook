@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/cepp]
+---
+
 # CEPP
 
 **Database:** `CEPP` · **Schema:** `dbo` only · **Tables:** 84 current (83 per
@@ -127,3 +131,11 @@ See `vault-drift-notes.md` §1–2: `PublicHolidays` is missing from the vault;
 5 filenames in `CEPP/Table/` (`Packages`, `PackageProducts`, `StorePackages`,
 `StoreServices`, `DealerProductGroups`) are drop-scripts for already-removed
 tables and the vault correctly excludes them.
+
+## Related
+
+- [[architecture/reload/class-library/cepp]] — the `Fiuu.CEPP` component that is the domain layer over this database
+- [[architecture/reload_db/diagrams/cepp-er]] — the clustered ER diagrams for this module
+- [[architecture/reload_db/restorify]] — the `MasterServiceProducts.RestorifyProjectId` cross-database link
+- [[architecture/reload_db/sap]] — the `DealerGroupSAPItemCode` SAP item-code mapping living in this database
+- [[gitlab-analysis/reload_db-tribal-knowledge]] — CEPP's #2 ranking by patch/MR traffic in this estate

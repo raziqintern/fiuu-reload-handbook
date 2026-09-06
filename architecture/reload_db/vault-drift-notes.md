@@ -1,3 +1,8 @@
+---
+tags: [reload_db/architecture]
+aliases: ["Vault Drift Notes"]
+---
+
 # Vault vs. live MAINT scripts — drift notes
 
 The existing Obsidian vault (`Fiuu_Reload_DB_Vault_Code/`) is a solid,
@@ -130,3 +135,10 @@ sample of `Table/*.sql` baselines per module while writing each module doc,
 and matched what the vault/DBML claimed in every sample taken. Treat the
 vault's relationship data for those modules with the same "strong hint, not
 proof" confidence the `reload-db-schema` skill already recommends.
+
+## Related
+
+- [[architecture/reload_db/00-overview]] — the corrected estate summary (20 databases, not 16)
+- [[architecture/reload_db/cepp]] — the missing `PublicHolidays` table (§2)
+- [[architecture/reload_db/einvoice]] and [[architecture/reload_db/sap]] — the two databases missing from the vault entirely (§1)
+- [[architecture/reload_db/notification]] — the "no `StoredProcedure/` folder" finding (§4)

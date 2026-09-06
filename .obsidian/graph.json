@@ -1,0 +1,58 @@
+{
+  "collapse-filter": true,
+  "search": "",
+  "showTags": true,
+  "showAttachments": false,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "tag:#reload/architecture",
+      "color": {
+        "a": 1,
+        "rgb": 4634832
+      }
+    },
+    {
+      "query": "tag:#reload_db/architecture",
+      "color": {
+        "a": 1,
+        "rgb": 3107669
+      }
+    },
+    {
+      "query": "tag:#conventions",
+      "color": {
+        "a": 1,
+        "rgb": 15105570
+      }
+    },
+    {
+      "query": "tag:#gitlab-analysis",
+      "color": {
+        "a": 1,
+        "rgb": 9109759
+      }
+    },
+    {
+      "query": "tag:#glossary",
+      "color": {
+        "a": 1,
+        "rgb": 3050327
+      }
+    }
+  ],
+  "collapse-display": true,
+  "showArrow": false,
+  "textFadeMultiplier": 0,
+  "nodeSizeMultiplier": 1,
+  "lineSizeMultiplier": 1,
+  "collapse-forces": false,
+  "centerStrength": 0.5,
+  "repelStrength": 10,
+  "linkStrength": 1,
+  "linkDistance": 250,
+  "scale": 1,
+  "close": false
+}

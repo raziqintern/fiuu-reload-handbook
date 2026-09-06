@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/logging, diagram]
+---
+
 # LOGGING — ER diagram
 
 1 table, one `dbo` schema — the smallest database in the estate.

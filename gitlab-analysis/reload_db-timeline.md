@@ -1,3 +1,8 @@
+---
+tags: [gitlab-analysis, repo/reload_db]
+aliases: ["reload_db Timeline"]
+---
+
 # `reload_db` — Timeline
 
 Chronological reconstruction from the full issue/MR metadata pull of
@@ -140,3 +145,9 @@ whole period at roughly the cadence implied by their issue counts (14–32
 issues each over ~3.5 years). Any architectural narrative from the
 `reload` (application) side that isn't reflected in a `reload_db` MR/issue
 is out of scope for this doc.
+
+## Related
+
+- [[gitlab-analysis/reload_db-tribal-knowledge]] — full detail on the bigint migration and GIT#441 saga summarized here
+- [[gitlab-analysis/reload-timeline]] — the parallel application-side timeline
+- [[architecture/reload_db/00-overview]] — the estate this timeline tracks changes against

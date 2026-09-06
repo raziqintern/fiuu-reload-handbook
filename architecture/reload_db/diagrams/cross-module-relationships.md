@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, diagram]
+---
+
 # Cross-module relationships
 
 The handful of tables that actually get referenced *across* database

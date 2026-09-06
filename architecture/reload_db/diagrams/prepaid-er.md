@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/prepaid, diagram]
+---
+
 # PREPAID — ER diagram
 
 4 tables, one `dbo` schema.

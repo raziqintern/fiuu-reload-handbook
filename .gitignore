@@ -1,9 +1,11 @@
 # Raw API dumps — large, regenerable, may contain sensitive ticket detail
 gitlab-analysis/raw/
 
-# Obsidian local workspace state
-obsidian-vault/.obsidian/workspace*
-obsidian-vault/.obsidian/cache
+# Obsidian local workspace state — the repo root is the vault (see
+# obsidian-vault/README.md). Shared config (plugins, appearance, graph) is
+# tracked; per-machine window layout/cache is not.
+.obsidian/workspace*
+.obsidian/cache
 
 # Office temp files
 exports/~$*.docx

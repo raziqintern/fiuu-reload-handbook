@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/masterframework]
+---
+
 # MasterFramework
 
 **Source:** `reload/web/DEV/NET/Components/MasterFramework` (149 tracked files,
@@ -58,3 +62,9 @@ module either references `Fiuu.MasterFramework` directly or transitively depends
 something that does. Confirmed direct references: `BackOffice/Web`,
 `Reloads/Terminal/Api` (both via legacy `HintPath`), `CEPP`, `Lookup`, `Provider`
 (via `Fiuu.MasterFramework.Database`), and every service class using `EngineContext`.
+
+## Related
+
+- [[conventions/layering-and-architecture]] — the `EngineContext`/service-locator DI pattern this module implements
+- [[architecture/reload/class-library/provider]] — the `SqlAccessor`/`ParameterCollection` data-access helpers that live in this module's `Data`/`Database` subfolder
+- [[architecture/reload/class-library/cepp]] — the busiest confirmed consumer of this module

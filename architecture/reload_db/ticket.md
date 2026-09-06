@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/ticket]
+---
+
 # TICKET
 
 **Database:** `TICKET` · **Schemas:** `Ticket2U`, `TRANS` · **Tables:** 3 ·
@@ -28,3 +32,8 @@ for dealer/store/terminal/`TerminalServiceProduct` identity.
 
 None found — table list and shapes matched the vault exactly (smallest
 module surveyed, easiest to fully verify).
+
+## Related
+
+- [[architecture/reload_db/bill-payment]] — the other module independently reusing the same `TRANS.PaymentOrders`/`PaymentTransactions` shape
+- [[architecture/reload_db/transaction]] — the `ApiTicketTransactions` staging table this database receives from

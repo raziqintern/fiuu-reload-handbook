@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/bill-payment]
+---
+
 # BILL_PAYMENT
 
 **Database:** `BILL_PAYMENT` · **Schemas:** 19 (`TRANS` + 18 biller/partner
@@ -64,3 +68,11 @@ biller). Feeds `REPORTSUMMARY` (`BillPaymentBillerReport`/
 `BillPaymentSettlementReport`, plus the per-biller report mirrors like
 `REPORTSUMMARY.dbo.ASTROBillPayment`). References `CEPP` for
 dealer/store/terminal/`TerminalServiceProduct` identity throughout.
+
+## Related
+
+- [[architecture/reload_db/transaction]] — the staging side (`ApiBillPaymentTransactions`) feeding this database
+- [[architecture/reload_db/reportsummary]] — the settlement/billing reports this database feeds
+- [[architecture/reload_db/ticket]] — the other module reusing the same `TRANS.PaymentOrders`/`PaymentTransactions` shape independently
+- [[architecture/reload_db/diagrams/bill-payment-er]] — the clustered ER diagrams for this module
+- [[gitlab-analysis/reload_db-tribal-knowledge]] — BILL_PAYMENT's ranking (#4) by patch/MR traffic

@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/tng, diagram]
+---
+
 # Sequence: TNG e-wallet card transaction (via Terminal API)
 
 Traced from real code, not assumed. Primary sources:
@@ -60,3 +64,10 @@ sequenceDiagram
     API->>API: map ErrorCode -> RespCode via ToResponseCode(...)
     API-->>Terminal: 200 OK { TNGCardTransactionResponse }
 ```
+
+## Related
+
+- [[architecture/reload/class-library/reloads-tng-game]] — the `class-library/Reloads/TNG` component this flow calls into
+- [[architecture/reload/class-library/cepp]] — the Terminal/Store/Dealer/Commission lookups this flow depends on
+- [[architecture/reload/web-api]] — the `TNGController` entry point and custom auth scheme
+- [[gitlab-analysis/reload-tribal-knowledge]] — the TNG crypto/session-leak incident (§2.6) affecting this same transaction path

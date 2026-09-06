@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/einvoice]
+---
+
 # EInvoice
 
 **Source:** `reload/web/DEV/NET/Applications/EInvoice/Core` (34 tracked files,
@@ -63,3 +67,9 @@ MyInvois, or a direct partner integration. Not resolved further in this pass.
 - Not confirmed whether `Reloads/Terminal/Api` or `BackOffice/Web` call into this
   module directly for real-time submission versus only the scheduler doing batch
   submission — flagged as follow-up.
+
+## Related
+
+- [[architecture/reload_db/einvoice]] — the `EINVOICE` database this module submits to
+- [[architecture/reload/diagrams/einvoice-submission-flow]] — the traced batch-submission sequence diagram
+- [[architecture/reload/class-library/awscore]] — the unresolved secrets-mechanism question also flagged here

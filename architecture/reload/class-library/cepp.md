@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/cepp]
+---
+
 # CEPP
 
 **Source:** `reload/web/DEV/NET/Components/CEPP` (1,551 tracked files — by far the
@@ -77,3 +81,10 @@ definitions directly).
   `Fiuu.Reloads.BillPayment.csproj`) — see [`../web-app.md`](../web-app.md).
 - `MOLReloads/Core` (`Fiuu.Reloads` — `TNGService`, `GiftCardService`) builds its
   orchestration directly on top of CEPP's services/providers.
+
+## Related
+
+- [[architecture/reload_db/cepp]] — the `CEPP` database this component is the domain layer over
+- [[architecture/reload/class-library/lookup]] — the `Fiuu.Lookup.dll` dependency confirmed above
+- [[architecture/reload/class-library/masterframework]] — the DI container (`EngineContext`) and logging plumbing this module builds on
+- [[architecture/reload/diagrams/giftcard-incomm-flow]] — the INCOMM payment sub-project's traced sequence diagram

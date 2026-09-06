@@ -1,3 +1,8 @@
+---
+tags: [gitlab-analysis, repo/reload]
+aliases: ["Reload MR Review Checklist"]
+---
+
 # Reload — MR Review Checklist
 
 Grounded in actual reviewer comments pulled from the 24 highest-discussion merge
@@ -266,3 +271,9 @@ patterns above are drawn from the earliest ~300 comments on those three, not
 their full threads. The other 21 MRs' threads were pulled in full or nearly
 full. This is a real, cited sample, not an exhaustive read of every review
 comment in the project's history.
+
+## Related
+
+- [[conventions/naming]] — the datatype-prefix convention khenggek enforces (§A1)
+- [[conventions/known-patterns-and-pitfalls]] — the double-exception-logging pattern (§A3) also called out there
+- [[gitlab-analysis/reload-tribal-knowledge]] — the underlying bugs/incidents behind several of these review comments (§A5, §B1)

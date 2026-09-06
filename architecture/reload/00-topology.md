@@ -1,3 +1,8 @@
+---
+tags: [reload/architecture]
+aliases: ["Reload Topology"]
+---
+
 # Topology: what's actually on disk vs. what we assumed
 
 This doc replaces assumption with verification. Everything below was checked directly
@@ -245,3 +250,10 @@ At the time of this pass, `reload`'s working tree had 3 uncommitted local
 modifications (`class-library` submodule pointer, `BackOffice/Web/Web.config`,
 `BackOffice/Web/WebForms/ProductEdit.aspx`) — noted for completeness, not treated as
 architecturally meaningful since it just reflects whoever's local dev state at the time.
+
+## Related
+
+- [[architecture/reload/01-overview]] — the system-level summary built on top of this trace
+- [[architecture/reload/reload-portal]] — the open question this doc flags (§3) about a possible second portal codebase
+- [[architecture/reload_db/00-overview]] — the `reload_db` estate referenced in §6
+- [[conventions/configuration-and-secrets]] — expands on the connection-string/secrets mechanisms traced in §7

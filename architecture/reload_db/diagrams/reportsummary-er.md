@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/reportsummary, diagram]
+---
+
 # REPORTSUMMARY - ER diagram
 
 40 tables, one `dbo` schema. Grouped by the channel/feature clusters used in

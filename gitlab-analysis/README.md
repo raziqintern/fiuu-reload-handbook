@@ -1,3 +1,8 @@
+---
+tags: [gitlab-analysis]
+aliases: ["GitLab Analysis Index"]
+---
+
 # GitLab Analysis
 
 Synthesis from the full issue/MR history of `offline-teams/reload` and
@@ -32,3 +37,9 @@ Status:
   issues + 1,835 MRs, 2022-08-30 → 2026-09-04. Three synthesis docs above
   are done, based on full metadata + a discussion-weighted sample of ~30
   MRs' full thread content (see each doc's coverage note).
+
+## Related
+
+- [[gitlab-analysis/reload-tribal-knowledge]] and [[gitlab-analysis/reload_db-tribal-knowledge]] — the two per-repo synthesis docs
+- [[architecture/README]] — the traced architecture these findings sit on top of
+- [[conventions/README]] — coding conventions vs. what reviewers actually enforce

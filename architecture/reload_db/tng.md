@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/tng]
+---
+
 # TNG
 
 **Database:** `TNG` · **Schema:** `dbo` only · **Tables:** 22 ·
@@ -59,3 +63,11 @@ TNG is one of the few provider integrations where the provider-database
 tables and `TRANSACTION`-side tables share near-identical names and shapes).
 Feeds `REPORTSUMMARY` (`TNGBillerReport`/`TNGSettlementReport`). References
 `CEPP` for the hardware/account registration side noted above.
+
+## Related
+
+- [[architecture/reload/class-library/reloads-tng-game]] — the `class-library/Reloads/TNG` component that reads/writes this database
+- [[architecture/reload/diagrams/tng-reload-flow]] — the traced e-wallet card transaction sequence
+- [[architecture/reload_db/cepp]] — the hardware/account-provisioning half of TNG (§"Terminal Hardware & TNG")
+- [[gitlab-analysis/reload_db-tribal-knowledge]] — TNG's #3 ranking by patch/MR traffic
+- [[gitlab-analysis/reload-tribal-knowledge]] — the TNG crypto/session-resource-leak incident (§2.6)

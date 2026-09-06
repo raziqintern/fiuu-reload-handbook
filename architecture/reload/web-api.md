@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture]
+---
+
 # `web_api` → `Reloads/Terminal/Api` (+ `BackOffice/Api`)
 
 See [`00-topology.md`](00-topology.md) — there is no folder literally named `web_api`.
@@ -118,3 +122,10 @@ no literal connection strings exist in this repo to cite.
 but has **zero tracked files at HEAD** — it's removed/dead code with only leftover
 local build artifacts. See [`00-topology.md`](00-topology.md) §5. Do not confuse this
 with the live `BackOffice/Api` documented above.
+
+## Related
+
+- [[architecture/reload/class-library/cepp]] — the `Fiuu.CEPP`/`MOLReloads/Core` business layer these controllers call into
+- [[architecture/reload/diagrams/tng-reload-flow]] and [[architecture/reload/diagrams/giftcard-incomm-flow]] — sequence diagrams traced through `TNGController`/`GiftCardController`
+- [[architecture/reload/terminal-application]] — the legacy socket-server counterpart to this REST API
+- [[gitlab-analysis/reload-mr-review-checklist]] — the merchant-timestamp and partner-spec review rules (§A4, §A5) that apply directly to these controllers

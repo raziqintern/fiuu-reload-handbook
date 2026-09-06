@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/logging]
+---
+
 # Logging
 
 **Source:** `reload/web/DEV/NET/Components/Logging` (39 tracked files,
@@ -40,3 +44,9 @@ either this or its legacy vendored equivalent — it is the most universally-dep
 module in the codebase (confirmed via the `Logger.WriteErrorToEventLogs` call sites
 seen across `CEPP`, `TNGService`, `GiftCardService`, `EInvoiceSecureProvider`,
 `InCommSecureProvider`, and the WebForms/console app config files).
+
+## Related
+
+- [[conventions/logging]] — the `LogHelper` wrapper patterns built on top of this component
+- [[architecture/reload/class-library/cepp]] — one of the many confirmed `Logger.WriteErrorToEventLogs` call sites
+- [[architecture/reload/class-library/masterframework]] — the sibling cross-cutting technical module this one sits alongside

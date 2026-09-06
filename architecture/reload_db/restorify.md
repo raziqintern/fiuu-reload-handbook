@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/restorify]
+---
+
 # RESTORIFY
 
 **Database:** `RESTORIFY` · **Schemas:** `dbo`, `STACS`, `TRANS` ·
@@ -70,3 +74,9 @@ though no RESTORIFY-specific report table was found in `REPORTSUMMARY`
 (unlike TNG/BillPayment/Incomm, which each have a named `*Report` table
 there) — worth treating as an open question rather than assumed-absent,
 since it wasn't exhaustively ruled out.
+
+## Related
+
+- [[architecture/reload/class-library/reloads-restorify]] — the `Fiuu.Reloads.Restorify` application code this database backs
+- [[architecture/reload_db/cepp]] — the `MasterServiceProducts.RestorifyProjectId` cross-database link
+- [[architecture/reload_db/transaction]] — the `ApiCarbonCalculatorTransactions`/`ApiCarbonOffsetTransactions` staging tables this database receives from

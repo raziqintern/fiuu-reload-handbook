@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/datawarehouse]
+---
+
 # DataWarehouse
 
 **Database:** `DataWarehouse` · **Schema:** `dbo` only · **Tables:** 11 ·
@@ -53,3 +57,9 @@ Fed from `CEPP` (dealer/product master data via the merge procedures) and
 `SQLAgentJob/rmsp-dw/[0200]DAILY.SALES.SYNC.sql` and
 `[30Mins]DAILY.STOCK.SYNC.sql` running on what looks like a dedicated
 data-warehouse sync server (the `rmsp-dw` subfolder name).
+
+## Related
+
+- [[architecture/reload_db/reportsummary]] — the settlement/billing aggregation this star schema is fed from
+- [[architecture/reload_db/cepp]] — the master-data source for the dimension tables
+- [[architecture/reload_db/00-overview]] — where this database sits at the end of the transactional flow

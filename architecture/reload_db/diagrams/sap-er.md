@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/sap, diagram]
+---
+
 # SAP — ER diagram
 
 2 tables, `TRANS` schema. **Entirely missing from the vault** — this diagram

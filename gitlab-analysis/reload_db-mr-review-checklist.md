@@ -1,3 +1,8 @@
+---
+tags: [gitlab-analysis, repo/reload_db]
+aliases: ["reload_db MR Review Checklist"]
+---
+
 # `reload_db` — MR Review Checklist
 
 Derived from what reviewers **actually** flagged, repeatedly, across a
@@ -193,3 +198,9 @@ used:
 - [ ] If a join/query strategy changed for performance reasons: a
       before/after timing comparison, not just an assertion that it's
       faster.
+
+## Related
+
+- [[gitlab-analysis/reload_db-tribal-knowledge]] — the bigint migration (§2) and GIT#441 saga (§3) these review patterns come from
+- [[architecture/reload_db/patch-script-conventions]] — the file-naming/numbering conventions behind §2's findings
+- [[conventions/sql-conventions]] — `NOLOCK`, stored-procedure naming, and other DB-side conventions referenced throughout

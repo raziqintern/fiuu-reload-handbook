@@ -1,3 +1,8 @@
+---
+tags: [reload/architecture]
+aliases: ["Reload Overview"]
+---
+
 # Reload application solution — overview
 
 See [`00-topology.md`](00-topology.md) first — it corrects several assumptions about
@@ -161,3 +166,11 @@ citations):
   [`00-topology.md`](00-topology.md) §4).
 - `power_bi/` and `powershell/` — confirmed empty, nothing to trace.
 - Any second "reload_portal" codebase — see [`reload-portal.md`](reload-portal.md).
+
+## Related
+
+- [[architecture/reload/00-topology]] — the verification pass this overview is built on
+- [[architecture/reload/class-library/reloads-restorify]] — the carbon-offset product line mentioned above (naming correction)
+- [[architecture/reload/class-library/awscore]] — the partner-secrets mechanism behind the roster listed above
+- [[architecture/reload_db/00-overview]] — the database estate this application talks to
+- [[gitlab-analysis/reload-tribal-knowledge]] — recurring bug classes across the components diagrammed here

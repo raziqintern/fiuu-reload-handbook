@@ -1,3 +1,8 @@
+---
+tags: [conventions]
+aliases: ["Conventions Index"]
+---
+
 # Coding Conventions
 
 Fiuu has no documented coding standard for this codebase (`CONTRIBUTING.md` in
@@ -29,3 +34,9 @@ speculative and flagged as such where they occur; revisit once those repos
 are populated.
 
 Status: first sampling pass complete.
+
+## Related
+
+- [[conventions/known-patterns-and-pitfalls]] — the recurring smells that tie all the docs above together
+- [[architecture/reload/01-overview]] — the codebase these conventions were reverse-engineered from
+- [[gitlab-analysis/reload-mr-review-checklist]] — what reviewers actually enforce, vs. what's documented here

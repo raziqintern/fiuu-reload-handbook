@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/einvoice, diagram]
+---
+
 # Sequence: EInvoice end-customer submission (scheduled batch job)
 
 Unlike the other two diagrams, this flow is **not** triggered by a live terminal
@@ -83,3 +87,9 @@ A separate scheduled operation, `Hourly_EInvoiceRetry`
 (`EInvoiceServiceLocator.ApiService.Retry()`), exists alongside this for retrying
 failed submissions — its body was not read in this pass, but its existence confirms
 there's a retry mechanism distinct from the initial submission path shown above.
+
+## Related
+
+- [[architecture/reload/class-library/einvoice]] — the `EInvoice/Core` component this flow is built from
+- [[architecture/reload_db/einvoice]] — the `EINVOICE` database whose `TRANS.Submissions`/`Invoices` this flow writes to
+- [[gitlab-analysis/reload-tribal-knowledge]] — the ongoing monthly resubmission-patch pattern (§5) for this same integration

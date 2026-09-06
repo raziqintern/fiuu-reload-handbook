@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/restorify, diagram]
+---
+
 # RESTORIFY — ER diagram
 
 22 tables across `dbo`, `STACS`, `TRANS`.

@@ -1,3 +1,8 @@
+---
+tags: [reload/architecture, reload_db/architecture]
+aliases: ["Architecture Index"]
+---
+
 # Architecture
 
 Traced (not assumed) architecture for both halves of the system.
@@ -15,3 +20,10 @@ Status:
   "reload_portal" codebase was found distinct from the `web_app`/`BackOffice.Web`
   portal — needs a human answer.
 - `reload_db/` — pending first broad pass.
+
+## Related
+
+- [[architecture/reload/01-overview]] — reload application solution overview
+- [[architecture/reload_db/00-overview]] — reload_db database estate overview
+- [[conventions/README]] — coding conventions derived from this same codebase
+- [[gitlab-analysis/README]] — GitLab issue/MR synthesis for both repos

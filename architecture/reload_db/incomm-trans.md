@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/incomm-trans]
+---
+
 # INCOMM_TRANS
 
 **Database:** `INCOMM_TRANS` · **Schema:** `dbo` only · **Tables:** 10 ·
@@ -41,3 +45,9 @@ Tightly coupled to `INCOMM` (shared domain, same `ProductId`/`DealerId`/
 `StoreId`/`TerminalId` shape, `IncommProductId` FK from `EndOfDayDetails`).
 Receives from `TRANSACTION.dbo.ApiGiftCardTransactions`. References `CEPP`
 for dealer/store/terminal/product identity throughout.
+
+## Related
+
+- [[architecture/reload_db/incomm]] — the tightly-coupled partner-API-side database
+- [[architecture/reload_db/transaction]] — the `ApiGiftCardTransactions` staging table this database receives from
+- [[architecture/reload/diagrams/giftcard-incomm-flow]] — the traced initiate/confirm sequence this database's activation flow backs

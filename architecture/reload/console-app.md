@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture]
+---
+
 # `console_app` — a family of background-job apps, not one app
 
 See [`00-topology.md`](00-topology.md) §3. There is no single "console_app" project;
@@ -86,3 +90,9 @@ current per-module homes under `Applications/*` directly, and the umbrella folde
 deleted from git but not cleaned up locally. Treat the current per-module locations in
 the tables above as the live versions; do not reference `Applications/CEPP/*` as
 current anywhere.
+
+## Related
+
+- [[architecture/reload/00-topology]] — the dead-folder verification (§5) behind the "don't reference `Applications/CEPP/*`" warning
+- [[architecture/reload/class-library/reloads-tng-game]] — the `Fiuu.Reloads.TNG`/`Fiuu.Reloads.Game` dependency confirmed for several schedulers
+- [[architecture/reload_db/sap]] — the database the standalone `Applications/SAP` tool most likely posts to

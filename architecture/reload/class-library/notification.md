@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/notification]
+---
+
 # Notification (bonus doc — not in the original module list, but named as a
 prebuilt `class-library` DLL)
 
@@ -58,3 +62,8 @@ email alert seen inline in `GiftCardService.SendEmailReport(...)`
 simpler** ad-hoc `Mail` class directly rather than this Notification module —
 suggesting the Notification service is not universally used even where an email alert
 is needed. Flagged as inconsistent usage, not confirmed as a rule.
+
+## Related
+
+- [[architecture/reload_db/notification]] — the `NOTIFICATION` database this service owns, confirmed via its `Fiuu.Database` `ProjectReference`
+- [[architecture/reload/class-library/database]] — the Dapper data-access layer `Notification/Api/Core` consumes directly

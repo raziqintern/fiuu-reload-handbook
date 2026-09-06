@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/inventory]
+---
+
 # INVENTORY
 
 **Database:** `INVENTORY` · **Schema:** `dbo` only · **Tables:** 2 ·
@@ -36,3 +40,9 @@ and to `INVENTORY_MASTER.dbo.Stocks`.
 ## Drift vs. vault
 
 None found — table list and shapes matched the vault exactly.
+
+## Related
+
+- [[architecture/reload_db/inventory-master]] — the sibling "master" stock-balance database this one's working copy is compared against
+- [[architecture/reload_db/transaction]] — the `PurchaseOrders`/`RestockOrders`/`AllocationOrders`/`ReturnRequests` cluster this database's stock movements tie back to
+- [[gitlab-analysis/reload_db-tribal-knowledge]] — the bigint PK migration (§2) applied to this database's `Stocks` table in lockstep with three others

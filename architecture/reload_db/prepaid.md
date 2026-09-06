@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/prepaid, module/pinless]
+---
+
 # PREPAID
 
 **Database:** `PREPAID` · **Schema:** `dbo` only · **Tables:** 4 ·
@@ -28,3 +32,9 @@ self-contained, smaller-scope database.
 ## Drift vs. vault
 
 None found — table list and shapes matched the vault exactly.
+
+## Related
+
+- [[architecture/reload/class-library/reloads-pin]] — the `Reloads.Pinless`/`Reloads.Pin` application code; day-to-day Pinless sales live in `TRANSACTION`, not here
+- [[architecture/reload_db/transaction]] — where the actual prepaid/Pinless sale transactions are recorded
+- [[gitlab-analysis/reload-tribal-knowledge]] — the Pin/Pinless drift pattern (§2.3) this legacy/day-to-day split reflects

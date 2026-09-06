@@ -1,3 +1,7 @@
+---
+tags: [conventions]
+---
+
 # Error Handling
 
 ## Dominant pattern: catch-all, log, return a sentinel/error-code — don't rethrow
@@ -167,3 +171,9 @@ catch
 | Known SQL constraint violation | catch, check `SqlException.Number`, translate to business status, rethrow everything else |
 | Cross-boundary failure needing a code | occasionally a custom `Exception` subclass, caught and translated one layer up |
 | Logging itself failing | always swallowed silently, no rethrow, no fallback logger |
+
+## Related
+
+- [[conventions/known-patterns-and-pitfalls]] — the broken `TNGEODException` (§3) and swallowed-error (§2) patterns cited above
+- [[conventions/logging]] — where the exception detail actually ends up when it's swallowed
+- [[gitlab-analysis/reload-mr-review-checklist]] — the "don't log-and-rethrow" review rule (§A3) that pushes back on this pattern

@@ -1,3 +1,7 @@
+---
+tags: [conventions]
+---
+
 # Configuration & Secrets
 
 Mechanisms only — no literal config values, connection strings, keys, or
@@ -185,3 +189,9 @@ This is a clear signal the codebase is being ported off classic .NET
 Framework toward modern .NET incrementally, module by module, with runtime
 version-sniffing used as a stopgap rather than a configuration abstraction
 layer. See `known-patterns-and-pitfalls.md`.
+
+## Related
+
+- [[architecture/reload/class-library/awscore]] — the `SecretsHelper`/Secrets Manager mechanism detailed in full (§3 above)
+- [[architecture/reload/00-topology]] — the same connection-string/secrets split traced independently (§7)
+- [[conventions/known-patterns-and-pitfalls]] — the local-disk connection-string risk (§5) and .NET migration signal (§11) called out above

@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/incomm]
+---
+
 # INCOMM
 
 **Database:** `INCOMM` · **Schema:** `dbo` only · **Tables:** 14 ·
@@ -57,3 +61,10 @@ Feeds/receives from `INCOMM_TRANS` (the activation/deactivation transaction
 side — see `incomm-trans.md`) and `TRANSACTION.dbo.ApiGiftCardTransactions`.
 Feeds `REPORTSUMMARY.dbo.IncommBillerReport`/`IncommSettlementReport`.
 References `CEPP` for product/dealer identity.
+
+## Related
+
+- [[architecture/reload_db/incomm-trans]] — the terminal-facing transaction-side companion database
+- [[architecture/reload/class-library/cepp]] — the `Payment/INCOMM` sub-project (`Fiuu.Reloads.GiftCard`) built on top of this integration
+- [[architecture/reload/diagrams/giftcard-incomm-flow]] — the fully-traced initiate/confirm sequence for this integration
+- [[architecture/reload/class-library/secure]] — the ISO 8583 stand-in processing alternative to this database's plain-HTTP request lifecycle

@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture]
+---
+
 # `reload_portal` — open question, not resolved
 
 ## Status: unresolved, needs a human answer
@@ -40,3 +44,8 @@ What was checked:
 anything more specific here. Until then, treat any reference to "the reload portal"
 elsewhere in this handbook as meaning `BackOffice/Web` (documented in
 [`web-app.md`](web-app.md)), with this ambiguity flagged.
+
+## Related
+
+- [[architecture/reload/web-app]] — the `BackOffice/Web` app this open question centers on
+- [[architecture/reload/00-topology]] — the full empty-sibling-folder verification this doc's evidence is drawn from

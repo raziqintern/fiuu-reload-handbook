@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/inventory, diagram]
+---
+
 # INVENTORY — ER diagram
 
 2 tables, one `dbo` schema.

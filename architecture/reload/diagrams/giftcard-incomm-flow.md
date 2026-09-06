@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/incomm, diagram]
+---
+
 # Sequence: INCOMM gift card — Initiate + Confirm (via Terminal API)
 
 This is the most fully-traced flow in this handbook — every step below was read
@@ -97,3 +101,11 @@ sequenceDiagram
     end
     end
 ```
+
+## Related
+
+- [[architecture/reload/class-library/cepp]] — the `Payment/INCOMM` sub-project (`InCommOperationService`/`InCommSecureProvider`) this flow is traced through
+- [[architecture/reload/class-library/secure]] — the alternative ISO 8583 stand-in path this diagram's plain-HTTP path bypasses
+- [[architecture/reload/web-api]] — the `GiftCardController` entry point
+
+Note: this diagram's `DB` participant is labeled `RMS_OFFLINE (via ApiTransactionProvider)` in the traced source, so no link to [[architecture/reload_db/incomm]]/[[architecture/reload_db/incomm-trans]] is asserted here — which physical database `ApiTransactionProvider` actually targets for gift-card transactions wasn't independently confirmed against `reload_db` in this pass.

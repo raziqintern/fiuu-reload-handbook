@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/datawarehouse, diagram]
+---
+
 # DataWarehouse — ER diagram
 
 11 tables, one `dbo` schema — a star schema.

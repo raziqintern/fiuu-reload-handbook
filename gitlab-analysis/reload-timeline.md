@@ -1,3 +1,8 @@
+---
+tags: [gitlab-analysis, repo/reload]
+aliases: ["Reload Timeline"]
+---
+
 # Reload — Timeline
 
 Chronological reconstruction from the full issue/MR history of
@@ -173,3 +178,8 @@ not a claim that these are the *only* notable events in the project's
 history. Milestone/label data beyond category-bracket and a handful of
 targeted keyword searches (architecture/migration/consolidation-related
 terms) was not exhaustively mined for additional timeline entries.
+
+## Related
+
+- [[gitlab-analysis/reload-tribal-knowledge]] — the recurring bug classes and incidents behind these milestones
+- [[gitlab-analysis/reload_db-timeline]] — the parallel database-side timeline (bigint migration, GIT#441 saga)

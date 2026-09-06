@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/restorify]
+---
+
 # Reloads.Restorify
 
 **Source:** `reload/web/DEV/NET/Applications/Restorify/Core`
@@ -75,3 +79,8 @@ something stated explicitly in a comment anywhere — flagged as inference.
 - `Reloads/Terminal/Api` (`CarbonCalculatorController`, `CarbonOffsetController` —
   inferred from controller naming, not confirmed by reading their bodies).
 - `Restorify/Scheduler` — background job (see [`../console-app.md`](../console-app.md)).
+
+## Related
+
+- [[architecture/reload_db/restorify]] — the `RESTORIFY` database this product line persists to
+- [[architecture/reload/01-overview]] — the naming correction (this is a carbon-offset billing product, not a transaction-recovery module) summarized at the top level

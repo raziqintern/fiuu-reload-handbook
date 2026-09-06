@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/provider]
+---
+
 # Provider
 
 **Source:** `reload/web/DEV/NET/Components/Provider` (only 6 files —
@@ -38,3 +42,9 @@ confirmed**).
 Not directly traced to specific callers in this pass beyond its inclusion in the
 overview dependency diagram as a `class-library`-adjacent module referenced by the
 general application layer.
+
+## Related
+
+- [[architecture/reload/class-library/database]] — the newer, Dapper-based parallel data-access layer this doc contrasts itself with
+- [[architecture/reload/class-library/masterframework]] — the `SqlAccessor`/`Fiuu.MasterFramework.Database` this module delegates to
+- [[conventions/data-access]] — the full picture of all three coexisting data-access styles

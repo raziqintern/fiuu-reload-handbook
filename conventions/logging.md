@@ -1,3 +1,7 @@
+---
+tags: [conventions]
+---
+
 # Logging
 
 ## No single logging mechanism — two underlying frameworks, three-plus hand-rolled wrappers
@@ -129,3 +133,9 @@ public static void Write(string sMessage, string sCountryCode = "General")
 This try/swallow-everything wrapper around the logging call itself is
 deliberate and commented — it's the one place in the sampled code where a
 blanket empty catch is clearly intentional rather than incidental.
+
+## Related
+
+- [[conventions/known-patterns-and-pitfalls]] — the per-module `LogHelper` reinvention pattern (§1)
+- [[conventions/error-handling]] — how the exception detail these logs carry is (or isn't) surfaced to callers
+- [[architecture/reload/class-library/logging]] — the `Fiuu.Logging` component these `LogHelper` wrappers sit on top of

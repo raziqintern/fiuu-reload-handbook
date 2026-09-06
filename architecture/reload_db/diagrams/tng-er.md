@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/tng, diagram]
+---
+
 # TNG — ER diagram
 
 22 tables, one `dbo` schema.

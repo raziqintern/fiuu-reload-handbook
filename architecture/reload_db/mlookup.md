@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/mlookup]
+---
+
 # MLookUp
 
 **Database:** `MLookUp` · **Schema:** `dbo` only · **Tables:** 5 ·
@@ -36,3 +40,8 @@ it.
 ## Drift vs. vault
 
 None found — table list and shapes matched the vault exactly.
+
+## Related
+
+- [[architecture/reload_db/cepp]] — the physically separate `LookupCodes`/`Regions` tables this database's own copies are explicitly not the same as
+- [[architecture/reload_db/transaction]] — the main cross-database consumer of this database's shared lookups

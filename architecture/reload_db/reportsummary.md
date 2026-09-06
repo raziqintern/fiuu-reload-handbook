@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/reportsummary]
+---
+
 # REPORTSUMMARY
 
 **Database:** `REPORTSUMMARY` - **Schema:** `dbo` only - **Tables:** 40 -
@@ -70,3 +74,10 @@ Table list and column shapes checked against a sample of
 already had - nothing to add here beyond `00-overview.md`'s headline finding
 that `REPORTSUMMARY` itself (unlike `TRANSACTION`/`CEPP`) wasn't where the
 gaps turned out to be.
+
+## Related
+
+- [[architecture/reload_db/transaction]] — the upstream system of record this database aggregates from
+- [[architecture/reload_db/datawarehouse]] — the star schema this database feeds in turn
+- [[architecture/reload_db/bill-payment]] — one of the per-channel `*BillerReport`/`*SettlementReport` sources
+- [[gitlab-analysis/reload_db-tribal-knowledge]] — the cross-database schema-drift incident (§1) on this database's `SalesTransactionReport` columns

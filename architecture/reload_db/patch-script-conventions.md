@@ -1,3 +1,8 @@
+---
+tags: [reload_db/architecture, conventions]
+aliases: ["MAINT Patch Script Conventions"]
+---
+
 # MAINT patch-script conventions
 
 There is no migrations framework (no EF migrations, no Flyway/Liquibase, no
@@ -143,3 +148,10 @@ or `[DAILY.HHMM].<Category>.<Job>.sql`, containing the full
 generates when you script out a SQL Agent job. Same pattern as `Table/`
 baselines: a full definition snapshot, not a diff, re-generated whenever the
 job changes.
+
+## Related
+
+- [[architecture/reload_db/00-overview]] — where `MAINT/` sits in the overall estate
+- [[architecture/reload_db/vault-drift-notes]] — the `xxx_`-prefix drop-table convention (§3 here) cross-checked against the vault
+- [[conventions/sql-conventions]] — stored-procedure/index naming conventions inside each object file
+- [[gitlab-analysis/reload_db-mr-review-checklist]] — how reviewers enforce the numbering/environment-suffix conventions described here

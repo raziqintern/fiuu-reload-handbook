@@ -1,3 +1,8 @@
+---
+tags: [reload_db/architecture]
+aliases: ["reload_db Overview", "Database Estate Overview"]
+---
+
 # reload_db — Database Estate Overview
 
 This is a from-source trace of the `reload_db` SQL Server estate: one instance,
@@ -205,3 +210,11 @@ land in `REPORTSUMMARY`, which feeds `DataWarehouse`). Dashed arrows are
 - `diagrams/` — one Mermaid ER diagram per module, plus
   `diagrams/cross-module-relationships.md` for the handful of tables joined
   across module boundaries.
+
+## Related
+
+- [[architecture/reload_db/vault-drift-notes]] — everywhere this estate diverges from the original Obsidian vault
+- [[architecture/reload_db/patch-script-conventions]] — how the MAINT scripts summarized here are versioned/named
+- [[architecture/reload_db/cepp]] — the master-data hub referenced throughout this overview
+- [[architecture/reload/01-overview]] — the application side that reads/writes this estate
+- [[gitlab-analysis/reload_db-tribal-knowledge]] — which of these databases actually break/get patched most

@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/ticket, diagram]
+---
+
 # TICKET — ER diagram
 
 3 tables across `Ticket2U` and `TRANS` schemas.

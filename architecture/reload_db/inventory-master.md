@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/inventory-master]
+---
+
 # INVENTORY_MASTER
 
 **Database:** `INVENTORY_MASTER` · **Schema:** `dbo` only · **Tables:** 3 ·
@@ -31,3 +35,9 @@ product/dealer-group/supplier identity.
 ## Drift vs. vault
 
 None found — table list and shapes matched the vault exactly.
+
+## Related
+
+- [[architecture/reload_db/inventory]] — the separate, near-identical `Stocks` table this database's copy is distinguished from
+- [[architecture/reload_db/transaction]] — the `GoodReceivedNotes`/stock-order flow this database's `GRNId` links back to
+- [[gitlab-analysis/reload_db-tribal-knowledge]] — the recurring "Archive DB INVENTORY[_MASTER]" maintenance program behind this database's high issue count

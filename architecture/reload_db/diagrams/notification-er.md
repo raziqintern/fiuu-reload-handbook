@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/notification, diagram]
+---
+
 # NOTIFICATION — ER diagram
 
 9 tables, one `dbo` schema.

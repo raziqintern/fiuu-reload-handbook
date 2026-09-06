@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture]
+---
+
 # `terminal_application` → `Reloads/TerminalServer/Console` (+ `ControlPanel`)
 
 See [`00-topology.md`](00-topology.md) §3. No folder is literally named
@@ -77,3 +81,10 @@ Not to be confused with `Reloads/Terminal/Api` (the REST API — see
 [`web-api.md`](web-api.md)) or `Reloads/Terminal/Simulator` (a test harness for that
 REST API, not the socket protocol). All three live under the same
 `Applications/Reloads/` parent but are separate deployables.
+
+## Related
+
+- [[architecture/reload/web-api]] — the modern REST counterpart to this legacy socket server
+- [[architecture/reload/class-library/cepp]] — the shared business layer both terminal-facing entry points call into
+- [[architecture/reload/class-library/reloads-tng-game]] — the `Fiuu.Reloads.TNG.Services` confirmed called directly by `TNGProfileHandler.vb`
+- [[gitlab-analysis/reload-tribal-knowledge]] — the #1892 incident (unhandled exception silently stopping TNG sales overnight) on this same component

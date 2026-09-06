@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/configuration, diagram]
+---
+
 # CONFIGURATION — ER diagram
 
 3 tables, one `dbo` schema.

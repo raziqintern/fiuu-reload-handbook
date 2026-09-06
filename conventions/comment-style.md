@@ -1,3 +1,7 @@
+---
+tags: [conventions]
+---
+
 # Comment / Documentation Style
 
 ## XML doc comments are rare — roughly 1 in 10 files has any
@@ -110,3 +114,9 @@ break; // TODO: might not be correct. Was : Exit For
 This particular one is also a tell that the file was mechanically ported
 from VB.NET ("Was: Exit For") rather than written fresh in C# — worth keeping
 in mind when reading `Fiuu.Database` code generally.
+
+## Related
+
+- [[conventions/sql-conventions]] — the `Dealers_Patching_RMSO-30.sql` example referenced above
+- [[conventions/naming]] — how method/parameter names are relied on to carry meaning in place of doc comments
+- [[architecture/reload_db/patch-script-conventions]] — the pre-check/patch/verify comment convention on ticket-numbered patches

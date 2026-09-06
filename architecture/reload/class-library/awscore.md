@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/awscore]
+---
+
 # AWSCore
 
 **Source:** `reload/class-library/AWSCore` — a genuine `class-library` submodule
@@ -63,3 +67,10 @@ reaches `AWSCore` some other way (e.g. via the prebuilt `class-library` DLLs rat
 than `ProjectReference`, which this grep wouldn't catch), or `SecretsLabels.cs` defines
 labels for partners whose actual secret-fetching call site wasn't found in this pass.
 Flagged as a real follow-up, not resolved.
+
+## Related
+
+- [[conventions/configuration-and-secrets]] — the full config/secrets picture this module is one mechanism of
+- [[architecture/reload/class-library/reloads-tng-game]] — a confirmed `AWSCore` consumer (TNG merchant keys)
+- [[architecture/reload/class-library/secure]] — the three `Secure/*` modules (Astro/Incomm/Telekom) that also depend on `AWSCore`
+- [[architecture/reload/class-library/einvoice]] — the same open question about how partner secrets reach modules with no direct `AWSCore` reference

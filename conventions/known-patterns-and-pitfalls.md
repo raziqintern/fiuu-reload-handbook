@@ -1,3 +1,8 @@
+---
+tags: [conventions]
+aliases: ["Known Patterns and Pitfalls"]
+---
+
 # Known Patterns & Pitfalls
 
 Recurring smells and tech-debt shapes worth knowing about before you go
@@ -136,3 +141,13 @@ Service layer actually gets consumed (controller conventions, DI wiring at
 the host level, API response shaping, HTTP-level error handling) could not be
 verified and should be treated as an open question until a populated
 checkout of those repos is available.
+
+## Related
+
+- [[conventions/logging]] — the three unrelated `LogHelper` classes (§1)
+- [[conventions/error-handling]] — the catch-log-return-sentinel shape (§2)
+- [[conventions/data-access]] — the three coexisting data-access styles (§6)
+- [[conventions/naming]] — the Hungarian-notation/idiomatic split by module (§4)
+- [[conventions/layering-and-architecture]] — the three parallel `ServiceBase` classes (§1)
+- [[conventions/sql-conventions]] — ticket-reference and column/verb spelling drift (§7, §8)
+- [[architecture/reload/00-topology]] — confirms the empty consuming-application directories noted in §14

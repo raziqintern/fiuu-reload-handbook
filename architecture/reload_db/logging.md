@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/logging]
+---
+
 # LOGGING
 
 **Database:** `LOGGING` · **Schema:** `dbo` only · **Tables:** 1 ·
@@ -24,3 +28,9 @@ to relate to within its own database.
 
 None found — matches the vault exactly (trivially, given there's only one
 table).
+
+## Related
+
+- [[architecture/reload_db/cepp]] — the `Users.UserUId` identity this table's `UserId` most plausibly ties back to
+
+Note: this database is unrelated to the `Fiuu.Logging` application-logging component ([[architecture/reload/class-library/logging]]) despite the shared name — this one is a SQL Server audit-trail table, not the app's error/event logging framework. No link is drawn between the two here to avoid implying a connection that isn't real.

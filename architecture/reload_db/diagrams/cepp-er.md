@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/cepp, diagram]
+---
+
 # CEPP — ER diagrams
 
 CEPP has 84 tables (83 + `PublicHolidays`, missing from the vault — see

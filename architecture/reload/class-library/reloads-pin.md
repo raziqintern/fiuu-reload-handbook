@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/pin, module/pinless]
+---
+
 # Reloads.Pin (+ sibling Reloads.Pinless)
 
 **Source:** `reload/web/DEV/NET/Applications/Pin/Core`
@@ -72,3 +76,9 @@ all `.csproj`/`.vbproj` files — both are referenced (`ProjectReference`) by:
 `Pinless/Scheduler` (see [`../console-app.md`](../console-app.md)) is the background
 job for this module; not confirmed whether it references `Pinless/Core` directly (not
 checked in this pass).
+
+## Related
+
+- [[architecture/reload_db/prepaid]] — the legacy Prepaid/Pinless registration-tracking database (day-to-day sales actually live in `TRANSACTION`)
+- [[architecture/reload/class-library/awscore]] — the confirmed secret-label groups for several partners listed above (AnyPay, ATX, Celcom, DTOne, IIMMPACT)
+- [[gitlab-analysis/reload-tribal-knowledge]] — the Pin/Pinless drift pattern (§2.3) this module's split structure explains

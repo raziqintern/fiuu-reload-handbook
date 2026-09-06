@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/database]
+---
+
 # Database (Fiuu.Database)
 
 **Source:** `reload/class-library/Database` — a genuine `class-library` submodule
@@ -67,3 +71,10 @@ the central database — most other apps likely reach it through the prebuilt
 (see [`provider.md`](provider.md)) rather than `Fiuu.Database`/Dapper. Which apps use
 which data-access layer for `RMS_OFFLINE` was **not** exhaustively mapped in this
 pass — flagged as a real follow-up rather than assumed.
+
+## Related
+
+- [[architecture/reload_db/rms-offline]] — the `RMS_OFFLINE` database this Dapper layer reads/writes
+- [[architecture/reload/class-library/notification]] — the confirmed sole direct `ProjectReference` consumer
+- [[architecture/reload/class-library/provider]] — the older, parallel `SqlAccessor`-based data-access layer
+- [[conventions/data-access]] — the three coexisting data-access patterns, including this one, documented in full

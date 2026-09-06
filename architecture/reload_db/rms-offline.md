@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/rms-offline]
+---
+
 # RMS_OFFLINE
 
 **Database:** `RMS_OFFLINE` · **Schema:** `dbo` only · **Tables:** 41 ·
@@ -75,3 +79,10 @@ follows; this is a parallel, independent transactional path.
 ## Drift vs. vault
 
 None found in the sample checked — table list and shapes matched.
+
+## Related
+
+- [[architecture/reload/class-library/database]] — the `Fiuu.Database`/Dapper layer that is this database's confirmed data-access component
+- [[architecture/reload_db/einvoice]] — the open question of whether this database's `EInvoiceRequests` feeds `EINVOICE.TRANS.Submissions`
+- [[architecture/reload_db/configuration]] — the separately-defined but near-identical `Config`/`ConfigDetails` pair duplicated here
+- [[architecture/reload_db/patch-script-conventions]] — the `EInvoiceRequests` data-quality patch example cited above

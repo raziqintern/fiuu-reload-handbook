@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/transaction]
+---
+
 # TRANSACTION
 
 **Database:** `TRANSACTION` · **Schemas:** `dbo` + at least 19 provider
@@ -107,3 +111,11 @@ See `vault-drift-notes.md` §3 — 6 provider schemas (`AnyPay`, `CelcomDigi`,
 missing from the vault. A naive file-count also suggests more distinct table
 names than the vault's 144, but most of that gap is `_Temp`/`_Del_Log`
 staging copies the vault deliberately (and correctly) excludes.
+
+## Related
+
+- [[architecture/reload_db/cepp]] — the largest single inferred-relationship flow in the estate (`TRANSACTION → CEPP`)
+- [[architecture/reload_db/reportsummary]] — the downstream settlement/reporting aggregation this database feeds
+- [[architecture/reload_db/vault-drift-notes]] — the 6 missing provider schemas (§3) documented here
+- [[gitlab-analysis/reload_db-tribal-knowledge]] — TRANSACTION's #1 ranking by patch/MR traffic, and the bigint migration (§2) that touched it most heavily
+- [[conventions/sql-conventions]] — the per-partner schema convention this database's provider schemas exemplify

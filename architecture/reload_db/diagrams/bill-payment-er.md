@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/bill-payment, diagram]
+---
+
 # BILL_PAYMENT — ER diagram
 
 54 tables across 19 schemas. Per-biller schemas are structurally repetitive

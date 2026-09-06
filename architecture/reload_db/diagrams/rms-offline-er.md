@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/rms-offline, diagram]
+---
+
 # RMS_OFFLINE — ER diagram
 
 41 tables, one `dbo` schema. Split by the functional clusters used in

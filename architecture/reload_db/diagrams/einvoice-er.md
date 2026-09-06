@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/einvoice, diagram]
+---
+
 # EINVOICE — ER diagram
 
 3 tables, `TRANS` schema. **Entirely missing from the vault** — this diagram

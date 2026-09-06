@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/sap]
+---
+
 # SAP
 
 **Database:** `SAP` · **Schema:** `TRANS` · **Tables:** 2 ·
@@ -62,3 +66,9 @@ module's `StoredProcedure/` folder in the time available.
   by the schema alone — worth resolving from the C# integration code
   (`Fiuu.CEPP` or a dedicated SAP/EInvoice provider project) before
   building anything that assumes a specific direction.
+
+## Related
+
+- [[architecture/reload_db/einvoice]] — the parallel e-invoicing database this one's `U_EIV_*` fields point toward
+- [[architecture/reload_db/cepp]] — the `DealerGroupSAPItemCode` mapping and `DealerId`/`ServiceProviderId` identity this database references
+- [[architecture/reload_db/vault-drift-notes]] — this database's complete absence from the original vault (§1)

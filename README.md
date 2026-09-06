@@ -14,7 +14,7 @@ Private repo, personal use — not an official Fiuu deliverable.
 | [`conventions/`](conventions/) | Coding patterns, standards, and approaches actually used in the codebase (reverse-engineered, not officially documented) |
 | [`gitlab-analysis/`](gitlab-analysis/) | Synthesis from full GitLab issue/MR history — recurring bug classes, review norms, tribal knowledge |
 | [`glossary/`](glossary/) | Domain and module glossary (CEPP, TNG, INCOMM, RESTORIFY, etc.) |
-| [`obsidian-vault/`](obsidian-vault/) | Cross-linked Obsidian version of the above, for browsing |
+| [`obsidian-vault/`](obsidian-vault/) | Vault entry point only (`Home.md`) — **this whole repo is the Obsidian vault** (open the repo root in Obsidian, not this folder); see its README |
 | [`skills/`](skills/) | SKILL.md-style docs so future Claude Code sessions on this project can load this as a skill |
 | [`exports/`](exports/) | Generated Word (.docx) documentation builds |
 | [`website/`](website/) | Placeholder for a future w3schools-style teaching site: "How to become a Fiuu software engineer" |

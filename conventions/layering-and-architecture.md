@@ -1,3 +1,7 @@
+---
+tags: [conventions]
+---
+
 # Layering / Architecture
 
 Note: `web_api`, `web_app`, `reload_portal`, `terminal_application`, and
@@ -131,3 +135,10 @@ see `data-access.md`.
 | Cross-service wiring (service locator vs DI) | Consistent use of service locator, but per-property boilerplate is hand-copied each time |
 | Base-class reuse | Not shared across modules — duplicated per module |
 | Inheritance/template-method for variability | Only in InComm; other modules use flat Services |
+
+## Related
+
+- [[conventions/known-patterns-and-pitfalls]] — the per-module `ServiceBase` duplication (§1) expanded on above
+- [[conventions/naming]] — the `*Provider`/`*Service`/`*Model` suffix convention this layering relies on
+- [[conventions/data-access]] — how Providers actually talk to the database within this layering
+- [[architecture/reload/class-library/masterframework]] — the `Fiuu.MasterFramework.Dependency` container this DI pattern is built on

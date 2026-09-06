@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/mlookup, diagram]
+---
+
 # MLookUp — ER diagram
 
 5 tables, one `dbo` schema. No relationships between the tables — each is an

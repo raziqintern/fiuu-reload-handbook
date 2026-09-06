@@ -1,3 +1,7 @@
+---
+tags: [conventions]
+---
+
 # Naming Conventions
 
 Reverse-engineered from `class-library` (AWSCore, Database, Reloads, Secure) and
@@ -121,3 +125,10 @@ public class TerminalProvider
 
 `RMSO-nnn`, `GIT#nnnn`, `GITnnnn`, `GIT_nnnn` all appear as the ticket-tag
 suffix convention on patch script filenames, with no single format winning out.
+
+## Related
+
+- [[conventions/layering-and-architecture]] — the `*Provider`/`*Service`/`*Model` layer suffixes referenced above
+- [[conventions/data-access]] — where the `M`-prefix DB-facing naming gets mapped to friendly enum properties
+- [[conventions/sql-conventions]] — the stored-procedure naming and ticket-suffix conventions on the SQL side
+- [[gitlab-analysis/reload-mr-review-checklist]] — the datatype-prefix rule (§A1) reviewers enforce by hand

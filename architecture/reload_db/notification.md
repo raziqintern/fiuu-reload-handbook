@@ -1,3 +1,7 @@
+---
+tags: [reload_db/architecture, module/notification]
+---
+
 # NOTIFICATION
 
 **Database:** `NOTIFICATION` · **Schema:** `dbo` only · **Tables:** 9 ·
@@ -58,3 +62,9 @@ diagram (both shown as "sends" rather than "references" in the vault's
 original diagram, consistent with NOTIFICATION being a write-mostly sink for
 outbound messages rather than a database other modules query for their own
 data).
+
+## Related
+
+- [[architecture/reload/class-library/notification]] — the `Notification/Api/Core` service that owns this database
+- [[architecture/reload/class-library/database]] — the `Fiuu.Database`/Dapper layer confirmed calling these stored procedures
+- [[architecture/reload_db/vault-drift-notes]] — the missing-`StoredProcedure/`-folder finding (§4)

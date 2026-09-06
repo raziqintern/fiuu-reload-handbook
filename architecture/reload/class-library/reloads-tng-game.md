@@ -1,3 +1,7 @@
+---
+tags: [reload/architecture, module/tng, module/game]
+---
+
 # Reloads/TNG and Reloads/Game (bonus doc — real class-library source modules,
 not in the original module list)
 
@@ -50,3 +54,10 @@ for TNG (see [`../diagrams/tng-reload-flow.md`](../diagrams/tng-reload-flow.md))
   reload/top-up integration (a well-known reload product category — game credit
   top-ups), but that specific inference wasn't confirmed by reading `Game`'s own
   source.
+
+## Related
+
+- [[architecture/reload_db/tng]] — the `TNG` database this module's Providers/Services read and write
+- [[architecture/reload/diagrams/tng-reload-flow]] — the fully traced TNG e-wallet transaction sequence built on this module
+- [[architecture/reload/class-library/awscore]] — the confirmed `AWSCore` dependency (merchant secret keys)
+- [[gitlab-analysis/reload-tribal-knowledge]] — the crypto/session-resource leak incident (§2.6) traced to TNG's certificate handling

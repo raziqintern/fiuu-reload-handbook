@@ -1,3 +1,7 @@
+---
+tags: [conventions]
+---
+
 # Data Access
 
 Three distinct data-access patterns coexist in `class-library`, all stored-procedure-only
@@ -144,3 +148,10 @@ No inline dynamic SQL, no string-built `SELECT`/`UPDATE` statements, and no
 ORM entity graph anywhere sampled. This is consistent across all three
 patterns and across every module (TNG, Game, InComm, Astro, Notification,
 RMS_OFFLINE) — the one truly universal data-access rule in this codebase.
+
+## Related
+
+- [[architecture/reload/class-library/database]] — the `Fiuu.Database` project implementing Patterns 2 and 3 above
+- [[conventions/configuration-and-secrets]] — how the connection strings these patterns consume are actually resolved
+- [[conventions/naming]] — the `M`-prefix/DTO mapping convention used in Pattern 1's hand-written `Conversion.DBNullTo*` calls
+- [[conventions/sql-conventions]] — the stored-procedure naming these Provider classes reference by constant

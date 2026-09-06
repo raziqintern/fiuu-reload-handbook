@@ -1,3 +1,8 @@
+---
+tags: [gitlab-analysis, repo/reload_db]
+aliases: ["reload_db Tribal Knowledge"]
+---
+
 # `reload_db` — Tribal Knowledge
 
 Synthesized from the **full** issue and merge-request history of the
@@ -264,3 +269,11 @@ data-modifying change before execution," which had not existed before.
 - `RMSO-nnnn`-numbered items referenced in some MR titles are an external
   Jira ticket system this pull had no access to; those references are
   reproduced as-is where seen but not independently verified.
+
+## Related
+
+- [[architecture/reload_db/00-overview]] — the database estate this doc ranks by patch/break volume
+- [[architecture/reload_db/cepp]] and [[architecture/reload_db/transaction]] — the two heaviest-traffic databases (§"Which databases actually get patched/break most")
+- [[architecture/reload_db/patch-script-conventions]] — the naming/ticket-format conventions behind the "Gotchas" section
+- [[gitlab-analysis/reload_db-timeline]] — the bigint migration and GIT#441 saga in full chronological detail
+- [[gitlab-analysis/reload_db-mr-review-checklist]] — the review patterns behind these same MRs
