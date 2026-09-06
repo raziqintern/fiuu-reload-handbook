@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SELECT, INSERT, UPDATE · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="sql-01-basics">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">SQL &amp; reload_db</span>
+<h1>SELECT, INSERT, UPDATE</h1>
+<p class="lede">reload_db is SQL Server; the SQL boxes on this site run against real, live SQLite (a different but closely related dialect) so you get genuine execution with zero setup. Every box shares the same small practice schema, seeded fresh each time you click Run.</p>
+
+<div class="callout tip">
+<span class="callout-title">The practice schema</span>
+Every SQL box on this site starts from the same two tables: <code>Terminals(TerminalId, MerchantName, MStatusId)</code> and <code>TerminalActivities(ActivityId, TerminalId, TransNo, Amount, MTransStatusId)</code> — shaped like reload_db's real naming (note the <code>M</code>-prefixed status columns; more on that in the Conventions track).
+</div>
+
+<h2>SELECT: reading data</h2>
+<div class="tryit" data-lang="sql">
+<pre class="tryit-src">SELECT * FROM Terminals;</pre>
+</div>
+
+<div class="tryit" data-lang="sql">
+<pre class="tryit-src">SELECT TerminalId, MerchantName
+FROM Terminals
+WHERE MStatusId = 1;</pre>
+</div>
+
+<p><code>SELECT columns FROM table WHERE condition</code> is the whole shape of a read query. <code>*</code> means "all columns" — fine for exploring, but real code should always name the columns it actually needs.</p>
+
+<h2>INSERT: adding a row</h2>
+<div class="tryit" data-lang="sql">
+<pre class="tryit-src">INSERT INTO Terminals (TerminalId, MerchantName, MStatusId)
+VALUES (4, 'New Kiosk - Sunway', 1);
+
+SELECT * FROM Terminals;</pre>
+</div>
+
+<h2>UPDATE: changing existing rows</h2>
+<div class="tryit" data-lang="sql">
+<pre class="tryit-src">UPDATE Terminals
+SET MStatusId = 0
+WHERE TerminalId = 2;
+
+SELECT * FROM Terminals;</pre>
+</div>
+
+<div class="callout warn">
+<span class="callout-title">Always have a WHERE on UPDATE and DELETE</span>
+Leave off the <code>WHERE</code> clause on an <code>UPDATE</code> or <code>DELETE</code> and it applies to <em>every row in the table</em> — one of the most common, most damaging mistakes in SQL. Try removing the <code>WHERE TerminalId = 2</code> line above and re-running to see every terminal get deactivated at once.</p>
+</div>
+
+<h2>Try it yourself</h2>
+<p>Write a query that finds every terminal that is <em>not</em> status 1 (i.e. not active).</p>
+<div class="tryit" data-lang="sql">
+<pre class="tryit-src">-- your query here
+SELECT * FROM Terminals WHERE MStatusId = 1;</pre>
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">What does running <code>UPDATE Terminals SET MStatusId = 0;</code> with no <code>WHERE</code> clause do?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Without a WHERE clause, SQL has no condition to filter by — it applies to every row, not none." >Nothing — SQL requires a WHERE clause to run an UPDATE.</li>
+<li data-correct="true" data-explain="A WHERE clause is what limits which rows are affected. Without one, every row in the table matches, so every terminal's MStatusId is set to 0." >It sets MStatusId to 0 on every single row in the Terminals table.</li>
+<li data-correct="false" data-explain="SQL doesn't guess which row you meant — omitting WHERE means 'apply to everything', not 'apply to the first match'.">It only updates the first row it finds.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

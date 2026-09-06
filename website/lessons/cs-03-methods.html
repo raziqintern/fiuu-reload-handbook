@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Methods & Parameters · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="cs-03-methods">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C# Fundamentals</span>
+<h1>Methods &amp; Parameters</h1>
+<p class="lede">C# calls a function a <strong>method</strong> when it belongs to a class — which in C# is always, since there's no such thing as a free-floating function outside a class.</p>
+
+<h2>Anatomy of a method</h2>
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">static double CalculateFee(double amount)
+{
+    return amount * 0.02;
+}
+
+static void Main()
+{
+    double fee = CalculateFee(100);
+    Console.WriteLine(fee);
+}</pre>
+<pre class="tryit-output-src">2</pre>
+</div>
+
+<p>Every method declares, in order: an access modifier (<code>public</code>/<code>private</code>/<code>internal</code>), a return type (or <code>void</code> if it returns nothing), a name, and a parameter list in parentheses. The return type isn't optional or inferred the way it can be in JavaScript — it's part of the method's contract.</p>
+
+<div class="callout tip">
+<span class="callout-title">2, not 2.0</span>
+<code>100 * 0.02</code> is mathematically <code>2.0</code>, but C#'s default <code>double</code>-to-string conversion drops trailing zeros, so <code>Console.WriteLine</code> prints <code>2</code>. The value is still a <code>double</code> — this is purely about how it's displayed.
+</div>
+
+<h2>Early returns keep validation readable</h2>
+<p>This mirrors the JavaScript validation function from earlier — same shape, real C# syntax:</p>
+
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">static string ValidateReload(double amount, string method)
+{
+    if (amount <= 0) return "Amount must be positive";
+    if (amount > 500) return "Exceeds max reload limit";
+    if (string.IsNullOrEmpty(method)) return "Payment method required";
+    return "OK";
+}
+
+static void Main()
+{
+    Console.WriteLine(ValidateReload(50, "tng"));
+    Console.WriteLine(ValidateReload(-5, "tng"));
+    Console.WriteLine(ValidateReload(50, null));
+}</pre>
+<pre class="tryit-output-src">OK
+Amount must be positive
+Payment method required</pre>
+</div>
+
+<p><code>string.IsNullOrEmpty(...)</code> is the idiomatic C# way to check a string for both <code>null</code> and <code>""</code> in one call — reaching for <code>method == null || method == ""</code> instead is a tell that someone hasn't seen this yet.</p>
+
+<div class="callout tip">
+<span class="callout-title">This is where naming conventions start to matter</span>
+Reload's real methods (<code>TerminalService.Login</code>, <code>TerminalProvider.GetTerminalSummaryByTransNo</code>, and so on) follow exactly this shape — a verb-ish name, a typed parameter list, an explicit return type. The <a href="conv-01-naming.html">Fiuu C# Conventions → Naming</a> lesson is where you'll see the real, sometimes inconsistent, naming patterns this codebase actually uses.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">What does a C# method's return type declaration do that JavaScript's function syntax doesn't?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="C# is statically typed: the compiler checks every return statement in the method actually returns that declared type, and every call site knows exactly what type it gets back — none of that exists in JavaScript." >It commits, at compile time, to exactly what type the method will hand back to its caller.</li>
+<li data-correct="false" data-explain="Return type has nothing to do with performance directly.">It makes the method run faster.</li>
+<li data-correct="false" data-explain="A method can be called regardless of its return type being used or not — return type doesn't gate callability.">It determines whether the method can be called from another class.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Functions & Scope · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="js-03-functions">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">JavaScript Basics</span>
+<h1>Functions &amp; Scope</h1>
+<p class="lede">A function packages up a piece of logic so you can name it and reuse it — the same reason C# has methods.</p>
+
+<h2>Two ways to write one</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">// traditional function declaration
+function calculateFee(amount) {
+  return amount * 0.01;
+}
+
+// arrow function — shorter, very common in modern JS
+const calculateFeeArrow = (amount) => amount * 0.01;
+
+console.log(calculateFee(100));
+console.log(calculateFeeArrow(100));</pre>
+</div>
+
+<p>Both do the same thing here. Arrow functions are everywhere in modern JS, especially as short one-off callbacks — you'll see the arrow form far more often than the traditional one in real code.</p>
+
+<h2>Scope: where a variable is visible</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">function processReload() {
+  let status = "processing"; // only exists inside this function
+  console.log("Inside:", status);
+}
+
+processReload();
+console.log(typeof status); // "undefined" — status doesn't exist out here</pre>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">Why scope matters for debugging</span>
+"Variable is undefined" is one of the most common JS errors you'll see in a browser console. Nine times out of ten it's a scope problem: the variable was declared inside a function (or an <code>if</code> block, or a loop) and something outside that block is trying to read it.
+</div>
+
+<h2>Try it yourself</h2>
+<p>A function that mirrors a real validation step — notice it <code>return</code>s early instead of nesting deeper <code>if</code>s.</p>
+
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">function validateReload(amount, method) {
+  if (amount <= 0) return "Amount must be positive";
+  if (amount > 500) return "Exceeds max reload limit";
+  if (!method) return "Payment method required";
+  return "OK";
+}
+
+console.log(validateReload(50, "tng"));
+console.log(validateReload(-5, "tng"));
+console.log(validateReload(50, null));</pre>
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A variable declared with <code>let</code> inside a function — where can it be read from?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Scope doesn't work that way — a variable exists in the block that declared it and any nested block inside that, not 'anywhere after declaration'.">Anywhere in the file, after the line it was declared on.</li>
+<li data-correct="true" data-explain="This is the core rule of block scope: the variable only exists within the { } it was declared in, including any nested blocks — not outside it." >Only inside that function (and any nested block within it).</li>
+<li data-correct="false" data-explain="Only if that other function is called from inside the first one, and even then it isn't visible by scope rules — it would have to be passed in explicitly.">Inside any other function that runs afterward.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

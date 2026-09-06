@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control Flow & Loops · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="vb-02-control-flow">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">VB.NET Fundamentals</span>
+<h1>Control Flow &amp; Loops</h1>
+<p class="lede">Same logic as the C# track's control flow lesson, VB.NET's keyword-based syntax.</p>
+
+<h2>If / ElseIf / Else</h2>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Dim amount As Integer = 25
+
+If amount <= 0 Then
+    Console.WriteLine("Invalid amount")
+ElseIf amount > 500 Then
+    Console.WriteLine("Exceeds max reload limit")
+Else
+    Console.WriteLine("Amount OK: " & amount)
+End If</pre>
+<pre class="tryit-output-src">Amount OK: 25</pre>
+</div>
+
+<p>Notice <code>ElseIf</code> is one word (unlike C#'s <code>else if</code>, two words), and the whole block closes with <code>End If</code> instead of a closing brace.</p>
+
+<h2>For loops are inclusive on both ends</h2>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">For i As Integer = 1 To 3
+    Console.WriteLine("Attempt " & i)
+Next</pre>
+<pre class="tryit-output-src">Attempt 1
+Attempt 2
+Attempt 3</pre>
+</div>
+
+<div class="callout warn">
+<span class="callout-title">To is inclusive — an easy off-by-one trap</span>
+<code>For i = 1 To 3</code> runs for <code>i = 1, 2, 3</code> — three iterations, including the upper bound. This differs from C#'s more common <code>for (int i = 0; i &lt; 3; i++)</code> idiom, which deliberately excludes its upper bound. Translating a C# loop into VB.NET (or reading the reverse) is a classic place to introduce an off-by-one bug if you're not paying attention to which convention you're in.
+</div>
+
+<h2>For Each</h2>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Dim amounts() As Integer = {10, 25, 600, 15}
+Dim limit As Integer = 500
+Dim allValid As Boolean = True
+
+For Each amt As Integer In amounts
+    If amt > limit Then
+        Console.WriteLine("Rejected: " & amt & " exceeds limit")
+        allValid = False
+    End If
+Next
+
+Console.WriteLine("Batch valid? " & allValid)</pre>
+<pre class="tryit-output-src">Rejected: 600 exceeds limit
+Batch valid? False</pre>
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="predict" data-answer="3">
+<p class="quiz-q">How many times does the loop body run for <code>For i As Integer = 1 To 3</code>? (just the number)</p>
+<textarea class="quiz-blank" rows="1"></textarea>
+<button type="button" class="quiz-submit">Check answer</button>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

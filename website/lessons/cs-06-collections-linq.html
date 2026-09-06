@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collections & LINQ · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="cs-06-collections-linq">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C# Fundamentals</span>
+<h1>Collections &amp; LINQ</h1>
+<p class="lede">The last stop in this track. LINQ is C#'s answer to JavaScript's <code>.filter()</code>/<code>.map()</code>/<code>.reduce()</code> — same ideas, C# spelling.</p>
+
+<h2>List&lt;T&gt; and basic LINQ</h2>
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">using System.Linq;
+
+List<double> amounts = new List<double> { 10, 25.5, 100, 5 };
+
+double total = amounts.Sum();
+Console.WriteLine("Total: " + total);
+
+List<double> large = amounts.Where(a => a > 20).ToList();
+Console.WriteLine("Over 20 count: " + large.Count);</pre>
+<pre class="tryit-output-src">Total: 140.5
+Over 20 count: 2</pre>
+</div>
+
+<p><code>List&lt;double&gt;</code> is a resizable, strongly-typed list — the <code>&lt;double&gt;</code> means "this list only ever holds doubles", enforced by the compiler. <code>.Where(...)</code> filters, matching JavaScript's <code>.filter()</code> almost exactly; the <code>a =&gt; a &gt; 20</code> part is a lambda expression, C#'s equivalent of a JS arrow function.</p>
+
+<h2>LINQ over a list of objects</h2>
+<p>This mirrors the array-of-objects lesson from the JavaScript track — same logic, real C# types:</p>
+
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">public class Transaction
+{
+    public string TransNo { get; set; }
+    public double Amount { get; set; }
+    public string Status { get; set; }
+}
+
+class Program
+{
+    static void Main()
+    {
+        var transactions = new List<Transaction>
+        {
+            new Transaction { TransNo = "TXN-1001", Amount = 10.0, Status = "Success" },
+            new Transaction { TransNo = "TXN-1002", Amount = 25.5, Status = "Pending" },
+            new Transaction { TransNo = "TXN-1003", Amount = 5.0, Status = "Failed" }
+        };
+
+        var pending = transactions.Where(t => t.Status == "Pending").ToList();
+        Console.WriteLine("Pending count: " + pending.Count);
+
+        var transNos = transactions.Select(t => t.TransNo).ToList();
+        Console.WriteLine(string.Join(", ", transNos));
+    }
+}</pre>
+<pre class="tryit-output-src">Pending count: 1
+TXN-1001, TXN-1002, TXN-1003</pre>
+</div>
+
+<p><code>var</code> lets the compiler infer the type from the right-hand side — it's still statically typed underneath (<code>transactions</code> is genuinely a <code>List&lt;Transaction&gt;</code>), it's just a shorthand so you don't have to spell the type out twice. <code>.Select(...)</code> transforms every item, matching JS's <code>.map()</code>.</p>
+
+<div class="callout tip">
+<span class="callout-title">You now know enough C#</span>
+That covers the C# fundamentals track. Next up is <strong>Fiuu C# Conventions</strong> — the same language, but the actual patterns, naming quirks, and inconsistencies this specific codebase has. That's the track that turns "I know C#" into "I can read reload."
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>transactions.Select(t =&gt; t.TransNo)</code> — what does this produce?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Select doesn't remove or keep items based on a condition — that's what Where does. Select transforms every item unconditionally." >Only the transactions whose TransNo is set.</li>
+<li data-correct="true" data-explain="Select runs the lambda on every item and collects the results — here, pulling just the TransNo string out of each Transaction object, in the same order." >A new sequence containing just the TransNo string from every transaction, in order.</li>
+<li data-correct="false" data-explain="Select returns a full sequence of results, not a single count.">The number of transactions that have a TransNo.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

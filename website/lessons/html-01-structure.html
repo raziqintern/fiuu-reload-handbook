@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Structure & Tags · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="html-01-structure">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">HTML Basics</span>
+<h1>Page Structure &amp; Tags</h1>
+<p class="lede">HTML isn't going to be your day job at Fiuu — but <code>reload_portal</code> and <code>web_app</code> render HTML, and when something looks wrong in a browser, you need to read the markup fast. This lesson is the minimum you need to do that.</p>
+
+<h2>The skeleton every page has</h2>
+<p>Every HTML page has the same four wrapper tags. Nothing renders outside <code>&lt;body&gt;</code>:</p>
+
+<div class="tryit" data-lang="html">
+<pre class="tryit-src">&lt;!doctype html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;My Page&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Hello, Fiuu&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+
+<ul>
+<li><code>&lt;!doctype html&gt;</code> — tells the browser "this is modern HTML", always the first line.</li>
+<li><code>&lt;head&gt;</code> — metadata: page title, linked stylesheets, scripts. Nothing in here is visible on the page itself.</li>
+<li><code>&lt;body&gt;</code> — everything the user actually sees.</li>
+</ul>
+
+<h2>Tags nest — and the nesting is the structure</h2>
+<p>A tag opens with <code>&lt;tag&gt;</code> and closes with <code>&lt;/tag&gt;</code>. What's between them is its content, and tags can contain other tags. Indentation in the examples exists purely to make that nesting readable to <em>you</em> — the browser doesn't care about whitespace.</p>
+
+<table>
+<tr><th>Tag</th><th>Meaning</th></tr>
+<tr><td><code>&lt;h1&gt;</code>…<code>&lt;h6&gt;</code></td><td>Headings, biggest to smallest. A page should have exactly one <code>&lt;h1&gt;</code>.</td></tr>
+<tr><td><code>&lt;p&gt;</code></td><td>A paragraph of text.</td></tr>
+<tr><td><code>&lt;div&gt;</code></td><td>A generic block-level container — no meaning of its own, used to group things for layout/styling.</td></tr>
+<tr><td><code>&lt;span&gt;</code></td><td>Same idea as <code>&lt;div&gt;</code> but inline (doesn't force a line break) — used to style a piece of text mid-sentence.</td></tr>
+<tr><td><code>&lt;a href="..."&gt;</code></td><td>A link.</td></tr>
+<tr><td><code>&lt;img src="..."&gt;</code></td><td>An image. Self-closing — no separate closing tag.</td></tr>
+</table>
+
+<div class="callout tip">
+<span class="callout-title">Why this matters for debugging</span>
+When a merchant reports "the reload page looks broken", your first move is often browser DevTools → Elements tab, reading exactly this kind of nested structure to see which tag is missing, misplaced, or mis-styled — not reading C# first.
+</div>
+
+<h2>Try it yourself</h2>
+<p>Edit the code on the left. Add a second paragraph, or wrap a word in <code>&lt;span&gt;</code> and give it a style. Click <strong>Run ▸</strong> to see the result update on the right.</p>
+
+<div class="tryit" data-lang="html">
+<pre class="tryit-src">&lt;!doctype html&gt;
+&lt;html&gt;
+&lt;body&gt;
+  &lt;h1&gt;Reload Terminal Status&lt;/h1&gt;
+  &lt;p&gt;Terminal &lt;strong&gt;TNG-0042&lt;/strong&gt; is currently &lt;span style="color:green"&gt;online&lt;/span&gt;.&lt;/p&gt;
+  &lt;div style="border:1px solid #ccc; padding:8px;"&gt;
+    &lt;p&gt;Last transaction: RM 25.50&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+
+<h2>Check your understanding</h2>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Which of these is the correct reason to use <code>&lt;div&gt;</code> instead of <code>&lt;p&gt;</code>?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="div and p are both block-level, so that's not the distinguishing factor.">Because div is inline and p is block-level.</li>
+<li data-correct="true" data-explain="p is specifically for a paragraph of text; div is a generic, meaning-free container used to group other elements for layout or styling.">Because p means "this is a paragraph of text"; div is a generic container with no meaning of its own.</li>
+<li data-correct="false" data-explain="Both can contain other tags freely.">Because div can't contain other tags and p can.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A merchant says a page "looks broken" in their browser. What's the fastest first step?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="That's a reasonable second step, but it's slower — you don't yet know if the problem is even in the C# layer.">Pull up the reload_portal C# source and start reading controllers.</li>
+<li data-correct="true" data-explain="DevTools shows you the actual rendered DOM and any console errors immediately — the fastest way to see what's actually wrong before you guess at a cause." >Open browser DevTools and inspect the rendered HTML/console for errors.</li>
+<li data-correct="false" data-explain="Restarting might mask a real rendering bug without telling you anything about the cause.">Ask them to restart their browser and try again.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

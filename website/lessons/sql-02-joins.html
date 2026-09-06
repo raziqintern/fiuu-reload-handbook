@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Joins & Filtering · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="sql-02-joins">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">SQL &amp; reload_db</span>
+<h1>Joins &amp; Filtering</h1>
+<p class="lede">Real questions almost never live in one table. "Show me every transaction, with the merchant name attached" needs a <strong>join</strong>.</p>
+
+<h2>INNER JOIN: rows that match in both tables</h2>
+<div class="tryit" data-lang="sql">
+<pre class="tryit-src">SELECT
+  ta.TransNo,
+  ta.Amount,
+  t.MerchantName
+FROM TerminalActivities ta
+INNER JOIN Terminals t ON ta.TerminalId = t.TerminalId;</pre>
+</div>
+
+<p>Read it as: "for every row in <code>TerminalActivities</code>, find the matching row in <code>Terminals</code> where the <code>TerminalId</code> is equal, and pull columns from both." <code>ta</code> and <code>t</code> are aliases — short names so you don't have to spell out the full table name on every column.</p>
+
+<h2>LEFT JOIN: keep rows even without a match</h2>
+<div class="tryit" data-lang="sql">
+<pre class="tryit-src">SELECT
+  t.MerchantName,
+  ta.TransNo
+FROM Terminals t
+LEFT JOIN TerminalActivities ta ON ta.TerminalId = t.TerminalId
+WHERE t.TerminalId = 3;</pre>
+</div>
+
+<p>Terminal 3 ("Old Kiosk") has no activity rows. An <code>INNER JOIN</code> would have dropped it from the results entirely; <code>LEFT JOIN</code> keeps it and fills the missing activity columns with <code>NULL</code>. Use <code>LEFT JOIN</code> whenever "no matching rows" is itself a meaningful answer, not an error.</p>
+
+<h2>Filtering and ordering</h2>
+<div class="tryit" data-lang="sql">
+<pre class="tryit-src">SELECT TransNo, Amount
+FROM TerminalActivities
+WHERE Amount > 10
+ORDER BY Amount DESC;</pre>
+</div>
+
+<h2>Try it yourself</h2>
+<p>Combine a join with a filter: every transaction over RM 15, with its merchant name.</p>
+<div class="tryit" data-lang="sql">
+<pre class="tryit-src">-- your query here
+SELECT ta.TransNo, ta.Amount, t.MerchantName
+FROM TerminalActivities ta
+INNER JOIN Terminals t ON ta.TerminalId = t.TerminalId
+WHERE ta.Amount > 15;</pre>
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You need a report that lists every terminal, including ones with zero transactions ever. Which join do you use?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="INNER JOIN only keeps rows that have a match in both tables — a terminal with zero transactions would be silently dropped from the results." >INNER JOIN, filtered by transaction count.</li>
+<li data-correct="true" data-explain="LEFT JOIN keeps every row from the left table (Terminals) regardless of whether a match exists on the right — exactly what's needed when 'no matches' is a valid, meaningful result." >LEFT JOIN from Terminals to TerminalActivities.</li>
+<li data-correct="false" data-explain="This just reads every activity row without any connection to the Terminals table at all.">A plain SELECT * FROM TerminalActivities with no join.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

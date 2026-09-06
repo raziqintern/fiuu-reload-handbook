@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How reload_db Is Organised · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="sql-03-reload-db-shape">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">SQL &amp; reload_db</span>
+<h1>How reload_db Is Organised</h1>
+<p class="lede">From here on this track stops being generic SQL and starts being specifically about reload_db. This lesson is a summary of <a href="../../architecture/reload_db/00-overview.md">architecture/reload_db/00-overview.md</a> — read that doc for the full module-by-module detail.</p>
+
+<h2>One SQL Server instance, ~20 separate databases</h2>
+<p>reload_db isn't one database with lots of tables — it's <strong>20 real, actively-patched databases</strong> on one instance, one per business domain, each with its own `MAINT/` patch-script folder:</p>
+
+<table>
+<tr><th>Database</th><th>Role</th></tr>
+<tr><td><code>CEPP</code></td><td>Master data &amp; back-office hub — org hierarchy, users/roles, product catalog, shared lookups. The most cross-referenced database in the whole estate; nearly everything else references it.</td></tr>
+<tr><td><code>TRANSACTION</code></td><td>Core transaction staging + EOD/EOS reconciliation. Every terminal or API reload/payment request lands here first, with one integration schema per external provider.</td></tr>
+<tr><td><code>TNG</code>, <code>INCOMM</code>, <code>BILL_PAYMENT</code>, <code>RESTORIFY</code>, <code>TICKET</code>, <code>PREPAID</code></td><td>Provider-specific integrations — each owns its own accounts/wallets/cards/campaign data for that partner.</td></tr>
+<tr><td><code>REPORTSUMMARY</code> → <code>DataWarehouse</code></td><td>Downstream settlement/billing aggregation, then a reporting star-schema fed daily.</td></tr>
+<tr><td><code>EINVOICE</code>, <code>SAP</code></td><td>Malaysia e-Invoicing and SAP Business One integration — both genuinely undocumented in the original team vault until this repo's own tracing found them.</td></tr>
+<tr><td><code>RMS_OFFLINE</code></td><td>The consumer-facing self-service "Reload Offline" web app — its own largely-independent user base.</td></tr>
+</table>
+
+<p>The data flow, in one sentence: a reload/payment request lands in <code>TRANSACTION</code>, gets routed to a provider-specific database, settlement rows land in <code>REPORTSUMMARY</code>, which feeds <code>DataWarehouse</code> — and almost every database along the way reads shared master data out of <code>CEPP</code>.</p>
+
+<div class="callout tip">
+<span class="callout-title">Why "one database per domain" matters when debugging</span>
+If a merchant's reload succeeded in <code>TRANSACTION</code> but never showed up in a settlement report, the bug is very likely a hop between two of these databases (e.g. <code>TRANSACTION → REPORTSUMMARY</code>), not inside either one alone. Knowing the map above tells you where to look next instead of re-reading the same stored procedure five times.
+</div>
+
+<h2>Inside a MAINT folder: organised by object type</h2>
+<p>Every database's folder under <code>reload_db/MAINT/&lt;Name&gt;/</code> has the same shape — subfolders by <em>type</em> of SQL object, not by feature:</p>
+
+<pre class="code-block">reload_db/MAINT/TRANSACTION/
+  Table/
+  StoredProcedure/
+  Function/
+  Index/
+  Type/
+  Schema/
+  Data/</pre>
+
+<p>One consequence worth internalising: a single business change ("add a column, and a stored proc to use it") lands as <strong>two separate files in two separate folders</strong>, tied together only by a shared ticket number in the filename. There's no single commit or PR-diff view that shows you "everything this ticket changed" the way you might expect from an application codebase.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A reload transaction exists in TRANSACTION but is missing from a settlement report. Based on the data flow above, where's the most likely place to start looking?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="CEPP is master/reference data (org hierarchy, catalogs, lookups) — it's not part of the transactional settlement pipeline itself." >Inside CEPP, since it's the most cross-referenced database.</li>
+<li data-correct="true" data-explain="The documented flow is TRANSACTION -> provider DB -> REPORTSUMMARY -> DataWarehouse. A transaction that exists at the start but is missing from a report downstream points squarely at one of the hops in that pipeline." >Somewhere in the TRANSACTION -> provider DB -> REPORTSUMMARY hop.</li>
+<li data-correct="false" data-explain="EINVOICE is a separate downstream leg for statutory e-invoicing, not part of the settlement-report pipeline.">Inside EINVOICE, since it's the newest addition to the estate.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

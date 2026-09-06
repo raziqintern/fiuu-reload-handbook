@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Syntax vs. C# · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="vb-01-syntax">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">VB.NET Fundamentals</span>
+<h1>Syntax vs. C#</h1>
+
+<div class="callout warn">
+<span class="callout-title">Where this fits</span>
+This search of the actual <code>reload</code> codebase found <strong>zero VB.NET</strong> — the whole class-library is C#. This track exists because VB.NET is still common across the wider .NET/enterprise world (older internal tools, some legacy line-of-business apps), so it's worth being able to read even if you'll likely never write it here. Everything past this track (Conventions, Debugging, Architecture) is C#-only, because that's what reload actually is.
+</div>
+
+<p class="lede">VB.NET and C# compile to the same underlying .NET runtime and can do the same things — the difference is entirely surface syntax. If you know the C# track, this whole track is mostly a translation exercise.</p>
+
+<h2>Same program, two languages</h2>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Module Program
+    Sub Main()
+        Dim amount As Integer = 25
+        Dim fee As Double = 0.5
+        Dim currency As String = "MYR"
+        Dim isConfirmed As Boolean = False
+
+        Console.WriteLine(amount)
+        Console.WriteLine(fee)
+        Console.WriteLine(currency)
+        Console.WriteLine(isConfirmed)
+    End Sub
+End Module</pre>
+<pre class="tryit-output-src">25
+0.5
+MYR
+False</pre>
+</div>
+
+<h2>The surface differences</h2>
+<table>
+<tr><th>Concept</th><th>C#</th><th>VB.NET</th></tr>
+<tr><td>Declare a variable</td><td><code>int amount = 25;</code></td><td><code>Dim amount As Integer = 25</code></td></tr>
+<tr><td>Statement ending</td><td>Semicolon <code>;</code></td><td>Newline — no terminator needed</td></tr>
+<tr><td>Block delimiters</td><td><code>{ }</code></td><td>Keywords: <code>End Sub</code>, <code>End If</code>, <code>End Class</code>...</td></tr>
+<tr><td>Comment</td><td><code>// comment</code></td><td><code>' comment</code></td></tr>
+<tr><td>String concatenation</td><td><code>+</code></td><td><code>&amp;</code> (preferred — <code>+</code> also works but is ambiguous with addition)</td></tr>
+<tr><td>Case sensitivity</td><td>Case-sensitive (<code>amount</code> ≠ <code>Amount</code>)</td><td>Case-<em>insensitive</em> keywords and identifiers</td></tr>
+</table>
+
+<h2>Try it yourself</h2>
+<p><code>&amp;</code> for string concatenation is the one habit that trips up C# developers reading VB.NET most often:</p>
+
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Module Program
+    Sub Main()
+        Dim amount As Integer = 25
+        Dim feeRate As Double = 0.02
+        Dim fee As Double = amount * feeRate
+
+        Console.WriteLine("Amount: " & amount & ", Fee: " & fee)
+    End Sub
+End Module</pre>
+<pre class="tryit-output-src">Amount: 25, Fee: 0.5</pre>
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why does VB.NET generally prefer <code>&amp;</code> over <code>+</code> for joining strings, even though both compile?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Runtime performance between & and + for string concatenation isn't the reason this convention exists.">& runs measurably faster than +.</li>
+<li data-correct="true" data-explain="+ is also VB's numeric addition operator, so mixing it with values that might be numbers or strings creates ambiguity about intent. & is unambiguously 'concatenate as text', regardless of the operand types." >+ is also the numeric addition operator, so & removes any ambiguity about whether you mean addition or concatenation.</li>
+<li data-correct="false" data-explain="Both operators work with variables of any of these types — that's not the distinction.">+ only works with numbers, & only works with pre-declared string variables.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

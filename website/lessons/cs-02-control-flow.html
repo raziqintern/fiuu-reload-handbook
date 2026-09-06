@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control Flow & Loops · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="cs-02-control-flow">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C# Fundamentals</span>
+<h1>Control Flow &amp; Loops</h1>
+<p class="lede">Same concepts as the JavaScript track, stricter syntax — and one genuinely new tool, <code>switch</code>.</p>
+
+<h2>if / else if / else</h2>
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">int amount = 25;
+
+if (amount <= 0)
+{
+    Console.WriteLine("Invalid amount");
+}
+else if (amount > 500)
+{
+    Console.WriteLine("Exceeds max reload limit");
+}
+else
+{
+    Console.WriteLine("Amount OK: " + amount);
+}</pre>
+<pre class="tryit-output-src">Amount OK: 25</pre>
+</div>
+
+<h2>switch — a cleaner multi-way branch</h2>
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">string status = "Pending";
+
+switch (status)
+{
+    case "Success":
+        Console.WriteLine("Transaction completed");
+        break;
+    case "Pending":
+        Console.WriteLine("Awaiting confirmation");
+        break;
+    default:
+        Console.WriteLine("Unknown status");
+        break;
+}</pre>
+<pre class="tryit-output-src">Awaiting confirmation</pre>
+</div>
+
+<div class="callout warn">
+<span class="callout-title">Don't forget break</span>
+Unlike some languages, C#'s <code>switch</code> requires an explicit <code>break</code> (or <code>return</code>) at the end of every case — it will not compile if a case can "fall through" to the next one silently. This is a deliberate safety rail C# has that some other C-family languages don't.
+</div>
+
+<h2>Loops: for and foreach</h2>
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">for (int i = 1; i <= 3; i++)
+{
+    Console.WriteLine("Attempt " + i);
+}</pre>
+<pre class="tryit-output-src">Attempt 1
+Attempt 2
+Attempt 3</pre>
+</div>
+
+<p><code>foreach</code> walks through every item in a collection — the C# equivalent of JavaScript's <code>for...of</code>:</p>
+
+<h2>Try it yourself</h2>
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">int[] amounts = { 10, 25, 600, 15 };
+int limit = 500;
+bool allValid = true;
+
+foreach (int amt in amounts)
+{
+    if (amt > limit)
+    {
+        Console.WriteLine("Rejected: " + amt + " exceeds limit");
+        allValid = false;
+    }
+}
+
+Console.WriteLine("Batch valid? " + allValid);</pre>
+<pre class="tryit-output-src">Rejected: 600 exceeds limit
+Batch valid? False</pre>
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">What happens if you leave out <code>break;</code> at the end of a <code>switch</code> case in C#?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Some other C-family languages fall through silently — C# specifically does not allow this by default." >It silently falls through to the next case, same as some other languages.</li>
+<li data-correct="true" data-explain="C# requires each reachable case to end with break, return, throw, or goto case — an empty case falling through without one of these is a compile error, catching a common bug class at compile time.">The code won't compile — C# requires each case to explicitly end somehow.</li>
+<li data-correct="false" data-explain="It's a compile-time error, not a runtime exception.">Nothing — it runs fine and just skips that case.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

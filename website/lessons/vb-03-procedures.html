@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sub, Function & Classes · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="vb-03-procedures">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">VB.NET Fundamentals</span>
+<h1>Sub, Function &amp; Classes</h1>
+<p class="lede">VB.NET splits what C# calls a "method" into two explicit keywords, based on whether it returns a value.</p>
+
+<h2>Sub vs. Function</h2>
+<table>
+<tr><th>Keyword</th><th>Equivalent in C#</th></tr>
+<tr><td><code>Sub</code></td><td>A method returning <code>void</code> — does something, hands nothing back.</td></tr>
+<tr><td><code>Function</code></td><td>A method with a real return type — must end with <code>Return value</code>.</td></tr>
+</table>
+
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Function CalculateFee(amount As Double) As Double
+    Return amount * 0.02
+End Function
+
+Sub Main()
+    Dim fee As Double = CalculateFee(100)
+    Console.WriteLine(fee)
+End Sub</pre>
+<pre class="tryit-output-src">2</pre>
+</div>
+
+<h2>Classes: Property instead of get/set, New instead of a matching-name constructor</h2>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Public Class Terminal
+    Public Property TerminalId As String
+    Public Property MerchantName As String
+    Public Property IsOnline As Boolean
+
+    Public Sub New(terminalId As String, merchantName As String)
+        Me.TerminalId = terminalId
+        Me.MerchantName = merchantName
+        Me.IsOnline = True
+    End Sub
+End Class
+
+Module Program
+    Sub Main()
+        Dim t As New Terminal("TNG-0042", "7-Eleven KL")
+        Console.WriteLine(t.TerminalId & " - " & t.MerchantName & " - " & t.IsOnline)
+    End Sub
+End Module</pre>
+<pre class="tryit-output-src">TNG-0042 - 7-Eleven KL - True</pre>
+</div>
+
+<p>Compare this to the C# version in <a href="cs-04-classes.html">C# Fundamentals → Classes</a> — same three properties, same constructor logic. <code>Public Property X As T</code> is VB's equivalent of C#'s <code>public T X { get; set; }</code>; the constructor is always named <code>New</code> instead of repeating the class name; <code>Me</code> is VB's <code>this</code>.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You're reading a VB.NET class and see a method declared with <code>Sub</code>. What does that tell you?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Sub is VB's keyword specifically for a method with no return value — the direct equivalent of C#'s void." >It returns no value — the equivalent of a C# method declared void.</li>
+<li data-correct="false" data-explain="Sub says nothing about access level — that's a separate modifier (Public, Private, etc.) written alongside it.">It's private to the class by default.</li>
+<li data-correct="false" data-explain="Both Sub and Function can take any number of parameters — that's not what distinguishes them.">It can't take any parameters.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

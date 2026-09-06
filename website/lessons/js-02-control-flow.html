@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conditionals & Loops · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="js-02-control-flow">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">JavaScript Basics</span>
+<h1>Conditionals &amp; Loops</h1>
+<p class="lede">The two building blocks every program needs: making a decision, and repeating something.</p>
+
+<h2>if / else if / else</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">let amount = 25.5;
+
+if (amount <= 0) {
+  console.log("Invalid amount");
+} else if (amount > 500) {
+  console.log("Exceeds max reload limit");
+} else {
+  console.log("Amount OK:", amount);
+}</pre>
+</div>
+
+<p>Comparison operators: <code>===</code> (equal, no type conversion — use this), <code>!==</code> (not equal), <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>. Logical: <code>&amp;&amp;</code> (and), <code>||</code> (or), <code>!</code> (not).</p>
+
+<div class="callout warn">
+<span class="callout-title">Use === , not ==</span>
+<code>==</code> performs type coercion before comparing — <code>0 == "0"</code> is <code>true</code>, but so is the much more surprising <code>0 == ""</code> and <code>0 == false</code>. <code>===</code> compares without converting anything, which is almost always what you actually mean. Always default to <code>===</code>.
+</div>
+
+<h2>Loops</h2>
+<p>A <code>for</code> loop when you know how many times to repeat; <code>for...of</code> to walk through every item in a list.</p>
+
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">// classic counting loop
+for (let i = 1; i <= 3; i++) {
+  console.log("Attempt", i);
+}
+
+// walking through a list of items
+const statuses = ["Pending", "Success", "Failed"];
+for (const s of statuses) {
+  console.log("Status:", s);
+}</pre>
+</div>
+
+<h2>Try it yourself</h2>
+<p>This mirrors a real check: reject a batch of transactions if any one of them is over the limit. Trace it by hand before running.</p>
+
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">const amounts = [10, 25, 600, 15];
+const limit = 500;
+let allValid = true;
+
+for (const amt of amounts) {
+  if (amt > limit) {
+    console.log("Rejected:", amt, "exceeds limit");
+    allValid = false;
+  }
+}
+
+console.log("Batch valid?", allValid);</pre>
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="predict" data-answer="false">
+<p class="quiz-q">In the "Try it yourself" example above, what does the final <code>console.log("Batch valid?", allValid)</code> print for <code>allValid</code> — <code>true</code> or <code>false</code>?</p>
+<textarea class="quiz-blank" rows="1"></textarea>
+<button type="button" class="quiz-submit">Check answer</button>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why prefer <code>===</code> over <code>==</code> in almost all code?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="=== is not slower in any way that matters, and that's not the real reason to prefer it.">=== runs faster.</li>
+<li data-correct="true" data-explain="== silently converts types before comparing, producing surprising results like 0 == \"\" being true. === compares as-is, which is almost always the intent.">== silently converts types before comparing, which produces surprising results; === does not.</li>
+<li data-correct="false" data-explain="Both work with any type — the difference is whether conversion happens, not what types are allowed.">=== only works on numbers.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

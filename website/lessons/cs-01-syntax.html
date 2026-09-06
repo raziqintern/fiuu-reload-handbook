@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Syntax, Types & Variables · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="cs-01-syntax">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C# Fundamentals</span>
+<h1>Syntax, Types &amp; Variables</h1>
+<p class="lede">This is the language reload's <code>class-library</code> is actually written in. Everything in this track is generic C# knowledge; the <a href="conv-01-naming.html">Fiuu C# Conventions</a> track after it is what makes that knowledge specific to this codebase.</p>
+
+<div class="callout warn">
+<span class="callout-title">About the "Try it Yourself" boxes in this track</span>
+There's no live C# compiler in your browser without a hosted backend, so these are <strong>Predict → Reveal</strong>: read the code, guess the output, then click to reveal the verified real answer. See the home page for why.
+</div>
+
+<h2>C# is statically typed</h2>
+<p>Unlike JavaScript, every variable's type is fixed at the point you declare it, and the compiler checks it before your code ever runs. This catches a whole class of bugs JS would only surface at runtime, if at all.</p>
+
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">int amount = 25;
+double fee = 0.5;
+string currency = "MYR";
+bool isConfirmed = false;
+
+Console.WriteLine(amount);
+Console.WriteLine(fee);
+Console.WriteLine(currency);
+Console.WriteLine(isConfirmed);</pre>
+<pre class="tryit-output-src">25
+0.5
+MYR
+False</pre>
+</div>
+
+<div class="callout warn">
+<span class="callout-title">Capital True / False</span>
+C# prints booleans as <code>True</code> / <code>False</code> (capitalized) — JavaScript prints <code>true</code> / <code>false</code> (lowercase). Small, but it'll trip you up the first time you're comparing console output side by side.
+</div>
+
+<h2>Common types</h2>
+<table>
+<tr><th>Type</th><th>Holds</th></tr>
+<tr><td><code>int</code></td><td>Whole numbers.</td></tr>
+<tr><td><code>double</code></td><td>Decimal numbers — fine for most math, but not for money (see below).</td></tr>
+<tr><td><code>decimal</code></td><td>Decimal numbers with exact base-10 precision — the correct type for currency amounts, because <code>double</code> can introduce tiny rounding errors that are unacceptable in a ledger.</td></tr>
+<tr><td><code>string</code></td><td>Text, always double-quoted in C# (single quotes are for a single <code>char</code>).</td></tr>
+<tr><td><code>bool</code></td><td><code>true</code> / <code>false</code>.</td></tr>
+</table>
+
+<h2>String interpolation</h2>
+<p>Same idea as JavaScript's template literals, with a <code>$</code> instead of a backtick:</p>
+
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">int amount = 25;
+double feeRate = 0.02;
+double fee = amount * feeRate;
+
+Console.WriteLine($"Amount: {amount}, Fee: {fee}");
+Console.WriteLine("Total: " + (amount + fee));</pre>
+<pre class="tryit-output-src">Amount: 25, Fee: 0.5
+Total: 25.5</pre>
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="predict" data-answer="False">
+<p class="quiz-q">What does <code>Console.WriteLine(false)</code> print in C#? (mind the capitalization)</p>
+<textarea class="quiz-blank" rows="1"></textarea>
+<button type="button" class="quiz-submit">Check answer</button>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why does reload's transaction/amount code use <code>decimal</code> instead of <code>double</code>?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="decimal isn't about display formatting — it's about how the number is actually stored and calculated."><code>decimal</code> just displays with more decimal places.</li>
+<li data-correct="true" data-explain="double stores numbers in binary floating point, which can't represent every base-10 decimal exactly — that's an unacceptable risk for money. decimal stores base-10 digits exactly." ><code>double</code> can introduce tiny binary rounding errors that are unacceptable for currency; <code>decimal</code> avoids that.</li>
+<li data-correct="false" data-explain="decimal isn't faster — if anything it has more overhead than double. Correctness, not speed, is the reason.">decimal performs calculations faster than double.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What Reviewers Actually Flag · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="dbg-03-review-checklist">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Debugging Reload</span>
+<h1>What Reviewers Actually Flag</h1>
+<p class="lede">Grounded in 3,620 real review comments read across the 24 highest-discussion merge requests in reload's history. Every rule below is backed by an actual, quoted comment — not a generic best-practices list. Full source: <a href="../../gitlab-analysis/reload-mr-review-checklist.md">gitlab-analysis/reload-mr-review-checklist.md</a>.</p>
+
+<h2>Two reviewers, two different jobs</h2>
+<p>A human lead reviewer (1,398 of the sampled comments) catches style, business-logic, and "did you check the spec" issues. An AI review bot, added mid-2025 (1,090 of the sampled comments), catches mechanical correctness issues — type mismatches, null-dereference risks, stale references, typos. Knowing which kind of issue you're looking at tells you which kind of review is likely to catch it before it ships.</p>
+
+<h2>What the human reviewer catches, quoted directly</h2>
+
+<blockquote>"Please help to rename the variable name with datatype prefix." — MR !970</blockquote>
+<blockquote>"You should always use the transactiondatetime from merchant. Not current datetime." — MR !613</blockquote>
+<blockquote>"Should log the terminalContents.FirstOrDefault().Id as well as the RequestedAmount. As those are the key infos that points to which exact record is empty." — MR !613</blockquote>
+<blockquote>"Dont set unlimited. Still need a max limit, as it will hold the db otherwise." — MR !317</blockquote>
+<blockquote>"This function seems not being used anywhere. Please confirm and remove accordingly." — MR !660</blockquote>
+
+<p>Pattern across all of these: they're rarely about whether the code <em>works</em> — they're about whether it fits conventions this specific team has learned the hard way (see <a href="dbg-04-trace-a-bug.html">the next lesson</a> for where "use the merchant's timestamp, not server time" actually came from).</p>
+
+<h2>What the automated reviewer catches, quoted directly</h2>
+
+<blockquote>"Make sure your DB and SPs expect Int64 for @Id here, otherwise calls will fail at runtime." — MR !1762</blockquote>
+<blockquote>"If <code>lstStocks.FirstOrDefault(...)</code> Is Nothing, this will throw a NullReferenceException; add a null check before accessing <code>.CancellationReason</code>." — MR !1325</blockquote>
+<blockquote>"Typo: variable 'iinCommProduct' is not defined; should be 'inCommProduct' (see rest of code for naming, likely copy-paste error)." — MR !1425</blockquote>
+<blockquote>"This function duplicates logic for checking service maintenance — reuse the existing <code>IsUnderServiceMaintenance</code> function instead of duplicating..." — MR !1578</blockquote>
+
+<h2>Try it yourself: would this pass review?</h2>
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">public StockAdjustment GetLatestAdjustment(List<StockAdjustment> lstAdjustments)
+{
+    var latest = lstAdjustments.FirstOrDefault(a => a.IsActive);
+    Console.WriteLine("Latest adjustment reason: " + latest.CancellationReason);
+    return latest;
+}
+
+class Program
+{
+    static void Main()
+    {
+        var empty = new List<StockAdjustment>();
+        GetLatestAdjustment(empty);
+    }
+}
+
+public class StockAdjustment
+{
+    public bool IsActive { get; set; }
+    public string CancellationReason { get; set; }
+}</pre>
+<pre class="tryit-output-src">Unhandled exception. System.NullReferenceException: Object reference not set to an instance of an object.</pre>
+</div>
+
+<h2>Check your understanding</h2>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">In the code above, what should a reviewer flag — matching a real, quoted automated-review comment from this exact codebase?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="This is exactly MR !1325's real comment: FirstOrDefault(...) can return null (Nothing), and .CancellationReason is accessed on it with no null check first — the same shape that threw NullReferenceException in production review." >FirstOrDefault() can return null when no item matches — there's no null check before <code>.CancellationReason</code> is accessed.</li>
+<li data-correct="false" data-explain="The method name and parameter naming follow this codebase's real conventions fine — that's not the issue here.">The method name doesn't follow naming conventions.</li>
+<li data-correct="false" data-explain="It's a List<StockAdjustment>, not an array — that's not the actual defect in this code.">The list should be an array instead of a List&lt;StockAdjustment&gt;.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A merge request goes through 13 revision cycles before merging. What does the review-history data say you should conclude from that number alone?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The actual finding is the opposite — high revision counts here often reflect legitimate scope changes, not poor quality." >The author's initial code quality was poor.</li>
+<li data-correct="true" data-explain="Revision chains up to 17 cycles are documented as common in this project, and a real share of that churn reflects evolving business requirements discovered mid-review — not repeated rejection of the same code. The number alone isn't a quality signal." >Not much by itself — high revision counts here often reflect evolving business requirements discovered mid-review, not necessarily poor initial quality.</li>
+<li data-correct="false" data-explain="No such formal escalation process is described in this review data — the actual finding is more nuanced than an automatic verdict.">The MR should be auto-rejected and restarted after that many revisions.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

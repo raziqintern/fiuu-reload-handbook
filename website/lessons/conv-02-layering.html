@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layering: Provider/Service/Model · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="conv-02-layering">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Fiuu C# Conventions</span>
+<h1>Layering: Provider / Service / Model</h1>
+<p class="lede">This is the single most important mental model for reading reload's C# code. Full source: <a href="../../conventions/layering-and-architecture.md">conventions/layering-and-architecture.md</a>.</p>
+
+<h2>The shape, repeated per module</h2>
+<p>Each business module (<code>Reloads/TNG</code>, <code>Secure/Astro</code>, ...) repeats the same three-layer split:</p>
+<table>
+<tr><th>Layer</th><th>Responsibility</th><th>Example</th></tr>
+<tr><td><strong>Model</strong></td><td>Plain DTO/POCO, no behavior</td><td><code>Reloads/TNG/Models/Account.cs</code></td></tr>
+<tr><td><strong>Provider</strong></td><td>Data access only — talks to SQL via stored procedures</td><td><code>Reloads/TNG/Providers/TerminalProvider.cs</code></td></tr>
+<tr><td><strong>Service</strong></td><td>Business logic, implements <code>I&lt;Name&gt;Service</code>, orchestrates Providers + other Services</td><td><code>Reloads/TNG/Services/TerminalService.cs</code></td></tr>
+</table>
+
+<h2>Providers are new'd up directly; Services are resolved via a locator</h2>
+<pre class="code-block">public class TerminalService : ITerminalService
+{
+    private TerminalProvider _provider;
+    private TerminalProvider Provider
+    {
+        get { return _provider ?? (_provider = new TerminalProvider()); }
+    }
+
+    private IAccountService _accountCompo;
+    private IAccountService AccountCompo
+    {
+        get { return _accountCompo ?? (_accountCompo = EngineContext.Current.Resolve<IAccountService>()); }
+    }</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Services/TerminalService.cs:8-26</p>
+
+<p>Two things to notice, because they're both consistent rules, not accidents:</p>
+<ul>
+<li>The <code>Provider</code> is created directly with <code>new</code> — no dependency injection for that layer. Every Service sampled does this.</li>
+<li>Cross-Service dependencies go through a <strong>service locator</strong> (<code>EngineContext.Current.Resolve&lt;T&gt;</code>), lazily, via this exact <code>_field ?? (_field = ...)</code> idiom — not constructor injection. This pattern recurs in every Service that depends on another Service (19 files reference it across class-library).</li>
+</ul>
+
+<div class="callout warn">
+<span class="callout-title">If you're used to constructor injection, this will look wrong — it isn't a bug</span>
+Modern .NET tutorials teach constructor injection almost exclusively. This codebase deliberately (if implicitly) uses the lazy-property service-locator pattern instead. Don't "fix" it to constructor injection in a PR unless that's the actual scope of the change — it's a working, consistent, if dated, pattern across the whole estate.
+</div>
+
+<h2>No repository/unit-of-work abstraction, no ORM</h2>
+<p>There's no generic <code>IRepository&lt;T&gt;</code>, no Entity Framework <code>DbContext</code>, and no transaction spanning multiple Provider calls. Each Provider method opens a connection, executes exactly one stored procedure, and returns. If a real operation needs multiple writes to stay consistent, that atomicity is expected to live inside the stored procedure itself — not orchestrated in C#.</p>
+
+<h2>Consistency isn't uniform — know where it breaks down</h2>
+<table>
+<tr><th>Aspect</th><th>Consistency</th></tr>
+<tr><td>Model/Provider/Service split</td><td>Very consistent across all modules sampled</td></tr>
+<tr><td>Interface-per-Service</td><td>Consistent</td></tr>
+<tr><td>Provider access modifier (internal vs. public)</td><td>Inconsistent — no pattern by module or age found</td></tr>
+<tr><td>Base-class reuse (<code>ServiceBase</code>)</td><td>Not shared — three unrelated classes, same name, same idea, each hand-written per module</td></tr>
+<tr><td>Inheritance/template-method for variability</td><td>Only in InComm (protocol-heavy, ISO 8583); other modules use flat Services</td></tr>
+</table>
+
+<div class="callout tip">
+<span class="callout-title">Practical takeaway</span>
+When you open a module you haven't seen before, look for the Model/Provider/Service split first — it'll almost certainly be there. Don't assume anything else (base classes, DI style, inheritance) is shared with the last module you read; check that module's own conventions before copying a pattern across module boundaries.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A <code>TerminalService</code> needs to call another module's <code>IAccountService</code>. Based on the real pattern above, how does it get that dependency?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Constructor injection is the modern default elsewhere, but it's not what this codebase's Services actually use for cross-service dependencies." >Through a constructor parameter, injected when the Service is created.</li>
+<li data-correct="true" data-explain="This exact _field ?? (_field = EngineContext.Current.Resolve<T>()) idiom, behind a private property, is the consistent real pattern for cross-Service dependencies across the sampled codebase." >Through a lazily-resolved property backed by EngineContext.Current.Resolve&lt;IAccountService&gt;().</li>
+<li data-correct="false" data-explain="new is how Providers are created, not how cross-Service dependencies are wired — Services go through the locator instead." >By directly calling new AccountService() the same way Providers are created.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

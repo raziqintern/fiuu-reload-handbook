@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading the Logs First · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="dbg-01-logs">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Debugging Reload</span>
+<h1>Reading the Logs First</h1>
+<p class="lede">You've now seen why this matters: error handling swallows exceptions into sentinel values, and the log is often the only place the real story survives. This lesson turns that into a habit.</p>
+
+<h2>The core fact this whole track is built on</h2>
+<div class="callout real">
+<span class="callout-title">A -1, false, or null return value is ambiguous by design</span>
+Under reload's dominant catch-log-return-sentinel pattern (<a href="conv-03-error-handling.html">Conventions → Error Handling</a>), a Provider method returning <code>-1</code> could mean "legitimately nothing found" or "an exception was thrown and swallowed." The two are indistinguishable from the return value alone. <strong>When debugging "why did this silently not work", check the log before you re-read the C# a third time.</strong>
+</div>
+
+<h2>Search by correlation key, not chronologically</h2>
+<p>Recall the <code>&gt;&gt;&gt;</code>/<code>&lt;&lt;&lt;</code> bracket convention from <a href="conv-04-logging.html">Conventions → Logging</a>: outbound calls are logged with a <code>[Key: ...]</code> correlation id, usually the business reference. Given a specific failing transaction, search the log for its reference id directly — don't scroll from the top of the file.</p>
+
+<h2>The most misleading thing you'll see in a log: duplicate entries for one real error</h2>
+<p>This is a real, explicitly-named review complaint — reviewer <code>khenggek</code> flags it repeatedly across unrelated merge requests:</p>
+<blockquote>"Please check whether the reference will write to event viewer. There is no point in writing to viewer and throw the same exception again. This will cause it to write to event viewer twice for the same error and will be misleading." — MR !844</blockquote>
+<blockquote>"Please always check the method reference. Is there try catch at the reference? If yes, you should not put try catch here as you are just logging and throwing exception again and causing double writing to event viewer..." — MR !470</blockquote>
+
+<p>A method catches an exception, logs it, and rethrows — but the <em>caller</em> also catches and logs the same exception. Result: one real failure produces two log entries with different call-stack framing, which looks like two separate problems during incident triage.</p>
+
+<div class="callout warn">
+<span class="callout-title">The rule</span>
+Log in exactly one place per exception. Either let it propagate unlogged to a handler further up that will log it, or catch and log it here without rethrowing to something that will log it again. If you see the same error message twice in a log with slightly different context, suspect this pattern before you suspect two real, independent failures.
+</div>
+
+<h2>What actually gets logged — and what doesn't</h2>
+<p>Full outbound request/response JSON payloads, generally. Exceptions, with whatever <code>customMessage</code> the author bothered to add. Row-count/no-op conditions, sometimes, as informational writes rather than errors. What's <em>not</em> guaranteed: a consistent method surface across modules (each module's <code>LogHelper</code> is different — see <a href="conv-04-logging.html">Logging</a>), or redaction of sensitive fields before logging.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You find the same exception message logged twice for one transaction, with slightly different surrounding text. What should you suspect first?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Two independent failures producing the exact same exception message and reference id, back to back, is a much less likely explanation than the documented double-logging pattern." >Two unrelated bugs happened to occur at almost the same time.</li>
+<li data-correct="true" data-explain="This is a real, named, recurring review complaint in this codebase: a method logs an exception and rethrows to a caller that also logs it — one real failure, two log entries." >A method logged the exception and rethrew it to a caller that also logs — the double-exception-logging anti-pattern.</li>
+<li data-correct="false" data-explain="Log rotation would produce missing or truncated entries, not a duplicate of the same message with different framing.">The log file rotated and duplicated an old entry.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

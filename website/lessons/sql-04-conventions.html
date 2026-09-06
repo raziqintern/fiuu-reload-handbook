@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stored Procs, MAINT & NOLOCK · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="sql-04-conventions">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">SQL &amp; reload_db</span>
+<h1>Stored Procs, MAINT &amp; NOLOCK</h1>
+<p class="lede">The real, reverse-engineered SQL-side conventions from <a href="../../conventions/sql-conventions.md">conventions/sql-conventions.md</a> — this is what a real stored procedure in this codebase actually looks like.</p>
+
+<h2>Stored procedure naming: <code>&lt;Schema&gt;.&lt;Table&gt;_&lt;Verb&gt;[_By_&lt;Columns&gt;]</code></h2>
+<p>Verbs are always one of four abbreviations — <code>Ins</code>, <code>Sel</code>, <code>Upd</code>, <code>Del</code>:</p>
+<pre class="code-block">Celcom.Transactions_Ins
+Celcom.Transactions_Sel_By_ServiceTypeId_ReferenceId
+Celcom.Transactions_Upd
+Celcom.Transactions_Upd_IsGenerated_By_ReferenceId
+dbo.AllocationOrderItems_Del_By_AllocationOrderId</pre>
+<p class="code-cite">reload_db/MAINT/TRANSACTION/StoredProcedure/</p>
+
+<div class="callout real">
+<span class="callout-title">This naming is load-bearing, not decorative</span>
+The C# side references these procedures through generated constant holders whose member names mirror the SQL name exactly — <code>Fiuu.Provider.Database.TNG.StoredProcedures.TerminalActivities_Ins</code> calls the stored procedure named <code>TerminalActivities_Ins</code>. The SQL object name and the C# constant are kept in lockstep by convention, with no codegen step visible in this repo enforcing it. Rename one without the other and the C# code silently calls a procedure that no longer exists.
+</div>
+
+<h2>Every real procedure body follows the same shape</h2>
+<pre class="code-block">USE [TRANSACTION]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- Author/Create date/Description/Used by header
+CREATE OR ALTER PROCEDURE [Celcom].[Transactions_Ins]
+    @MServiceTypeId INT
+    , @ReferenceId VARCHAR(50)
+    ...
+AS
+BEGIN
+    SET NOCOUNT ON;
+    ...
+END
+GO</pre>
+<p class="code-cite">reload_db/MAINT/TRANSACTION/StoredProcedure/Celcom.Transactions_Ins.sql</p>
+
+<p>Consistent elements across every procedure sampled: <code>CREATE OR ALTER PROCEDURE</code> (not the older <code>IF EXISTS ... DROP</code> pattern), leading-comma parameter lists, and <code>SET NOCOUNT ON;</code> as the very first statement in the body.</p>
+
+<h2>NOLOCK on every read — a deliberate, universal choice</h2>
+<div class="tryit" data-lang="sql">
+<pre class="tryit-src">-- Real reload_db style (SQL Server syntax — this specific hint
+-- isn't meaningful in the SQLite engine here, but the shape is real):
+-- FROM [Transaction].[Celcom].[Transactions] WITH (NOLOCK)
+
+SELECT * FROM TerminalActivities;</pre>
+</div>
+<p><code>WITH (NOLOCK)</code> appears on essentially every read stored procedure in the sampled codebase. It tells SQL Server "don't wait for locks, just read whatever's there even if it's mid-transaction" — a deliberate throughput-over-consistency trade-off for a high-volume transactional system. The cost: you can occasionally read a row that's about to be rolled back, or momentarily miss a row mid-insert. Worth knowing before you assume a read result is always perfectly consistent.</p>
+
+<h2>The <code>M</code>-prefix, on the SQL side too</h2>
+<p>Foreign keys into a lookup/status table are prefixed <code>M</code> (for "Master") in the database, matching the C# side you'll see in the <a href="conv-01-naming.html">Conventions track</a>: <code>MServiceTypeId</code>, <code>MWorkFlowStatusId</code>, <code>MSourceTypeId</code>. Same convention, same intent, both layers.</p>
+
+<h2>Patch scripts: real, but inconsistently tagged</h2>
+<p>Column-naming and stored-procedure style are consistent; <em>ticket references in patch-script filenames</em> are not. The same "add a column" operation appears under at least six different spellings across real filenames:</p>
+<pre class="code-block">dbo.AllocationOrders_AddColumn_GIT-790.sql
+dbo.AllocationOrderItems_Add_Column_GIT_1382.sql
+dbo.ApiStockOrders_Add_Column_RMSO-219.sql
+dbo.ReconMOLPayDetails_Temp_Alter_Column_GIT#1114.sql</pre>
+<p>At least four ticket-tag spellings are in simultaneous use (<code>RMSO-nnn</code>, <code>GIT-nnn</code>, <code>GIT_nnn</code>, <code>GITnnnn</code>), with no single "correct" format ever unified. If you're searching for every script touching a given ticket, you cannot rely on one consistent grep pattern.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why does renaming a stored procedure in reload_db without updating the C# side silently break things, instead of failing to compile?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="The C# constant holder and the SQL procedure name are kept in sync purely by convention, not by any codegen or build-time check visible in this repo — so a rename on one side with no corresponding change on the other only fails at runtime, when the call actually happens." >The link between the C# constant name and the SQL procedure name is convention-only — nothing checks it at compile time.</li>
+<li data-correct="false" data-explain="C# has no built-in awareness of SQL Server stored procedures at all — there's no such compiler feature to rely on here." >C# has a compiler feature that validates stored procedure names against the database.</li>
+<li data-correct="false" data-explain="Renaming a database-side object doesn't automatically propagate anywhere — nothing updates the C# side for you.">The rename automatically updates every C# reference.</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You now know enough SQL for this codebase</span>
+That's the SQL track. Next: <strong>Fiuu C# Conventions</strong> — the naming, layering, and error-handling patterns on the application side that this SQL naming has been mirroring all along.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

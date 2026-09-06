@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="home">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+  <section class="hero">
+    <h1><span class="bolt">⚡</span> Fiuu Reload Academy</h1>
+    <p class="lede">A W3Schools-style, learn-by-doing course for becoming a Fiuu <code>reload</code> software engineer — HTML, JavaScript, C#, VB.NET and SQL fundamentals, then the real conventions, architecture and debugging habits this specific codebase actually uses.</p>
+  </section>
+
+  <h2>How this is different from a normal tutorial site</h2>
+  <p>Most of the web teaches generic C# or generic SQL. The first few tracks here do that too — but the back half of this site is reverse-engineered from the real <code>reload</code> and <code>reload_db</code> codebases: real naming quirks, real layering patterns, real recurring bugs, real reviewer nitpicks. Where a lesson quotes code, it's a real snippet with a <code>file:line</code> citation, not an invented example.</p>
+
+  <div class="callout tip">
+    <span class="callout-title">Recommended path</span>
+    If you're new to programming, start at <strong>HTML Basics</strong> and go in order down the sidebar. If you already know C#, jump straight to <strong>Fiuu C# Conventions</strong> — that's the track that actually onboards you onto this codebase.
+  </div>
+
+  <h2>Tracks</h2>
+  <div class="track-grid" id="track-grid"></div>
+
+  <h2>About the "Try it Yourself" boxes</h2>
+  <p>Every language here gets a live editor, but "live" means different things depending on what can actually run in a browser with no backend server:</p>
+  <ul>
+    <li><strong>HTML</strong> — real, instant preview in an embedded frame.</li>
+    <li><strong>JavaScript</strong> — real execution in a sandboxed frame; <code>console.log</code> output shown next to your code.</li>
+    <li><strong>SQL</strong> — a real SQLite engine running in your browser via WebAssembly (<a href="https://sql.js.org" target="_blank" rel="noopener">sql.js</a>), pre-seeded with a small practice schema shaped like <code>reload_db</code>.</li>
+    <li><strong>C# and VB.NET</strong> — these need a real compiler, which means a hosted backend. This site has none (by design — no server to maintain, no API key to manage, works offline). Instead you get <strong>Predict → Reveal</strong>: read the code, guess the output, then reveal the verified real answer. Copy the code into Visual Studio, <code>dotnet run</code>, or an online compiler any time you want to actually run it.</li>
+  </ul>
+
+  <h2>Source material</h2>
+  <p>Everything in the <strong>Fiuu C# Conventions</strong>, <strong>Debugging Reload</strong>, and <strong>Architecture Map</strong> tracks is drawn from this repo's own <a href="../conventions/README.md">conventions/</a>, <a href="../gitlab-analysis/README.md">gitlab-analysis/</a>, and <a href="../architecture/README.md">architecture/</a> folders — reverse-engineered from the actual <code>reload</code>/<code>reload_db</code> code, not idealized guidelines. Read those source docs for the full depth; this site is the guided on-ramp into them.</p>
+
+</main>
+<script src="assets/js/nav-data.js"></script>
+<script src="assets/js/site.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const descriptions = {
+      html: "Just enough markup to read reload_portal / web_app views.",
+      js: "Variables, control flow, functions, and how to actually debug it.",
+      csharp: "The language reload's class-library is written in.",
+      vbnet: "Good to know — not currently used in reload, but common in the .NET world.",
+      sql: "Real, runnable SQL against a reload_db-shaped practice schema.",
+      conventions: "The naming, layering, and error-handling patterns reload actually uses — reverse-engineered with file:line evidence.",
+      debugging: "How logging works, the recurring bug classes, and what reviewers actually flag.",
+      architecture: "The topology and module map of reload and reload_db.",
+      glossary: "CEPP, TNG, INCOMM and the rest — fast lookup.",
+    };
+    const grid = document.getElementById("track-grid");
+    grid.innerHTML = SITE_TRACKS.map((t) => {
+      const first = t.lessons[0];
+      return `<a class="track-card" href="lessons/${first.file}">
+        <h3>${t.title}</h3>
+        <p>${descriptions[t.id] || ""}</p>
+        <span class="count">${t.lessons.length} lesson${t.lessons.length > 1 ? "s" : ""}</span>
+      </a>`;
+    }).join("");
+  });
+</script>
+</body>
+</html>

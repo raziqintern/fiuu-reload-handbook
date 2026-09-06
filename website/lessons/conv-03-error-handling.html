@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error Handling · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="conv-03-error-handling">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Fiuu C# Conventions</span>
+<h1>Error Handling</h1>
+<p class="lede">You learned in C# Fundamentals that catching <code>Exception</code> broadly is a code smell. Reload's real code does it constantly — on purpose. Full source: <a href="../../conventions/error-handling.md">conventions/error-handling.md</a>.</p>
+
+<h2>The dominant pattern: catch, log, return a sentinel — don't rethrow</h2>
+<pre class="code-block">public long AddGameSalesTransaction(GameSalesTransaction gameSalesTransaction)
+{
+    long iId = -1;
+    ...
+    try
+    {
+        ...
+        iId = result.GetParameterValue<Int64>("@Id");
+    }
+    catch (Exception ex)
+    {
+        LogHelper.Error("AddGameSalesTransaction", gameSalesTransaction != null ? gameSalesTransaction.ReferenceId : null, "Unhandled exception.", ex);
+    }
+    return iId;   // caller cannot tell "-1 because of an exception" from "-1 because that's a real id"
+}</pre>
+<p class="code-cite">reload/class-library/Reloads/Game/Providers/GameProvider.cs:15-46</p>
+
+<div class="callout warn">
+<span class="callout-title">Read that comment twice</span>
+This is the pattern's real cost, called out in the source doc itself: the caller of <code>AddGameSalesTransaction</code> gets back <code>-1</code> whether something threw an exception, or whether <code>-1</code> is a legitimately meaningful value. The exception detail exists <em>only</em> in the log. If you're debugging "why did this transaction silently not save", the log — not the C# call site — is where the real answer lives.
+</div>
+
+<p>This shape (wrap the whole method, catch <code>Exception</code>, log, return a safe default or an error-code DTO) is consistent across TNG, Game, Astro, and InComm. It's the de facto house style, even though nobody wrote it down anywhere.</p>
+
+<h2>The one narrower exception: known SQL constraint violations</h2>
+<p>Where duplicate-key detection matters for correctness — an idempotency check on a retryable network call — the code catches the specific <code>SqlException</code>, checks the error number, and rethrows everything else:</p>
+<pre class="code-block">catch (Exception ex)
+{
+    if (ex is SqlException sqlEx && (sqlEx.Number == 2627 || sqlEx.Number == 2601))
+    {
+        auth.TransStatus = TransStatus.DuplicateTransNo;
+        auth.ResponseMessage = "Trans No has been used.";
+        return false;
+    }
+    throw;
+}</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Providers/TerminalProvider.cs:109-124</p>
+
+<p>This is the one place in the sampled codebase where "catch broadly, but rethrow anything you didn't specifically expect" is done correctly. Worth knowing the two magic numbers: <code>2601</code> and <code>2627</code> are both SQL Server unique-constraint-violation error numbers.</p>
+
+<div class="callout warn">
+<span class="callout-title">Even here, consistency slips</span>
+Those same two numbers also exist as a named enum elsewhere (<code>SqlExceptionNumber.ViolationOfUniqueKeyConstraint = 2601</code>) — but <code>TerminalProvider</code> doesn't use it, and re-inlines the raw numbers instead. Two ways of expressing the same check coexist in the same module. If you're adding a similar check, prefer the named enum — but don't be surprised to find the magic-number version elsewhere.
+</div>
+
+<h2>Logging code must never itself throw</h2>
+<pre class="code-block">LoggerDic[sKey].Log(sLogMessage);
+...
+catch
+{
+    // Logging must never take down a transaction.
+}</pre>
+<p class="code-cite">reload/class-library/Reloads/Game/Helpers/LogHelper.cs:66-71</p>
+<p>This is the one blanket empty <code>catch</code> in the sampled codebase that's clearly <em>intentional</em>, not incidental — and it's commented as such. The reasoning: a failure in logging infrastructure should never be allowed to crash or corrupt a real transaction in progress.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You call a reload Provider method and it returns <code>-1</code>. Based on the dominant error-handling pattern, what does that tell you?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Under this pattern, -1 is overloaded — it could mean either. That's exactly the cost the pattern imposes, and why the log is where the real answer lives." >Definitely an unhandled exception occurred.</li>
+<li data-correct="false" data-explain="Also not guaranteed — -1 could equally be masking a swallowed exception under this pattern." >Definitely a legitimate result value, not an error.</li>
+<li data-correct="true" data-explain="Under the dominant catch/log/return-sentinel pattern, -1 is ambiguous by design cost — it could be a real value or a swallowed exception. The log is the only place that actually distinguishes the two." >It's ambiguous — you have to check the log to know whether -1 is a real value or a swallowed exception.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why does the SQL-constraint-violation catch block check the specific error number (2601/2627) before deciding what to do, instead of just catching and handling any SqlException the same way?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="A duplicate-key violation is an expected, recoverable condition worth translating into a business status (DuplicateTransNo). Any other SqlException is unexpected and rethrown, so it isn't silently swallowed the way the catch-all Provider pattern would." >Because a duplicate-key violation is expected and recoverable, but any other SQL error is not — and shouldn't be silently swallowed.</li>
+<li data-correct="false" data-explain="Performance isn't the reason for the number check — correctness (distinguishing an expected case from everything else) is.">Checking the number is faster than catching the whole exception type.</li>
+<li data-correct="false" data-explain="SqlException.Number is fully supported and checked directly in real reload code — this isn't a language limitation.">SqlException doesn't support catching by type in C#.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

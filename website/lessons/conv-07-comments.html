@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comment Style · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="conv-07-comments">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Fiuu C# Conventions</span>
+<h1>Comment Style</h1>
+<p class="lede">The last stop in this track: how much commenting actually exists, and where it earns its keep. Full source: <a href="../../conventions/comment-style.md">conventions/comment-style.md</a>.</p>
+
+<h2>XML doc comments are rare — about 1 in 10 files</h2>
+<p>Of 626 <code>.cs</code> files under class-library, only 62 contain an XML doc comment (<code>///</code>) anywhere at all. Public <code>*Service</code>/<code>*Provider</code> classes are overwhelmingly undocumented at the member level — method and parameter names (<code>GetTerminalSummaryByTransNo(string transNo)</code>) are expected to carry the meaning on their own, and mostly do. There's no IntelliSense-visible description of edge cases or failure modes for a consumer of the shared library.</p>
+
+<div class="callout tip">
+<span class="callout-title">What this means for you as a reader</span>
+Don't go looking for doc comments to understand what a method does — you likely won't find them. Read the method name, its parameter names, and (per the Naming lesson) the layer suffix on its class. That's the primary documentation this codebase actually has.
+</div>
+
+<h2>Inline comments are sparse — but load-bearing when present</h2>
+<p>Most methods have zero inline comments. When one does appear, it's because the behavior is genuinely non-obvious and the author knew it:</p>
+<pre class="code-block">long subNumber = Int64.Parse(cardNumber.Substring(cardNumber.Length - 10, 9)); //last digit is serve as parity bit
+long fileIndex = (subNumber - 1) / 2000000;
+int cardIndex = (int)(subNumber % 2000000);
+cardIndex = cardIndex == 0 ? 1999999 : cardIndex - 1; // Fix the index due to 2000000 should be last position</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Validators/CardNumberValidator.cs:53-56</p>
+
+<div class="callout warn">
+<span class="callout-title">The philosophy: comments explain business magic, not mechanics</span>
+This codebase's comments explain domain magic numbers and business rules that genuinely can't be inferred from the code — not what the code is mechanically doing. The trade-off: a file dense with magic numbers like this one is still hard to follow even with the comments it has, because there's no overview comment explaining the file format or scheme as a whole. If you touch a file like this, consider whether a short summary comment at the top would have saved you the time you just spent understanding it — and add one if so.
+</div>
+
+<h2>A comment that reveals the codebase's own history</h2>
+<pre class="code-block">foundFile = true;
+break; // TODO: might not be correct. Was : Exit For</pre>
+<p class="code-cite">reload/class-library/Database/Helpers/DBConnectionHelper.cs:61-63</p>
+<p>"Was: Exit For" is a tell that this file was mechanically ported from <a href="vb-01-syntax.html">VB.NET</a> (<code>Exit For</code> is VB's loop-break keyword) rather than written fresh in C#. If you're editing <code>Fiuu.Database</code> code and something feels slightly foreign for idiomatic C#, this is likely why.</p>
+
+<h2>SQL headers: a consistent template, shallow content</h2>
+<pre class="code-block">-- =============================================
+-- Author:		Chee Hong
+-- Create date: 2024-05-06
+-- Description:	Celcom Transactions
+-- Used by:     Celcom Pinless
+-- =============================================</pre>
+<p class="code-cite">reload_db/MAINT/TRANSACTION/StoredProcedure/Celcom.Transactions_Ins.sql:9-14</p>
+<p>This is almost certainly a leftover from SSMS's built-in "Create Stored Procedure" template — kept as a convention rather than deliberately designed. The <code>Description:</code> line is frequently just the table name restated, not an actual description of behavior or pre/post-conditions.</p>
+
+<div class="callout tip">
+<span class="callout-title">You've completed Fiuu C# Conventions</span>
+That's every convention this track set out to cover: naming, layering, error handling, logging, data access, configuration, and comment style — all reverse-engineered from real code, not written down anywhere official until this handbook. Next: <strong>Debugging Reload</strong>, which builds directly on everything you just learned.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You're trying to understand what a public Service method does and there's no XML doc comment on it. What should you actually rely on, based on this codebase's real documentation philosophy?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Only about 1 in 10 files has any XML doc comments at all, and coverage within those is sparse — this isn't a reliable primary source here.">Search the rest of the file for XML doc comments on similar methods.</li>
+<li data-correct="true" data-explain="With comments this sparse, the method name, parameter names, and the class's layer suffix (Service/Provider/Model, per the Naming lesson) are the documentation this codebase actually relies on — and they're deliberately written to carry that meaning." >The method's name, its parameter names, and its class's layer suffix (Service/Provider/Model) — that's what carries the meaning here.</li>
+<li data-correct="false" data-explain="This codebase's inline comments are sparse and reserved for genuinely non-obvious business-magic details, not general behavior explanations — most methods won't have one at all.">Every method is expected to have an inline comment explaining its behavior.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

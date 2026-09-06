@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossary · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="glossary">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Glossary</span>
+<h1>Term Reference</h1>
+<p class="lede">Fast lookup for the domain and process terms used throughout this site and the reload codebase. Full source, with fuller write-ups: <a href="../../glossary/business-and-partner-terms.md">business-and-partner-terms.md</a> and <a href="../../glossary/process-and-tooling-jargon.md">process-and-tooling-jargon.md</a>.</p>
+
+<input type="text" id="glossary-search" placeholder="Search terms... (e.g. CEPP, GIT#, NOLOCK)">
+
+<div id="gloss-list"></div>
+
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script>
+const GLOSSARY = [
+  { term: "CEPP", meaning: "Never expanded anywhere in the code. Master-data/back-office hub database + shared retail-POS transaction engine — the most cross-referenced database in the whole reload_db estate." },
+  { term: "TNG", meaning: "Touch 'n Go — Malaysia e-wallet integration: reload, card, fund transactions." },
+  { term: "INCOMM", meaning: "InComm — US-based gift-card/stored-value processor integration." },
+  { term: "INCOMM_TRANS", meaning: "The transaction-side companion database to INCOMM: terminal-facing activation/deactivation/reversal ledger." },
+  { term: "RESTORIFY", meaning: "A brand name, not an acronym. Carbon-offset/sustainability-calculator subscription product — not a transaction-recovery module, despite how the name reads." },
+  { term: "SAP", meaning: "Systems, Applications & Products (here: SAP Business One). ERP/accounting integration for financial posting." },
+  { term: "EINVOICE", meaning: "Malaysia statutory e-invoicing submission integration (LHDN/MyInvois inferred, unconfirmed). Missing from the team's own internal schema vault until this repo's own tracing found it." },
+  { term: "PREPAID", meaning: "Legacy prepaid-product registration/enrolment tracking — not the sale itself. Day-to-day prepaid sales actually live in the TRANSACTION database." },
+  { term: "BILL_PAYMENT", meaning: "Bill-payment aggregator database, one schema per biller/partner (TNB, Telekom, Astro, Digi, and many more)." },
+  { term: "MLookUp", meaning: "Master LookUp — a small shared geography/telco lookup-code store, physically separate from CEPP's own lookups." },
+  { term: "RMS_OFFLINE", meaning: "Razer Merchant Services \"Reload Offline\" — the consumer-facing self-service top-up web app and its database, with a largely independent user base from CEPP." },
+  { term: "RMS", meaning: "Razer Merchant Services — Fiuu's former corporate name, pre-rebrand." },
+  { term: "MOLPay", meaning: "A legacy payment-gateway brand (not confirmed as a literal acronym) — Fiuu's former payment-gateway brand, now called \"Fiuu Cash\" internally." },
+  { term: "Fiuu", meaning: "The company's current name — rebrand from RMS/MOLPay, landed February-March 2024." },
+  { term: "RDS", meaning: "Unresolved — not expanded anywhere in the mined docs. Appears in reload_db's GitLab project path/description and MR title tags." },
+  { term: "BackOffice", meaning: "The internal admin portal application (BackOffice/Web + /Api) — the same app referred to elsewhere as \"web_app\"." },
+  { term: "TerminalServer", meaning: "The legacy TCP socket server for physical POS terminal hardware." },
+  { term: "GRN", meaning: "Goods Received Note — a stock-receipt record linking the TRANSACTION database's stock flow to INVENTORY_MASTER." },
+  { term: "EOD / EOS", meaning: "End of Day / End of Shift — a recurring reconciliation-cycle pattern across nearly every provider database." },
+  { term: "ISO 8583", meaning: "An international message-format standard for card-payment networks, implemented from scratch for INCOMM's lower-level \"stand-in\" processing path." },
+  { term: "TIN", meaning: "Tax Identification Number — a supplier/buyer identity field on e-Invoicing records." },
+  { term: "SST", meaning: "Sales and Service Tax — a Malaysian tax-registration field on e-Invoicing records." },
+  { term: "PGW", meaning: "Payment Gateway — a parallel controller/client surface in the Terminal API; its full purpose wasn't fully traced." },
+  { term: "Type::bug", meaning: "A GitLab label used on only about 1% of issues in reload's history — most real defects surface as Patch Request or Variance tickets instead, not this label." },
+  { term: "GIT# / GIT- / GIT_ / GITnnnn", meaning: "Four different spellings of the same ticket-prefix convention, all referencing offline-teams/reload issue numbers. Don't assume one grep pattern finds every reference." },
+  { term: "RMSO-nnnn", meaning: "A legacy Jira ticket ID, from before this project moved to GitLab — bulk-migrated into GitLab issues on 2023-12-29." },
+  { term: "deepcode_ai", meaning: "The automated AI merge-request reviewer account, adopted around 13 June 2025 — runs alongside the human reviewer, not instead of them. See Debugging Reload → What Reviewers Actually Flag." },
+  { term: "khenggek", meaning: "Kheng Gek Goh — the fixed human lead reviewer across virtually every merge request in reload's history." },
+  { term: "MAINT", meaning: "Maintenance scripts — reload_db's root folder of hand-written SQL patch scripts, the only versioning system that exists for the database estate." },
+  { term: "SIT / UAT", meaning: "System Integration Testing / User Acceptance Testing — pre-production environment stages referenced in reload_db merge-request titles." },
+  { term: "PITR", meaning: "Point-In-Time Recovery — a SQL Server recovery technique, notably used in a real February 2026 PIN-service data-corruption incident." },
+  { term: "NOLOCK", meaning: "The WITH (NOLOCK) SQL Server locking hint, applied unconditionally on nearly every read stored procedure in reload_db — a deliberate throughput-over-consistency choice. See SQL & reload_db → Stored Procs, MAINT & NOLOCK." },
+  { term: "M-prefix", meaning: "A naming convention: any column that's a foreign key into a lookup/master/status table is prefixed M (for \"Master\"), in both C# and SQL. See Fiuu C# Conventions → Naming." },
+  { term: "Pin vs. Pinless", meaning: "Two separate implementations of conceptually the same product line — physical/downloadable pin vs. direct API credit. Fixes to one routinely don't get mirrored to the other; see Debugging Reload → Known Patterns & Pitfalls." },
+];
+
+function renderGlossary(filter) {
+  const q = (filter || "").trim().toLowerCase();
+  const list = document.getElementById("gloss-list");
+  list.innerHTML = GLOSSARY
+    .filter((g) => !q || g.term.toLowerCase().includes(q) || g.meaning.toLowerCase().includes(q))
+    .map((g) => `<div class="gloss-entry"><div class="gloss-term">${g.term}</div><div>${g.meaning}</div></div>`)
+    .join("") || '<p style="color:var(--ink-soft);">No matching terms.</p>';
+}
+document.addEventListener("DOMContentLoaded", () => {
+  renderGlossary("");
+  document.getElementById("glossary-search").addEventListener("input", (e) => renderGlossary(e.target.value));
+});
+</script>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

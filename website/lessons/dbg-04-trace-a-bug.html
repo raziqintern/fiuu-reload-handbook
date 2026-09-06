@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worked Example: Tracing a Bug · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="dbg-04-trace-a-bug">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Debugging Reload</span>
+<h1>Worked Example: Tracing a Bug</h1>
+<p class="lede">A real incident from reload's history (issue #2592), walked through the way you'd actually work it — not the tidy after-the-fact summary. Source: <a href="../../gitlab-analysis/reload-tribal-knowledge.md">gitlab-analysis/reload-tribal-knowledge.md</a> §2.6.</p>
+
+<h2>The symptom, as it was reported</h2>
+<div class="callout warn">
+<span class="callout-title">"TNG reload transactions are getting slow"</span>
+Transaction time crept up from normal to as long as <strong>two hours</strong> to complete. The pattern that makes this bug class recognisable: it gets slowly worse <em>over hours</em>, and a service restart fixes it — for a while, before it creeps back up again.
+</div>
+
+<h2>Step 1 — resist the obvious wrong hypotheses</h2>
+<p>"Getting slow over time, restart fixes it" points strongly at a resource leak, not a logic bug — the code's <em>output</em> was correct the whole time, only its <em>speed</em> degraded. A few hypotheses that would waste time here:</p>
+<ul>
+<li><strong>"The database is slow"</strong> — would show up as slow queries across many unrelated operations, not specifically TNG reload transactions creeping up in isolation.</li>
+<li><strong>"There's a bug in the reload logic"</strong> — a logic bug doesn't explain why a restart temporarily fixes it. Logic doesn't degrade with uptime.</li>
+<li><strong>"Traffic increased"</strong> — would show a step change correlated with a known traffic event, not a slow, restart-resettable creep.</li>
+</ul>
+
+<h2>Step 2 — what "restart fixes it" actually tells you</h2>
+<p>If restarting the process resets the problem, whatever is degrading must live in <strong>process memory or OS-level handles</strong> — not the database, not the network, not a config value (those would survive a restart unchanged). This narrows the search dramatically before a single line of code is read.</p>
+
+<h2>Step 3 — find what's opened per-transaction and never released</h2>
+<p>The actual root cause: every single reload transaction opened a <code>.pfx</code> certificate file from disk and RSA-decrypted a session key <strong>from scratch, twice per reload</strong> — and never released the handle afterward.</p>
+
+<div class="callout tip">
+<span class="callout-title">Why this specifically causes a slow multi-hour creep, not an instant crash</span>
+Windows serializes access to crypto key material. As unreleased handles piled up over hours, each new lookup got slower, competing for the same serialized resource. And because this all happened <strong>inside a per-account lock</strong>, the slowdown queued behind itself — one slow transaction blocks the next one for the same account, compounding the delay instead of just adding to it.
+</div>
+
+<h2>Step 4 — the fix, and the generalizable lesson</h2>
+<p>The fix itself is almost anticlimactic once the cause is found: release the certificate/key handle after each use instead of leaking it. The lesson that outlives this specific ticket:</p>
+
+<div class="callout real">
+<span class="callout-title">The pattern to recognise next time</span>
+"Things get slow over time, and a restart fixes it" is the signature of a <strong>per-request resource leak</strong> (a file handle, a crypto key, a connection, a lock) that never gets released — especially dangerous when it sits inside a per-account or per-resource lock, because the lock turns a small per-request slowdown into a compounding queue. When you see this shape, go looking for something opened inside a hot path with no matching <code>Dispose()</code>/release — not for a logic bug in the transaction itself.
+</div>
+
+<h2>Try applying it: which pattern does each symptom match?</h2>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A merchant's topup confirmation email shows an amount 100x larger than what was actually charged. Which pitfall from this track does this match?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This isn't a resource leak — the value itself is wrong on the very first transaction, not degrading over time." >The per-request resource leak pattern (like the TNG certificate issue above).</li>
+<li data-correct="true" data-explain="This is issue #2346 from the Known Patterns & Pitfalls lesson — the partner API sends the amount in cents, and it wasn't divided by 100 before being formatted as ringgit." >A partner unit/format mismatch — the amount arrived in cents and wasn't converted before display.</li>
+<li data-correct="false" data-explain="A double-logged exception would show duplicate log entries, not a wrong displayed amount.">The double-exception-logging anti-pattern.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Two independent code paths (a webhook callback and a browser redirect) both try to mark the same payment as complete, and duplicate transaction records appear. Which category of fix does the tribal-knowledge doc point to?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This isn't a speed problem or a resource leak — both paths run instantly and just both 'win' independently." >Release the unreleased resource that's causing a slowdown.</li>
+<li data-correct="true" data-explain="This is issue #1483 — Online TopUp had duplicate records because both the webhook and the browser redirect independently updated payment status, racing each other. The fix made the redirect the sole authoritative signal." >Make exactly one of the two signals authoritative, or add a dedupe/idempotency key — don't let whichever arrives first just win.</li>
+<li data-correct="false" data-explain="Retrying more aggressively would make a race condition worse, not better, by increasing the chance both paths fire.">Add a retry loop so both paths keep trying until one succeeds.</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You've completed the Debugging Reload track</span>
+That's the full track: reading logs first, recognising known pitfall shapes, knowing what reviewers actually flag, and a real worked incident. Next: <strong>Architecture Map</strong>, for the topology-level picture of reload and reload_db this whole track has been referencing.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

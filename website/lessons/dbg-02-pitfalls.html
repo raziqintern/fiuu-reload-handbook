@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Known Patterns & Pitfalls · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="dbg-02-pitfalls">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Debugging Reload</span>
+<h1>Known Patterns &amp; Pitfalls</h1>
+<p class="lede">A curated set of recurring smells, framed descriptively, not as indictments — this is what you'd expect from a production fintech codebase extended by many hands over many years without a documented standard. Full source: <a href="../../conventions/known-patterns-and-pitfalls.md">conventions/known-patterns-and-pitfalls.md</a>.</p>
+
+<h2>A real, broken exception that shipped to production</h2>
+<pre class="code-block">public TNGEODException()
+{
+    new TNGEODException(terminalId, businessDate, messageNo);   // constructs and discards a second instance
+}
+
+public TNGEODException(int terminalId, DateTime businessDate, string messageNo)
+{
+    this.terminalId = terminalId;
+    this.businessDate = businessDate;
+    this.messageNo = messageNo;
+}
+
+public override string Message
+{
+    get { return base.Message; }   // never surfaces terminalId/businessDate/messageNo
+}</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Exceptions/TNGEODException.cs:14-33</p>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">What's actually wrong with the parameterless constructor above?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="It compiles fine — the bug is behavioral, not syntactic." >It won't compile — you can't call new inside a constructor.</li>
+<li data-correct="true" data-explain="It should chain to the parameterized constructor with : this(terminalId, businessDate, messageNo) so 'this' object gets the fields set. Instead it constructs and immediately discards a second, throwaway instance — 'this' object's fields are left unset." >It constructs and discards a second, separate instance instead of chaining to the parameterized constructor with <code>: this(...)</code> — <code>this</code> object's fields are never actually set.</li>
+<li data-correct="false" data-explain="terminalId isn't the problem here — the whole constructor's approach is broken regardless of what values are passed.">terminalId is used before it's declared.</li>
+</ul>
+</div>
+
+<p>Nothing in the sampled code appears to construct this exception via the parameterless constructor — probably why the bug was never noticed. Treat this as a real signal: <strong>custom exception types in this codebase are not uniformly battle-tested just because they exist and compile.</strong></p>
+
+<h2>Spot the bug: an unguarded dropdown reset</h2>
+<p>This exact bug shipped as issue #2190 ("Exception 43"): selecting a supplier in a dropdown, then changing it back to a placeholder option, then saving.</p>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">The save throws <code>Conversion from string "" to type 'Integer' is not valid</code>. Based on what you now know about dropdown-driven forms, what's the root cause?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="This is exactly what happened in #2190: the '-Please Select-' placeholder option has an empty-string value, and nothing guards against that empty string flowing straight into an Integer conversion." >The placeholder option's empty-string value flows straight into a strict Integer conversion with no guard against it.</li>
+<li data-correct="false" data-explain="The error is a type-conversion failure at the point the value is used, not a missing/null distinction being mishandled.">The database column doesn't allow NULL and something tried to insert NULL.</li>
+<li data-correct="false" data-explain="This is a client-observable data validation issue, not a network-layer problem.">The dropdown's options failed to load over the network.</li>
+</ul>
+</div>
+<p>The fix in this codebase is always the same shape: <strong>guard against the placeholder/default option explicitly, not just against blank text input</strong> — a dropdown's "nothing selected" state is a distinct case from an empty string.</p>
+
+<h2>Spot the bug: cents vs. ringgit</h2>
+<p>This exact bug shipped as issue #2346: JomPay topup confirmation emails showed amounts 100x too large.</p>
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">// amount arrives from the partner API in cents, as an integer
+int amountInCents = 3000000;
+
+// bug: formatted directly as if it were already ringgit
+Console.WriteLine("MYR " + amountInCents.ToString("N2"));</pre>
+<pre class="tryit-output-src">MYR 3,000,000.00</pre>
+</div>
+<p>The intended amount was RM 30,000.00 — 100x smaller. The fix was pure format-conversion: divide by 100 before formatting, since the partner's API contract sends cents, not ringgit. The same ticket also found the confirmation email was sent <em>before</em> the balance update, so the displayed "new balance" was the pre-topup balance — two separate bugs discovered in the same investigation.</p>
+
+<div class="callout warn">
+<span class="callout-title">The general lesson, not just this one bug</span>
+Whenever a value crosses a partner boundary (amount, date, timestamp), check the unit/format <em>the partner</em> expects or sends — not what's convenient internally. Cents-vs-ringgit and date-only-vs-datetime are both real, previously-shipped bugs in this exact codebase, not hypothetical warnings.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A report scheduler was changed to remove its row limit, "since we want all the data now." What should a reviewer flag, based on real review history?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="This is a real, cited review comment: 'Dont set unlimited. Still need a max limit, as it will hold the db otherwise. Use the same default limit as all other reports.' An unbounded report query is a DB-load risk, not just a data-completeness choice." >An unbounded query risks holding the database under load — match the default limit convention used by sibling reports instead.</li>
+<li data-correct="false" data-explain="Correctness of the returned rows isn't the concern being raised here — it's the operational risk of an unbounded query.">The report's column headers probably need updating too.</li>
+<li data-correct="false" data-explain="This isn't about UI performance — it's about the database itself being held under an unbounded query.">Nothing — more data is always better for a report.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exceptions & Try/Catch · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="cs-05-exceptions">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">C# Fundamentals</span>
+<h1>Exceptions &amp; Try/Catch</h1>
+<p class="lede">When something goes wrong mid-transaction — a timeout, bad input, a gateway rejection — C# doesn't return a special "error" value. It <em>throws</em>, unwinding the call stack until something catches it.</p>
+
+<h2>throw, try, catch</h2>
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">static double Divide(double a, double b)
+{
+    if (b == 0)
+        throw new DivideByZeroException("Cannot divide by zero");
+    return a / b;
+}
+
+static void Main()
+{
+    try
+    {
+        double result = Divide(10, 0);
+        Console.WriteLine(result);
+    }
+    catch (DivideByZeroException ex)
+    {
+        Console.WriteLine("Error: " + ex.Message);
+    }
+    Console.WriteLine("Program continues");
+}</pre>
+<pre class="tryit-output-src">Error: Cannot divide by zero
+Program continues</pre>
+</div>
+
+<p>Note that <code>Console.WriteLine(result)</code> never runs — once <code>Divide</code> throws, execution jumps straight to the matching <code>catch</code>, skipping everything else left in the <code>try</code> block. Execution after the whole <code>try</code>/<code>catch</code> continues normally.</p>
+
+<h2>finally always runs</h2>
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">try
+{
+    Console.WriteLine("Attempting reload...");
+    throw new Exception("Gateway timeout");
+}
+catch (Exception ex)
+{
+    Console.WriteLine("Caught: " + ex.Message);
+}
+finally
+{
+    Console.WriteLine("Cleanup: closing connection");
+}</pre>
+<pre class="tryit-output-src">Attempting reload...
+Caught: Gateway timeout
+Cleanup: closing connection</pre>
+</div>
+
+<p>A <code>finally</code> block runs whether or not an exception was thrown, and whether or not it was caught — it's the right place for cleanup (closing a connection, releasing a lock) that must happen either way.</p>
+
+<div class="callout warn">
+<span class="callout-title">Catching Exception is a code smell, not a best practice</span>
+<code>catch (Exception ex)</code> catches literally everything, including bugs you'd rather see crash loudly (like a null reference from your own typo). Catch the most specific exception type you're actually expecting to handle. Reload's own code has plenty of blanket <code>catch (Exception)</code> blocks that just log and swallow — that's a real, documented pattern in this codebase, not a theoretical anti-pattern. See <a href="conv-03-error-handling.html">Fiuu C# Conventions → Error Handling</a>.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">In the first example, why does "10" (or any result value) never get printed?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Console.WriteLine itself isn't the problem — the code never reaches that line at all." >Console.WriteLine can't print doubles without a format string.</li>
+<li data-correct="true" data-explain="Divide(10, 0) throws before it ever returns a value — execution jumps directly from the throw statement to the matching catch block, so the line assigning/printing 'result' never runs." >Divide throws before it returns anything, so execution jumps straight to the catch block and skips that line entirely.</li>
+<li data-correct="false" data-explain="The variable is declared correctly — the issue is that the line assigning it is never reached because of the earlier throw.">result is declared with the wrong type.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

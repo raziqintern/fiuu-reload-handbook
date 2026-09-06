@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reload_db: Topology & Modules · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="arch-02-reload-db">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Architecture Map</span>
+<h1>reload_db: Topology &amp; Modules</h1>
+<p class="lede">You covered the SQL-level conventions of reload_db in the SQL track. This lesson zooms out to the whole-estate picture. Full source: <a href="../../architecture/reload_db/00-overview.md">architecture/reload_db/00-overview.md</a>.</p>
+
+<h2>reload_db is a change-management repo, not a deployable app</h2>
+<p><code>reload_db</code> is its own independent git repository, separate from <code>reload</code>. It contains no application code — just <code>MAINT/&lt;DatabaseName&gt;/</code> folders of hand-written SQL patch scripts, one folder per database, plus a couple of console tools used to apply those scripts against a live database.</p>
+
+<h2>One SQL Server instance, 20 real databases</h2>
+<p>Recapping from the SQL track: reload_db is <strong>20 separate, actively-patched databases</strong> on one instance, not one database with many tables. The full list and roles are in <a href="sql-03-reload-db-shape.html">SQL &amp; reload_db → How reload_db Is Organised</a> — worth re-checking that table any time you're trying to figure out which database owns a piece of data you're chasing.</p>
+
+<h2>How the application side actually connects</h2>
+<p>No connection strings live in any <code>web.config</code>/<code>app.config</code> anywhere in the <code>reload</code> repo. Two separate, unrelated mechanisms exist instead:</p>
+<table>
+<tr><th>What</th><th>Mechanism</th></tr>
+<tr><td>SQL Server connection strings</td><td>Read from a flat text file named <code>&lt;alias&gt;.txt</code> (e.g. <code>LOGGING.txt</code>) in a hardcoded local directory (<code>d:\db\</code> or <code>c:\db\</code>) — see <a href="conv-06-config-secrets.html">Conventions → Configuration &amp; Secrets</a>.</td></tr>
+<tr><td>Partner/integration credentials</td><td>AWS Secrets Manager, gated by an app-identity switch, cached in-process — a completely separate mechanism from the SQL connection strings above.</td></tr>
+</table>
+<p>Only three connection-string aliases were confirmed directly in application code: <code>RMS_Offline</code>, <code>LOGGING</code>, and <code>Notification</code> — corresponding to three of the 20 databases. How the other 17 databases' connections are resolved wasn't traced in this pass; treat it as an open question rather than assuming the same three-alias mechanism covers everything.</p>
+
+<h2>The estate is still being actively corrected</h2>
+<div class="callout real">
+<span class="callout-title">Two whole databases were missing from the team's own documentation</span>
+The original internal vault claimed "16 separate databases." Tracing the live <code>MAINT/</code> folders directly found <strong>at least 20</strong> — the vault's 16 plus <code>EINVOICE</code> and <code>SAP</code>, both genuine, actively-patched databases with zero mentions anywhere in the team's existing 260KB schema vault. This is a useful reminder: even "official" internal documentation here can lag behind what's actually running in production — cross-check against the live <code>MAINT/</code> scripts, not just whatever doc you find first.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You're trying to figure out how a specific application connects to the LOGGING database. Where should the connection string actually be, based on this codebase's real mechanism?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="No connection strings section was found anywhere under the reload repo — this codebase doesn't use that mechanism for SQL connection strings.">In web.config's &lt;connectionStrings&gt; section.</li>
+<li data-correct="true" data-explain="DBConnectionHelper resolves SQL Server connection strings by reading a plain text file named after the database alias (e.g. LOGGING.txt) from a hardcoded local directory (d:\\db\\ or c:\\db\\) on the deployed machine — a real, if fragile, mechanism confirmed directly in code." >In a plain text file named LOGGING.txt in a hardcoded local directory (d:\db or c:\db) on the deployed machine.</li>
+<li data-correct="false" data-explain="AWS Secrets Manager is used for partner/integration credentials in this codebase, not for the SQL Server connection strings themselves — that's a separate, unrelated mechanism.">In AWS Secrets Manager, alongside partner API credentials.</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You've completed the Architecture Map track — and the core curriculum</span>
+That covers every track on this site. From here, the real next step is reading the full source docs this site was built from — <a href="../../architecture/README.md">architecture/</a>, <a href="../../conventions/README.md">conventions/</a>, and <a href="../../gitlab-analysis/README.md">gitlab-analysis/</a> — for the depth this guided version deliberately left out. The <a href="glossary.html">Glossary</a> is worth bookmarking as a standing reference for whenever you hit an unfamiliar term.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

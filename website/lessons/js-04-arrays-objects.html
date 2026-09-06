@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrays & Objects · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="js-04-arrays-objects">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">JavaScript Basics</span>
+<h1>Arrays &amp; Objects</h1>
+<p class="lede">Every API response you'll ever inspect in the Network tab is one of these two shapes. Recognising them on sight is a real, daily-use skill.</p>
+
+<h2>Objects: key/value data</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">const terminal = {
+  terminalId: "TNG-0042",
+  merchantName: "7-Eleven KL",
+  isOnline: true,
+  lastAmount: 25.5
+};
+
+console.log(terminal.terminalId);
+console.log(terminal["merchantName"]); // same as .merchantName, useful when the key is dynamic
+
+terminal.lastAmount = 30.0; // objects are mutable after creation
+console.log(terminal);</pre>
+</div>
+
+<h2>Arrays: ordered lists</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">const amounts = [10, 25.5, 100, 5];
+
+console.log(amounts.length);
+console.log(amounts[0]);       // first item, index 0
+console.log(amounts[amounts.length - 1]); // last item
+
+const total = amounts.reduce((sum, a) => sum + a, 0);
+console.log("Total:", total);
+
+const large = amounts.filter((a) => a > 20);
+console.log("Over 20:", large);</pre>
+</div>
+
+<p><code>.filter()</code>, <code>.map()</code>, and <code>.reduce()</code> are the three you'll see constantly: filter keeps items matching a condition, map transforms every item into something else, reduce collapses the whole array into one value.</p>
+
+<h2>Arrays of objects — the shape of most real data</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">const transactions = [
+  { transNo: "TXN-1001", amount: 10.0, status: "Success" },
+  { transNo: "TXN-1002", amount: 25.5, status: "Pending" },
+  { transNo: "TXN-1003", amount: 5.0, status: "Failed" }
+];
+
+const pending = transactions.filter((t) => t.status === "Pending");
+console.log("Pending count:", pending.length);
+
+const transNos = transactions.map((t) => t.transNo);
+console.log(transNos);</pre>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">This is what a JSON API response looks like</span>
+When you inspect a Network request in DevTools and see a response body, it's almost always exactly this: an array of objects, or a single object. Reading it is the same skill as reading the code above.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>transactions.filter(t =&gt; t.status === "Pending")</code> — what does this return?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="filter never returns a single value on its own — it always returns an array, even if that array has 0 or 1 items.">The single pending transaction object.</li>
+<li data-correct="true" data-explain="filter always returns a new array containing every item for which the condition was true — even if that means an empty array or exactly one item." >A new array containing every transaction whose status is \"Pending\".</li>
+<li data-correct="false" data-explain="That's what .some() does — filter always returns the matching array, not a boolean.">true or false, depending on whether any transaction is pending.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

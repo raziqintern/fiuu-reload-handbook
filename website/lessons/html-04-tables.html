@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tables & Reading Real Markup · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="html-04-tables">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">HTML Basics</span>
+<h1>Tables &amp; Reading Real Markup</h1>
+<p class="lede">BackOffice-style admin screens lean heavily on tables for transaction lists, terminal lists, and reports. Last stop before you're ready to open real DevTools on a real page.</p>
+
+<h2>Table anatomy</h2>
+<div class="tryit" data-lang="html">
+<pre class="tryit-src">&lt;!doctype html&gt;
+&lt;html&gt;
+&lt;body&gt;
+  &lt;table border="1"&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Trans No&lt;/th&gt;
+      &lt;th&gt;Terminal&lt;/th&gt;
+      &lt;th&gt;Amount&lt;/th&gt;
+      &lt;th&gt;Status&lt;/th&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;TXN-1001&lt;/td&gt;
+      &lt;td&gt;TNG-0042&lt;/td&gt;
+      &lt;td&gt;RM 10.00&lt;/td&gt;
+      &lt;td&gt;Success&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;TXN-1002&lt;/td&gt;
+      &lt;td&gt;TNG-0042&lt;/td&gt;
+      &lt;td&gt;RM 25.50&lt;/td&gt;
+      &lt;td&gt;Pending&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/table&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+
+<p><code>&lt;tr&gt;</code> is a row, <code>&lt;th&gt;</code> a header cell, <code>&lt;td&gt;</code> a data cell. That's genuinely the whole vocabulary — everything else in a real admin table (sorting, pagination, row highlighting) is CSS and JavaScript layered on top of this same three-tag skeleton.</p>
+
+<h2>Reading real markup: a practical checklist</h2>
+<p>When you open DevTools on an actual reload page and it looks like an unreadable wall of nested <code>&lt;div&gt;</code>s, work outside-in:</p>
+<ol>
+<li>Find the element that's visually wrong (right-click it → <em>Inspect</em>).</li>
+<li>Look at its immediate parent and siblings — is it where you'd expect in the structure?</li>
+<li>Check the <em>Styles</em> panel next to Elements — a crossed-out CSS rule tells you something else is overriding it.</li>
+<li>Check the <em>Console</em> tab for JavaScript errors — a thrown error often stops later script from running at all, which explains "half the page works."</li>
+</ol>
+
+<div class="callout tip">
+<span class="callout-title">You now know enough HTML</span>
+That's the full HTML track. It's deliberately shallow — enough to read and lightly edit a rendered page, not to build one from scratch. Next up: JavaScript, which is what actually makes those pages interactive (and breaks in more interesting ways).
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

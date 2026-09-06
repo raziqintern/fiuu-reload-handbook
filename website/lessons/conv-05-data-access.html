@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Access · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="conv-05-data-access">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Fiuu C# Conventions</span>
+<h1>Data Access</h1>
+<p class="lede">Three distinct ways of calling the database coexist in class-library — but one rule is universal across all of them. Full source: <a href="../../conventions/data-access.md">conventions/data-access.md</a>.</p>
+
+<h2>The one universal rule: stored-procedure-only</h2>
+<div class="callout real">
+<span class="callout-title">No exceptions found, across every module sampled</span>
+No inline dynamic SQL, no string-built SELECT/UPDATE statements, no LINQ-to-SQL or Entity Framework entity mapping, anywhere. Every single read or write goes through a named stored procedure. This is worth internalizing before you go looking for "the query" behind a bug — it's in reload_db's <code>StoredProcedure/</code> folder, never inline in the C#.
+</div>
+
+<h2>Pattern 1 (most common): SqlAccessor + ParameterCollection</h2>
+<pre class="code-block">public bool Insert(TerminalActivity activity)
+{
+    var param = new ParameterCollection();
+    param.Add("@TerminalId", DbType.AnsiStringFixedLength, 8, activity.TerminalId);
+    ...
+    SqlAccessor.ExecuteProcedure(ReturnType.NonQuery, Fiuu.Provider.Database.TNG.Alias,
+                                 Fiuu.Provider.Database.TNG.StoredProcedures.TerminalActivities_Ins, param);
+    return true;
+}</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Providers/TerminalProvider.cs:12-33</p>
+
+<p>A custom framework wrapper around ADO.NET: build a <code>ParameterCollection</code>, call <code>SqlAccessor.ExecuteProcedure(...)</code>, get back a <code>SqlResult</code>. Mapping a database row back into a C# model is always done <strong>by hand, field by field</strong>, via a shared <code>Conversion.DBNullTo*</code> helper family — never a generic/reflection-based mapper:</p>
+
+<pre class="code-block">private static Account GetAccountModel(DataRow dr)
+{
+    return new Account
+    {
+        Id = Conversion.DBNullToInt32(dr["Id"]),
+        Name = Conversion.DBNullToString(dr["Name"]),
+        Status = (Status)Conversion.DBNullToInt32(dr["MStatusId"]),
+        ...
+    };
+}</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Providers/AccountProvider.cs:67-81</p>
+
+<p>Notice <code>MStatusId</code> (the M-prefix column from <a href="conv-01-naming.html">Naming</a>) is cast to a friendly <code>Status</code> enum right here — this is exactly where that mapping happens.</p>
+
+<h2>Pattern 2 and 3: raw Dapper, two different shapes</h2>
+<p>The <code>Fiuu.Database</code> project skips <code>SqlAccessor</code> entirely and uses Dapper directly against a <code>SqlConnection</code> opened per call — either through a generic <code>BaseProvider&lt;T&gt;</code> (Pattern 2), or, in the Notification module, a singleton with one hand-named method per stored procedure (Pattern 3). Pattern 3's Dapper usage (<code>connection.Query&lt;Messages&gt;(...)</code> directly against the domain model) is actually the lightest-weight and closest to how a modern Dapper repository is normally written — ironically the oldest-feeling module (Notification) has the most modern-looking data access code.</p>
+
+<h2>No transactions spanning multiple Provider calls</h2>
+<div class="callout warn">
+<span class="callout-title">Atomicity is the stored procedure's job, not C#'s</span>
+There is no example anywhere in class-library of composing multiple writes into one ADO.NET transaction across Provider calls. If an operation needs "insert this, then update that" to happen atomically, that atomicity is expected to live inside a single stored procedure doing everything server-side — not orchestrated by a C# unit-of-work. If you're tempted to add a <code>TransactionScope</code> around two Provider calls to fix a consistency bug, that would be a new pattern for this codebase, not an existing one — think carefully, and check whether the real fix belongs in the stored procedure instead.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You need to find the actual query behind a bug in a value coming back from <code>AccountProvider.GetAccountModel</code>. Where do you look?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="There's no LINQ-to-SQL or EF entity mapping anywhere in this codebase — every read goes through a stored procedure instead." >An Entity Framework model definition somewhere in class-library.</li>
+<li data-correct="true" data-explain="Every read/write is stored-procedure-only in this codebase. The stored procedure referenced by the constant the Provider calls is where the actual SQL logic lives." >The stored procedure in reload_db that this Provider method calls — the actual query logic lives there, not inline in C#.</li>
+<li data-correct="false" data-explain="Conversion.DBNullToInt32 and friends only convert an already-fetched value's type/nullability — they don't run any query.">Inside the Conversion.DBNullTo* helper methods.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

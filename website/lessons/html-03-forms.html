@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forms & Inputs · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="html-03-forms">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">HTML Basics</span>
+<h1>Forms &amp; Inputs</h1>
+<p class="lede">Reload lives and dies by forms: top-up amount, terminal login, merchant search. Knowing the anatomy of a form is what lets you tell "the form posted wrong data" from "the server rejected valid data".</p>
+
+<h2>Anatomy of a form</h2>
+<div class="tryit" data-lang="html">
+<pre class="tryit-src">&lt;!doctype html&gt;
+&lt;html&gt;
+&lt;body&gt;
+  &lt;form&gt;
+    &lt;label for="amount"&gt;Reload amount (RM)&lt;/label&gt;&lt;br&gt;
+    &lt;input type="number" id="amount" name="amount" min="5" max="500" value="10"&gt;&lt;br&gt;&lt;br&gt;
+
+    &lt;label for="method"&gt;Payment method&lt;/label&gt;&lt;br&gt;
+    &lt;select id="method" name="method"&gt;
+      &lt;option value="tng"&gt;Touch 'n Go&lt;/option&gt;
+      &lt;option value="card"&gt;Credit Card&lt;/option&gt;
+    &lt;/select&gt;&lt;br&gt;&lt;br&gt;
+
+    &lt;input type="checkbox" id="confirm" name="confirm"&gt;
+    &lt;label for="confirm"&gt;I confirm this reload&lt;/label&gt;&lt;br&gt;&lt;br&gt;
+
+    &lt;button type="submit"&gt;Reload Now&lt;/button&gt;
+  &lt;/form&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+
+<p>Every field that matters has three things: a <code>name</code> (the key the server receives), a <code>value</code> (what gets sent), and usually a matching <code>&lt;label&gt;</code> linked by <code>for</code>/<code>id</code> (accessibility + click target).</p>
+
+<table>
+<tr><th>Input type</th><th>Used for</th></tr>
+<tr><td><code>text</code></td><td>Free text — names, references.</td></tr>
+<tr><td><code>number</code></td><td>Numeric input — the browser enforces <code>min</code>/<code>max</code> client-side (never trust this alone — the server must validate too).</td></tr>
+<tr><td><code>checkbox</code></td><td>Boolean on/off, e.g. a confirmation.</td></tr>
+<tr><td><code>select</code>/<code>option</code></td><td>A fixed dropdown of choices, e.g. payment method.</td></tr>
+</table>
+
+<div class="callout warn">
+<span class="callout-title">Why this matters for debugging</span>
+When a "reload failed" ticket comes in, one of the first things to check is: did the form actually send the field the server expected? A mismatched <code>name</code> attribute, or a field disabled by JavaScript (disabled fields aren't submitted at all), is a classic silent-failure cause you can spot in seconds with DevTools' Network tab, before touching any server code.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A checkbox field is missing from the data the server receives when a form is submitted. What's the most likely HTML-side cause?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Unchecked checkboxes are not included in form submission at all — this is standard HTML behavior, not a bug, and it's the single most common 'missing field' surprise for anyone new to forms.">The checkbox was left unchecked — unchecked checkboxes aren't submitted at all.</li>
+<li data-correct="false" data-explain="The name attribute doesn't need to match the id — id is only for the label/for linkage and JS/CSS targeting.">The checkbox's id doesn't match its name.</li>
+<li data-correct="false" data-explain="Order in the HTML doesn't affect whether a field is submitted.">The checkbox was placed after the submit button in the HTML.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

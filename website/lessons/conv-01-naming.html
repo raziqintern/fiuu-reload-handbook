@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Naming · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="conv-01-naming">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Fiuu C# Conventions</span>
+<h1>Naming</h1>
+<p class="lede">Fiuu has no documented coding standard for this codebase. Everything in this track is reverse-engineered straight from real code — with file:line citations — not idealized guidelines. Full source: <a href="../../conventions/naming.md">conventions/naming.md</a>.</p>
+
+<h2>What's rock-solid: PascalCase types, I-prefixed interfaces, layer suffixes</h2>
+<pre class="code-block">public class TerminalService : ITerminalService
+{
+    private TerminalProvider _provider;
+    public bool Login(Auth auth) { ... }</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Services/TerminalService.cs:8</p>
+
+<p>Standard .NET PascalCase for types, public methods, and properties holds with zero exceptions across everything sampled. Interfaces are always <code>I</code>-prefixed. Class-name suffixes double as an architecture signal: <code>*Provider</code> (data access), <code>*Service</code> (business logic), <code>*Model</code>/plain noun (DTOs), <code>*Helper</code> (static utility bag), <code>*Validator</code>, <code>*Exception</code>.</p>
+
+<h2>What isn't: Hungarian notation on locals, module by module</h2>
+<p>This is the single biggest naming inconsistency in the codebase. Some modules prefix local variables/parameters the old-school way (<code>s</code> = string, <code>i</code>/<code>l</code> = int/long, <code>dt</code> = DateTime, <code>b</code> = bool):</p>
+
+<pre class="code-block">string sLogFilePath = GetAvailableFileName(string.Format("{0}_{1}", sAppName, DateTime.Now.ToString("yyyyMMdd")));</pre>
+<p class="code-cite">reload/class-library/AWSCore/Helpers/LogHelper.cs:39</p>
+
+<pre class="code-block">public bool UpdateGameSalesTransactionStatus(string sReferenceId, string sStatus, string sReceiptNo, DateTime? dtTransactionDateTime)</pre>
+<p class="code-cite">reload/class-library/Reloads/Game/Providers/GameProvider.cs:48</p>
+
+<p>Other modules use plain idiomatic C# with no prefixes for the same kind of code:</p>
+
+<pre class="code-block">public TerminalSummary GetTerminalSummaryByTransNo(string transNo)</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Providers/TerminalProvider.cs:60</p>
+
+<div class="callout warn">
+<span class="callout-title">This tracks the author, not the layer</span>
+TNG and InComm/Secure are architecturally identical peers — one uses Hungarian notation heavily, the other doesn't at all. Don't assume you can predict which style a file uses from its module or age; check the file you're actually editing and match <em>its</em> existing style, not a house rule that doesn't exist.
+</div>
+
+<h2>The M-prefix: a genuine cross-cutting convention</h2>
+<p>Any column that's a foreign key into a lookup/master/status table is prefixed <code>M</code> (for "Master"), in both C# models and SQL, regardless of module:</p>
+
+<pre class="code-block">// the DB-facing param name in the Provider is M-prefixed:
+param.Add("@MTransTypeId", DbType.Int32, activity.TransType);
+param.Add("@MTransStatusId", DbType.Int32, activity.TransStatus);</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Providers/TerminalProvider.cs:20-21</p>
+
+<p>Seen across unrelated modules (<code>MServiceTypeId</code>, <code>MSourceTypeId</code>, <code>MDeliveryStatusId</code>, <code>MRequestStageId</code>) — this one really is a house convention, not module-local. Note the model property itself sometimes drops the <code>M</code> and exposes a friendly enum name (<code>TransStatus</code>) while the raw DB parameter keeps <code>MTransStatusId</code> — the mapping is done by hand, field by field, in a <code>Get*Model(DataRow dr)</code> method (more on this in <a href="conv-05-data-access.html">Data Access</a>).</p>
+
+<h2>Check your understanding</h2>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You're editing a file in the TNG module and notice every existing local variable uses plain idiomatic names (<code>transNo</code>, not <code>sTransNo</code>). You need to add a new string parameter. What should you name it?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Hungarian notation is real in this codebase, but it's module/author-driven, not a house standard — importing it into a file that doesn't already use it breaks consistency with its neighbors instead of following a rule.">sNewParam — Hungarian notation is the safe default everywhere in reload.</li>
+<li data-correct="true" data-explain="Naming consistency here tracks the file/author, not a documented house rule — match what's already in the file you're editing." >Match the file's existing style — a plain name with no prefix, since that's what this file already does.</li>
+<li data-correct="false" data-explain="There's no such automated tool in this codebase — naming is manual and inconsistent by design of history, not by policy.">Run the project's naming linter and follow whatever it suggests.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You see a new column <code>MPaymentTypeId</code> in a code review. What does the <code>M</code> prefix tell you, based on this codebase's actual convention?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="M doesn't signal mutability — C# doesn't even have a mutability marker in naming like this." >The column is mutable/nullable.</li>
+<li data-correct="true" data-explain="The M-prefix convention marks any column that's a foreign key into a lookup/master/status table — genuinely consistent across every module sampled, on both the C# and SQL sides.">It's a foreign key into a lookup/master/status table.</li>
+<li data-correct="false" data-explain="M has no connection to module scoping in this codebase's actual convention.">The column belongs to a specific module named starting with M.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

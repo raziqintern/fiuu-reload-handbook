@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variables & Syntax · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="js-01-syntax">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">JavaScript Basics</span>
+<h1>Variables &amp; Syntax</h1>
+<p class="lede">JavaScript is what runs inside the browser tab, separate from anything C# is doing on the server. Every "Try it Yourself" box on this site is itself a small JavaScript program — this is a good moment to actually understand how they work.</p>
+
+<h2>Declaring variables</h2>
+<p>Modern JavaScript has three ways to declare a variable. Use <code>let</code> by default, <code>const</code> when the value never gets reassigned, and avoid <code>var</code> (an older, quirkier version kept only for backwards compatibility).</p>
+
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">let amount = 25.5;
+const currency = "MYR";
+let isConfirmed = false;
+
+console.log(amount, currency, isConfirmed);
+
+amount = amount + 10;
+console.log("New amount:", amount);</pre>
+</div>
+
+<h2>The core types</h2>
+<table>
+<tr><th>Type</th><th>Example</th></tr>
+<tr><td>Number</td><td><code>25.5</code>, <code>10</code> — JS doesn't distinguish int vs. float, there's just Number.</td></tr>
+<tr><td>String</td><td><code>"MYR"</code>, <code>'reload'</code>, or a template literal: <code>`Amount: ${amount}`</code></td></tr>
+<tr><td>Boolean</td><td><code>true</code> / <code>false</code></td></tr>
+<tr><td>null / undefined</td><td><code>null</code> = intentionally empty. <code>undefined</code> = never assigned.</td></tr>
+</table>
+
+<div class="callout warn">
+<span class="callout-title">The trap that catches everyone once</span>
+JavaScript will happily let you add a number and a string — and it won't throw, it'll silently convert. <code>5 + "5"</code> is <code>"55"</code> (a string), not <code>10</code>. This "helpful" coercion is a real source of bugs when data arrives from a form field (always a string) and you forget to convert it with <code>Number(...)</code> first.
+</div>
+
+<h2>Try it yourself</h2>
+<p>Predict what each line logs before you hit Run.</p>
+
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">let quantity = "5";   // came from a form field — always a string
+let price = 10;
+
+console.log(quantity + price);        // string concatenation, not addition
+console.log(Number(quantity) + price); // now it's real addition
+
+console.log(typeof quantity);
+console.log(typeof price);</pre>
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="predict" data-answer="1010">
+<p class="quiz-q">What does <code>console.log(10 + "10")</code> print? (type exactly what would appear)</p>
+<textarea class="quiz-blank" rows="1"></textarea>
+<button type="button" class="quiz-submit">Check answer</button>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You should default to which keyword for declaring a variable you might reassign later?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="var still works but has confusing scoping rules from before let/const existed — avoid it in new code.">var</li>
+<li data-correct="true" data-explain="let is block-scoped and reassignable — the sensible modern default.">let</li>
+<li data-correct="false" data-explain="const is for values that never get reassigned after declaration.">const</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

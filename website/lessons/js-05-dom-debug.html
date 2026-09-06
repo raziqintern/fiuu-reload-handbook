@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DOM, Events & the Console · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="js-05-dom-debug">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">JavaScript Basics</span>
+<h1>DOM, Events &amp; the Console</h1>
+<p class="lede">The last JS lesson: how JavaScript actually touches the page you learned about in HTML Basics, and how to debug it when it goes wrong.</p>
+
+<h2>The DOM is the HTML, as JavaScript sees it</h2>
+<p>The <strong>D</strong>ocument <strong>O</strong>bject <strong>M</strong>odel is the live, in-memory tree of every tag on the page. JavaScript reads and changes it with methods like <code>document.querySelector</code>.</p>
+
+<div class="tryit" data-lang="html">
+<pre class="tryit-src">&lt;!doctype html&gt;
+&lt;html&gt;
+&lt;body&gt;
+  &lt;h1 id="status"&gt;Terminal: checking...&lt;/h1&gt;
+  &lt;button id="refresh-btn"&gt;Refresh Status&lt;/button&gt;
+
+  &lt;script&gt;
+    const heading = document.querySelector("#status");
+    const button = document.querySelector("#refresh-btn");
+
+    button.addEventListener("click", () => {
+      heading.textContent = "Terminal: Online ✓";
+      heading.style.color = "green";
+    });
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+
+<p>Click <strong>Run ▸</strong>, then click the "Refresh Status" button inside the result panel — that's <code>addEventListener</code> reacting to a real click, and <code>.textContent</code>/<code>.style</code> editing the DOM live, exactly like a real reload_portal page would when a status updates without a full page reload.</p>
+
+<h2>The browser console is your debugger</h2>
+<p>Everything you've been reading in the "Console" output boxes on this site is exactly what you'll see in real browser DevTools (F12 → Console tab) on any real page. The habits:</p>
+<ul>
+<li><strong>Read errors top to bottom, oldest first</strong> — the first error is often the real cause; later ones can just be fallout.</li>
+<li><strong><code>console.log</code> liberally while debugging</strong> — print a variable right before the line that misbehaves to confirm what it actually contains, not what you assume it contains.</li>
+<li><strong>Check the Network tab</strong> when data looks wrong — see the actual request/response before assuming the JavaScript logic is at fault.</li>
+</ul>
+
+<div class="callout warn">
+<span class="callout-title">"Cannot read properties of undefined"</span>
+This is the single most common JS runtime error you'll encounter. It means you tried to access a property (<code>.something</code>) on a value that turned out to be <code>undefined</code> — almost always because an API call hasn't returned yet, a field name was typo'd, or an array was empty when you expected an item.
+</div>
+
+<h2>Try it yourself: reproduce that exact error</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">const terminal = undefined; // pretend an API call hasn't returned yet
+
+console.log("About to read a property...");
+console.log(terminal.merchantName); // this line throws</pre>
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You see "Cannot read properties of undefined (reading 'merchantName')" in the console. What's the most likely cause?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="A syntax error would be caught before any code runs and reported differently — this specific error happens while code is running, on a specific value.">A missing semicolon somewhere in the file.</li>
+<li data-correct="true" data-explain="This error means: something expected to be an object turned out to be undefined at the moment you tried to read a property off it — commonly a not-yet-loaded API response." >Something you expected to already be an object (like API response data) was actually undefined at that point.</li>
+<li data-correct="false" data-explain="A network failure would usually surface as a failed fetch/status code, not this specific property-access error, unless the resulting undefined data is then used without a check — which is exactly this error.">The internet connection dropped.</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You now know enough JavaScript</span>
+That's the JS track. Next: C# — the language reload's actual class-library is written in, and the one you'll spend most of your time in.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

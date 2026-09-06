@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logging · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="conv-04-logging">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Fiuu C# Conventions</span>
+<h1>Logging</h1>
+<p class="lede">Since the previous lesson showed the log is often the <em>only</em> place an exception's detail survives, knowing how logging actually works here is directly a debugging skill. Full source: <a href="../../conventions/logging.md">conventions/logging.md</a>.</p>
+
+<h2>No single logging mechanism</h2>
+<p>Two shared framework primitives exist underneath everything (both compiled dependencies, no source in this repo): <code>Fiuu.MasterFramework.Utilities.Logger</code> (rolling file logger + Windows Event Log) and <code>Fiuu.Logging.LogManager</code> (a structured logger). Instead of one shared façade over these, <strong>at least three modules each define their own static <code>LogHelper</code></strong> wrapping them differently — different constructors, different method surfaces (<code>Write</code>/<code>Error</code>/<code>Trace</code>/<code>Warn</code> in one, just <code>Write</code> in another).</p>
+
+<div class="callout warn">
+<span class="callout-title">You cannot copy logging code between modules</span>
+Because each module's <code>LogHelper</code> has a different method surface, code that logs correctly in TNG will not compile (or will compile but call the wrong thing) if pasted into AWSCore. Always check which <code>LogHelper</code> the file you're editing actually imports before writing a log call.
+</div>
+
+<h2>The one genuine house convention: bracketed request/response logging</h2>
+<pre class="code-block">LogHelper.Write(string.Format("[{0}] >>> [Key: {1}] {2}", config.AmdocsPaymentUrl, billPayment.BankClientRefId, request.ToJson()));
+string response = HttpHelper.HttpPost(config.AmdocsPaymentUrl, request.ToJson(), MIMEType.TEXT_JSON, config.HttpRequestTimeout);
+LogHelper.Write(string.Format("[{0}] <<< [Key: {1}] {2}", config.AmdocsPaymentUrl, billPayment.BankClientRefId, response));</pre>
+<p class="code-cite">reload/class-library/Secure/Astro/Providers/RpnProvider.cs:93-97</p>
+
+<p>Outbound HTTP/API calls are logged with a <code>&gt;&gt;&gt;</code> (outgoing) / <code>&lt;&lt;&lt;</code> (incoming) bracket convention, tagged with a correlation key (usually the business reference id). This recurs across unrelated modules written by different people — it's the closest thing to a real de facto logging standard in this codebase, and it's the pattern most worth following if you're adding a new outbound integration.</p>
+
+<div class="callout warn">
+<span class="callout-title">This logs full payloads, unredacted</span>
+Full request/response bodies get logged as JSON, including for payment/account-verification calls — and nothing in the sampled code redacts sensitive fields before logging. Be aware of this both when reading logs (they may contain account numbers/amounts) and when adding new logging (don't assume redaction happens for you; it doesn't, by default, anywhere in this codebase).
+</div>
+
+<h2>Practical debugging habit: search for the correlation key</h2>
+<p>Given the <code>[Key: ...]</code> convention above, the fastest way to trace one specific transaction through the logs is to search for its reference id as the correlation key — not to read logs chronologically. This is the direct log-side analogue of the JS/browser habit from earlier: search for the specific thing that's wrong, don't scroll from the top.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You need to trace exactly what an outbound API call sent and received for transaction ref <code>TXN-1002</code>. Based on the real logging convention here, what's the fastest approach?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="With full payloads logged and a searchable correlation key, there's a much faster path than reading everything in order.">Read the entire log file from the start of the day, in order.</li>
+<li data-correct="true" data-explain="The >>>/<<< bracket convention tags both the outgoing and incoming log lines with the business reference id as the correlation key — searching for it directly finds both the request and response payloads." >Search the log file for \"TXN-1002\" as the correlation key, and read the surrounding >>> / <<< lines.</li>
+<li data-correct="false" data-explain="This codebase's sampled logging doesn't redact by default, and there's no confirmed structured log store described here to query that way — the practical mechanism is the file/bracket convention above.">Query a structured logging database by transaction ID field.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

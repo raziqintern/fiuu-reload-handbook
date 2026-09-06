@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Try/Catch & Error Handling · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="vb-04-error-handling">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">VB.NET Fundamentals</span>
+<h1>Try/Catch &amp; Error Handling</h1>
+<p class="lede">Structurally identical to C#'s exception handling — same .NET exception types underneath, VB.NET's block-keyword syntax on top.</p>
+
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Function Divide(a As Double, b As Double) As Double
+    If b = 0 Then
+        Throw New DivideByZeroException("Cannot divide by zero")
+    End If
+    Return a / b
+End Function
+
+Sub Main()
+    Try
+        Dim result As Double = Divide(10, 0)
+        Console.WriteLine(result)
+    Catch ex As DivideByZeroException
+        Console.WriteLine("Error: " & ex.Message)
+    End Try
+    Console.WriteLine("Program continues")
+End Sub</pre>
+<pre class="tryit-output-src">Error: Cannot divide by zero
+Program continues</pre>
+</div>
+
+<h2>Finally still always runs</h2>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Try
+    Console.WriteLine("Attempting reload...")
+    Throw New Exception("Gateway timeout")
+Catch ex As Exception
+    Console.WriteLine("Caught: " & ex.Message)
+Finally
+    Console.WriteLine("Cleanup: closing connection")
+End Try</pre>
+<pre class="tryit-output-src">Attempting reload...
+Caught: Gateway timeout
+Cleanup: closing connection</pre>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">Because it's the same .NET runtime</span>
+<code>DivideByZeroException</code>, <code>Exception</code>, and every other exception type here are the exact same .NET Base Class Library types C# uses — VB.NET and C# share one runtime and one set of framework types. This is the whole reason the two languages are basically a syntax skin over the same underlying platform.
+</div>
+
+<div class="callout warn">
+<span class="callout-title">You now know enough VB.NET</span>
+That's the VB.NET track — deliberately short, since it's a "read it when you meet it" skill rather than a daily one on this codebase. Next: <strong>SQL &amp; reload_db</strong>, or if you've already done that, <strong>Fiuu C# Conventions</strong> — the track that actually teaches you this specific codebase.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why do VB.NET and C# use the exact same exception types (Exception, DivideByZeroException, etc.)?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="It's not a coincidence or convention both teams happened to follow — it's structural." >It's a naming convention both language communities happened to agree on.</li>
+<li data-correct="true" data-explain="VB.NET and C# both compile down to the same .NET Common Language Runtime and share the same Base Class Library — exceptions, collections, and most framework types are literally the same underlying types regardless of which language wrote the code." >Both languages compile to the same .NET runtime and share the same underlying framework class library.</li>
+<li data-correct="false" data-explain="VB.NET is a full, independently-compiled .NET language — it isn't translated through C#.">VB.NET code gets translated into C# before compiling.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>
