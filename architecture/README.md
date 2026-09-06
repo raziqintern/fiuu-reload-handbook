@@ -7,4 +7,11 @@ Traced (not assumed) architecture for both halves of the system.
 
 Each subfolder has one overview doc plus one doc per major component/module, and a `diagrams/` folder of Mermaid diagrams (component/dependency graphs, sequence diagrams for key flows, ER diagrams per DB module).
 
-Status: pending first broad pass.
+Status:
+- `reload/` — first broad pass done (2026-09-05). See `reload/00-topology.md` first —
+  it corrects several starting assumptions (most top-level sibling folders turned out
+  to be empty; all real apps live inside the `reload` monorepo under
+  `web/DEV/NET/Applications` and `Components`). Open item flagged there: no separate
+  "reload_portal" codebase was found distinct from the `web_app`/`BackOffice.Web`
+  portal — needs a human answer.
+- `reload_db/` — pending first broad pass.
