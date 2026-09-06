@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOLID Principles · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="design-02-solid">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Software Design &amp; Best Practices</span>
+<h1>SOLID Principles</h1>
+<p class="lede">Five naming conventions for design smells you already have an instinct for. Knowing the names lets you talk about them precisely — and lets you recognise them in real code you've already seen on this site.</p>
+
+<h2>S — Single Responsibility</h2>
+<p>A class should have one reason to change. This is exactly why reload splits each module into Model/Provider/Service (<a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>): a <code>Provider</code> changes only when data-access logic changes; a <code>Service</code> changes only when business rules change. Mixing both into one class means a change to either reason touches the same file.</p>
+
+<h2>O — Open/Closed</h2>
+<p>Code should be open to extension, closed to modification — you should be able to add new behavior without editing existing, working code. The <code>PaymentMethod</code> hierarchy from <a href="design-01-oop-pillars.html">OOP Pillars</a> demonstrates this: adding a new payment method means writing a new subclass, not editing the loop that calls <code>process()</code>.</p>
+
+<h2>L — Liskov Substitution</h2>
+<p>Any subclass should be usable anywhere its parent type is expected, without breaking things. If <code>CardPayment.process()</code> secretly required an extra step the caller didn't know about, substituting it for <code>TngPayment</code> would silently break — that's a Liskov violation. The polymorphism example only works cleanly <em>because</em> both subclasses honor the same contract.</p>
+
+<h2>I — Interface Segregation</h2>
+<p>Don't force a class to implement methods it doesn't need. A bloated <code>IPaymentService</code> with 15 methods, where most implementations only genuinely need 3, pressures every new implementer into writing empty/throwing stubs for the rest. Smaller, focused interfaces (reload's real <code>ITerminalService</code> has exactly the methods a terminal service needs, nothing more) are easier to implement correctly.</p>
+
+<h2>D — Dependency Inversion</h2>
+<div class="callout real">
+<span class="callout-title">You've already seen this in real reload code</span>
+High-level code should depend on abstractions, not concrete implementations. <code>TerminalService</code> depending on <code>IAccountService</code> (an interface) rather than a concrete <code>AccountService</code> class — resolved lazily via <code>EngineContext.Current.Resolve&lt;IAccountService&gt;()</code>, see <a href="conv-02-layering.html">Layering</a> — is dependency inversion in action. The Service layer never needs to know which concrete class actually implements the interface.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A single class handles both validating a reload request AND writing the transaction to the database. What SOLID principle does this most directly violate?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Validation logic and data-persistence logic are two separate reasons to change this class — a change in validation rules and a change in how data is stored are unrelated concerns bundled into one class. That's exactly the Model/Provider/Service split's reason to exist." >Single Responsibility — the class now has two unrelated reasons to change.</li>
+<li data-correct="false" data-explain="Nothing here is about substituting one type for another — that's Liskov Substitution, a different concern." >Liskov Substitution — the class can't be substituted for its parent.</li>
+<li data-correct="false" data-explain="Interface Segregation is about interfaces being too broad for their implementers — this scenario describes one concrete class doing two jobs, not an interface design issue." >Interface Segregation — the interface has too many methods.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

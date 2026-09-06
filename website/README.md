@@ -10,10 +10,13 @@ Open `index.html` directly, or serve the folder with any static file server
 
 ## What's here
 
-37 lessons across 9 tracks, plus a home page and a searchable glossary:
+50 lessons across 11 tracks, plus a home page and a searchable glossary:
 
 - **HTML Basics** / **JavaScript Basics** — generic fundamentals, with real
   live "Try it Yourself" execution (HTML preview, sandboxed JS console).
+- **Algorithms & Data Structures** — Big O, arrays, searching, sorting,
+  recursion, stacks/queues/dictionaries — language-agnostic, with live JS
+  demos (including literally counting search steps to make Big O concrete).
 - **C# Fundamentals** / **VB.NET Fundamentals** — generic language
   fundamentals. No live compiler is available client-side without a hosted
   backend, so these use "Predict → Reveal": guess the output, then reveal the
@@ -22,6 +25,10 @@ Open `index.html` directly, or serve the folder with any static file server
   (SQLite compiled to WebAssembly, loaded from cdnjs), pre-seeded with a
   practice schema shaped like reload_db, then the actual reload_db estate
   shape and SQL-side conventions.
+- **Software Design & Best Practices** — OOP, SOLID, the design patterns
+  (Service Locator, Template Method, Repository) already hiding in reload's
+  real code, Git, code review, testing, and security basics — including a
+  live SQL-injection demo run against this site's own practice database.
 - **Fiuu C# Conventions**, **Debugging Reload**, **Architecture Map**,
   **Glossary** — reverse-engineered directly from this repo's own
   `conventions/`, `gitlab-analysis/`, and `architecture/` docs. Real

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrays & Time Complexity · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="algo-02-arrays-time">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Algorithms &amp; Data Structures</span>
+<h1>Arrays &amp; Time Complexity</h1>
+<p class="lede">The most common data structure in any language, and the clearest place to see O(1) and O(n) side by side in the same data type.</p>
+
+<h2>Index access is O(1) — search is O(n)</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">const amounts = [10, 25, 100, 5, 60, 30, 15, 90, 45, 20];
+
+// O(1): direct index access — same speed whether the array has
+// 10 items or 10 million
+console.log(amounts[3]);
+
+// O(n): searching by value — has to check items one by one until
+// it finds a match (or reaches the end)
+console.log(amounts.indexOf(90));</pre>
+</div>
+
+<p><code>amounts[3]</code> is instant no matter how large the array is — the array knows exactly where element 3 lives in memory. <code>amounts.indexOf(90)</code> has no such shortcut: it has to check element 0, then 1, then 2... until it finds <code>90</code> (or gives up). In the worst case (the value isn't there, or it's the very last element), that's <code>n</code> checks.</p>
+
+<div class="callout real">
+<span class="callout-title">This is exactly what LINQ's FirstOrDefault does</span>
+Recall <a href="cs-06-collections-linq.html">C# Fundamentals → Collections &amp; LINQ</a> and the real reviewer comment in <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a> about <code>lstStocks.FirstOrDefault(...)</code>. <code>FirstOrDefault</code> with a condition is a linear, O(n) scan through the list — for a small in-memory list this is irrelevant, but it's worth knowing it's not a magic O(1) lookup the way indexing is.
+</div>
+
+<h2>Why this matters when choosing a data structure</h2>
+<p>If you find yourself repeatedly searching the same collection for items by some key (not by position), that's a signal you might want a dictionary/map instead of an array — trading O(n) lookups for O(1) ones. More on that in <a href="algo-06-stacks-queues.html">Stacks, Queues &amp; Dictionaries</a>.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You have an array of 10,000 transactions and need to find the one with a specific reference number. Which operation are you performing?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="O(1) index access means you already know the position — 'find the one with this reference number' means you don't, so you have to search.">O(1) — array access is always instant.</li>
+<li data-correct="true" data-explain="Searching for an item by a value you don't already know the position of requires checking elements until you find a match — the textbook O(n) linear search." >O(n) — you may need to check up to all 10,000 items to find a match.</li>
+<li data-correct="false" data-explain="O(log n) applies to algorithms like binary search that can eliminate half the remaining data each step — that requires the data to be sorted and searched with that specific technique, not a plain scan.">O(log n) — arrays are always searched efficiently by default.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Basics · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="design-07-security-basics">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Software Design &amp; Best Practices</span>
+<h1>Security Basics</h1>
+<p class="lede">Reload is a payment platform — security here isn't abstract. This lesson covers the handful of concepts worth understanding before you touch anything that handles money or credentials.</p>
+
+<h2>SQL injection: see it happen, live, against this site's own practice database</h2>
+<p>Imagine a search feature built by directly pasting user input into a SQL string, like <code>"SELECT * FROM Terminals WHERE MerchantName = '" + userInput + "'"</code>. Now imagine a user (or attacker) types <code>' OR '1'='1</code> into that search box instead of a real merchant name:</p>
+
+<div class="tryit" data-lang="sql">
+<pre class="tryit-src">-- This is what the query string above actually becomes once
+-- ' OR '1'='1  is substituted in as "userInput":
+SELECT * FROM Terminals WHERE MerchantName = '' OR '1'='1';</pre>
+</div>
+
+<p>Run it. You get <em>every row in the table</em>, not zero rows — because <code>'1'='1'</code> is always true, the attacker's input turned a "find one specific merchant" query into "return everything," entirely through the text of the query itself. This is SQL injection: user input being interpreted as <em>code</em> instead of as <em>data</em>.</p>
+
+<div class="callout warn">
+<span class="callout-title">A common misconception, corrected</span>
+"We use stored procedures, so we're safe from SQL injection" is not quite true. A stored procedure that itself builds a dynamic SQL string by concatenating a parameter (<code>EXEC('SELECT * FROM Terminals WHERE MerchantName = ''' + @Name + '''')</code>) is exactly as vulnerable as the raw query above. The actual defense is <strong>parameterization</strong> — passing the value as a typed parameter that's never interpreted as SQL syntax, regardless of whether it's wrapped in a stored procedure or not.
+</div>
+
+<div class="callout real">
+<span class="callout-title">This is genuinely how reload defends against it</span>
+Recall from <a href="conv-05-data-access.html">Fiuu C# Conventions → Data Access</a>: every parameter reload sends to a stored procedure goes through <code>ParameterCollection.Add("@Name", DbType.String, value)</code> — the value is bound as typed data, never concatenated into query text. Combined with "no inline dynamic SQL, no string-built SELECT/UPDATE statements... anywhere," this is a real, consistently-applied defense — not just "we use stored procedures so we're fine."</p>
+</div>
+
+<h2>Secrets: never in source code, never fully trust logs</h2>
+<p>You've already seen reload's real secrets story in <a href="conv-06-config-secrets.html">Configuration &amp; Secrets</a>: credentials live in AWS Secrets Manager, not hardcoded in source. The general principle behind that: a secret committed to source control is compromised the moment it's pushed, even if you delete it in a later commit — Git history keeps it. And recall <a href="conv-04-logging.html">Logging</a>'s warning that reload logs full request/response payloads unredacted — a secret or account number passed through a logged call is now sitting in a log file too, a second place it can leak from.</p>
+
+<h2>Least privilege</h2>
+<p>Give code (and people) only the access they actually need, not the broadest access that happens to be convenient. A background job that only ever reads from <code>REPORTSUMMARY</code> shouldn't run with a database credential that also has write access to <code>CEPP</code> — if that job is ever compromised or has a bug, the blast radius is limited to what it actually needed.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A teammate says "this stored procedure is safe from SQL injection because it's a stored procedure." Based on what you just saw, what's the accurate correction?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Stored procedures aren't inherently unsafe either — the real answer is more precise than a blanket yes/no about stored procedures themselves." >That's correct — stored procedures are always immune to SQL injection.</li>
+<li data-correct="true" data-explain="A stored procedure that builds its own dynamic SQL by concatenating a parameter into a query string is just as vulnerable as raw inline SQL. The actual defense is parameterization — passing values as typed parameters that are never interpreted as SQL syntax — which is what reload's ParameterCollection.Add(...) calls actually do." >Only if the procedure itself uses parameterized values rather than concatenating input into a dynamic SQL string — the defense is parameterization, not the stored procedure wrapper itself.</li>
+<li data-correct="false" data-explain="SQL injection risk isn't about which programming language is used to call the database — it's about how the query text itself is constructed.">It depends on which programming language calls the stored procedure.</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You've completed Software Design &amp; Best Practices</span>
+That's OOP, SOLID, the named patterns already hiding in reload's real code, Git, code review, testing, and security fundamentals. From here, the two Fiuu-specific tracks (<strong>Fiuu C# Conventions</strong> and <strong>Debugging Reload</strong>) will read very differently — you'll recognise the underlying principles behind almost everything they show you.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

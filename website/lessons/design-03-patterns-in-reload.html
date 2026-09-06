@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Patterns reload Actually Uses · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="design-03-patterns-in-reload">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Software Design &amp; Best Practices</span>
+<h1>Design Patterns reload Actually Uses</h1>
+<p class="lede">A "design pattern" is just a named, reusable solution to a recurring design problem. You've already read the code for two real ones on this site — this lesson gives them their formal names, so you can recognise them elsewhere and talk about them precisely in a code review.</p>
+
+<h2>Service Locator</h2>
+<p><strong>The problem it solves:</strong> a class needs a dependency, but you don't want to hand-wire every single dependency through a constructor, especially for dependencies that are expensive to create and might never actually be needed.</p>
+<pre class="code-block">private IAccountService _accountCompo;
+private IAccountService AccountCompo
+{
+    get { return _accountCompo ?? (_accountCompo = EngineContext.Current.Resolve<IAccountService>()); }
+}</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Services/TerminalService.cs:35-39</p>
+<p>Instead of receiving <code>IAccountService</code> as a constructor parameter (the more modern <strong>Dependency Injection</strong> approach you'll see recommended almost everywhere today), <code>TerminalService</code> asks a central registry (<code>EngineContext.Current</code>) for it, lazily, the first time it's actually used. This is the <strong>Service Locator</strong> pattern — a real, working, if somewhat dated, alternative to constructor injection. You saw this first in <a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>; the callout there is worth re-reading now that you know the pattern's name: don't "fix" it to constructor injection unless that's the actual scope of your change.</p>
+
+<h2>Template Method</h2>
+<p><strong>The problem it solves:</strong> several related operations share the same overall sequence of steps, but a couple of the steps need to vary per case.</p>
+<pre class="code-block">protected override ContractResponse RetrieveExistingGiftCardResend(ContractRequest request, int actionType) { ... }
+protected override InCommTransaction FormatContractToModel(ContractRequest appReq, string processingCode, string messageTypeIdentifier) { ... }
+protected override int ValidateParameters(ContractRequest appReq) { ... }</pre>
+<p class="code-cite">reload/class-library/Secure/Incomm/Services/FastPinSaleService.cs:70-90</p>
+<p>An abstract base class (<code>InCommServiceBase</code>) defines the overall algorithm's shape once, with specific steps (<code>ValidateParameters</code>, <code>FormatContractToModel</code>, ...) left as overridable hooks. Concrete classes like <code>FastPinSaleService</code> override just those steps — this is the <strong>Template Method</strong> pattern. It's notably more structured than the flat, no-inheritance style most other reload modules (TNG, Game) use for the same kind of variability — a real, deliberate design choice specific to InComm's ISO 8583 protocol handling, not a codebase-wide standard.</p>
+
+<h2>Repository / Provider pattern</h2>
+<p><strong>The problem it solves:</strong> keep data-access code (how you talk to a database) separate from business logic (what you do with the data), so each can change independently.</p>
+<p>Every <code>*Provider</code> class in reload (<a href="conv-05-data-access.html">Fiuu C# Conventions → Data Access</a>) is this pattern by another name — industry-standard terminology usually calls it a <strong>Repository</strong>, though reload's own naming convention calls it a Provider. Same idea: one class per aggregate, whose only job is translating between the domain model and the database, with a stored-procedure call underneath.</p>
+
+<div class="callout tip">
+<span class="callout-title">Why naming the pattern is useful, practically</span>
+"This should use the Repository pattern" is a much faster, more precise code-review comment than re-explaining "you should separate data access from business logic" from scratch every time. Learning the vocabulary is a communication tool, not just trivia.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You see a class resolve a dependency via <code>EngineContext.Current.Resolve&lt;ISomeService&gt;()</code> inside a lazily-evaluated property, instead of receiving it through the constructor. What pattern is this?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Template Method is about a base class defining an algorithm's shape with overridable steps — this is about how a dependency gets obtained, a different concern entirely." >Template Method.</li>
+<li data-correct="true" data-explain="Asking a central registry/container for a dependency at the point of use, rather than having it handed in via the constructor, is the defining shape of the Service Locator pattern — exactly what TerminalService does for its cross-Service dependencies." >Service Locator.</li>
+<li data-correct="false" data-explain="Repository/Provider is about isolating data-access logic behind a dedicated class — unrelated to how a dependency is obtained." >Repository.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

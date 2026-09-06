@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sorting: How & Why · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="algo-04-sorting">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Algorithms &amp; Data Structures</span>
+<h1>Sorting: How &amp; Why</h1>
+<p class="lede">You'll essentially never hand-write a sort algorithm in real code — but understanding how one works is what lets you predict and debug the built-in one's behavior, including a genuinely common gotcha.</p>
+
+<h2>The gotcha first: JavaScript's default sort is alphabetical, not numeric</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">const nums = [10, 1, 21, 2];
+
+console.log(nums.sort());              // default sort — compares as TEXT
+console.log(nums.sort((a, b) => a - b)); // explicit numeric comparator — the fix</pre>
+</div>
+
+<p>Run it. The first line is very likely not what you expected — JavaScript's default <code>.sort()</code> converts every element to a string and compares them alphabetically, so <code>"10"</code> sorts before <code>"2"</code> (because <code>"1"</code> comes before <code>"2"</code> as the first character). Passing an explicit comparator function — <code>(a, b) =&gt; a - b</code> for ascending numbers — is the fix, and it's required any time you're sorting numbers in JavaScript.</p>
+
+<div class="callout warn">
+<span class="callout-title">C#'s built-in sort doesn't have this specific trap</span>
+<code>List&lt;int&gt;.Sort()</code> or LINQ's <code>.OrderBy(x =&gt; x)</code> in C# sort numbers numerically by default, because C# is statically typed and knows the list actually contains numbers. This particular gotcha is JavaScript-specific — but the general lesson (know what comparison your sort is actually using) applies everywhere.
+</div>
+
+<h2>How a sort actually works: bubble sort, the simplest one</h2>
+<p>Bubble sort repeatedly walks through the list, swapping any two adjacent elements that are out of order, until a full pass makes no swaps. It's O(n²) — genuinely slow for large lists — but it's the clearest way to see the mechanism.</p>
+
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">function bubbleSort(arr) {
+  const a = [...arr]; // copy — don't mutate the caller's array
+  for (let i = 0; i < a.length; i++) {
+    for (let j = 0; j < a.length - i - 1; j++) {
+      if (a[j] > a[j + 1]) {
+        [a[j], a[j + 1]] = [a[j + 1], a[j]]; // swap
+      }
+    }
+  }
+  return a;
+}
+
+console.log(bubbleSort([5, 3, 8, 1, 9, 2]));</pre>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">Why you'll never actually use bubble sort in real code</span>
+Real language built-ins (<code>Array.prototype.sort</code>, C#'s <code>List&lt;T&gt;.Sort</code>) use well-tested algorithms achieving O(n log n) — dramatically faster than bubble sort's O(n²) on any list bigger than a handful of items. The value of learning bubble sort isn't to use it — it's understanding "sorting compares and rearranges elements" well enough to reason about correctness when you use the built-in.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You call <code>[100, 9, 25].sort()</code> in JavaScript with no comparator. What do you actually get?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This is what a numeric sort would give you — but that's not what the default, comparator-less sort does in JavaScript.">[9, 25, 100] — sorted numerically ascending.</li>
+<li data-correct="true" data-explain="Without a comparator, JavaScript's sort converts each value to a string and compares alphabetically: \"100\" comes before \"25\" because '1' < '2' as characters, then \"25\" before \"9\" for the same reason." >[100, 25, 9] — sorted as if each number were text.</li>
+<li data-correct="false" data-explain="JavaScript's sort() doesn't throw without a comparator — it silently falls back to string comparison instead.">It throws an error, since no comparator was provided.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

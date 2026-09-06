@@ -17,7 +17,7 @@ Private repo, personal use — not an official Fiuu deliverable.
 | [`obsidian-vault/`](obsidian-vault/) | Vault entry point only (`Home.md`) — **this whole repo is the Obsidian vault** (open the repo root in Obsidian, not this folder); see its README |
 | [`skills/`](skills/) | SKILL.md-style docs so future Claude Code sessions on this project can load this as a skill |
 | [`exports/`](exports/) | Generated Word (.docx) documentation builds |
-| [`website/`](website/) | w3schools-style teaching site, "How to become a Fiuu software engineer" — 37 interactive lessons across 9 tracks |
+| [`website/`](website/) | w3schools-style teaching site, "How to become a Fiuu software engineer" — 50 interactive lessons across 11 tracks |
 
 ## Status
 

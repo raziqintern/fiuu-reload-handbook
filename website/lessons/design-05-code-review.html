@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code Review Best Practices · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="design-05-code-review">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Software Design &amp; Best Practices</span>
+<h1>Code Review Best Practices</h1>
+<p class="lede">The industry-general version of this skill. Once you've read this, <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a> shows you exactly how it plays out for real, with real quoted comments from reload's own review history.</p>
+
+<h2>As an author: make the reviewer's job easy</h2>
+<ul>
+<li><strong>Keep it small.</strong> A focused, single-purpose change is reviewable in one sitting; a 2,000-line change touching five unrelated things forces a reviewer to either rubber-stamp it or spend hours on it.</li>
+<li><strong>Write a description that explains why, not just what.</strong> The diff already shows what changed — a reviewer needs the context a diff can't show: why this approach, what alternatives were considered, what it fixes.</li>
+<li><strong>Review your own diff first.</strong> Reading your own change as if you were the reviewer catches an embarrassing number of debug prints, commented-out code, and typos before anyone else has to.</li>
+<li><strong>Respond to every comment, not just the ones you agree with.</strong> "Disagree because X" is a valid response; silence isn't — it leaves the reviewer unsure whether you saw the comment at all.</li>
+</ul>
+
+<h2>As a reviewer: what to actually look for, in priority order</h2>
+<ol>
+<li><strong>Correctness first.</strong> Does it do what it claims to do? Are there edge cases (empty input, null, the boundary values) that aren't handled?</li>
+<li><strong>Safety second.</strong> Could this break something else? Does it handle errors sensibly? Is anything sensitive (a secret, an unvalidated input) handled carelessly?</li>
+<li><strong>Consistency third.</strong> Does it follow the codebase's existing conventions — naming, error handling, structure — well enough that it doesn't stand out as foreign?</li>
+<li><strong>Style last, and lightly.</strong> Nitpicks about formatting matter far less than the three above — and many of them are better caught by an automated linter/formatter than by a human's attention.</li>
+</ol>
+
+<div class="callout tip">
+<span class="callout-title">Phrase feedback as a question or observation, not a command</span>
+"Why does this catch Exception broadly instead of the specific type?" invites explanation and rarely feels adversarial. "Don't catch Exception broadly" reads as a command and can put the author on the defensive even when the underlying concern is identical. The content of good feedback and bad feedback is often the same — the delivery is what differs.
+</div>
+
+<h2>Don't take review comments personally — including as an author</h2>
+<p>A review comment is about the code, not about you. This runs both ways: as a reviewer, critique the diff, not the person; as an author, a comment pointing out a real problem is the system working as intended, not a judgment of your ability. The goal of review is better code shipping, not proving anyone right or wrong.</p>
+
+<div class="callout warn">
+<span class="callout-title">Revision count alone isn't a quality signal</span>
+It's tempting to treat "this MR needed 10 rounds of revision" as evidence of poor initial work. As you'll see in the real data in <a href="dbg-03-review-checklist.html">What Reviewers Actually Flag</a>, high revision counts in a real project often reflect evolving requirements discovered mid-review, not repeated rejection of the same mistake. Look at what actually changed between revisions before drawing a conclusion from the count.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">As a reviewer, you notice both a genuine null-reference risk and a minor spacing inconsistency in the same diff. What's the right priority?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Correctness/safety issues like a real null-reference risk should take priority over minor style concerns — spacing rarely causes an incident." >Flag the spacing first — style issues are quick to fix and should be cleared before anything else.</li>
+<li data-correct="true" data-explain="Correctness and safety issues come first in review priority — a null-reference risk can cause a real production failure, while a spacing inconsistency is cosmetic and often better left to an automated formatter anyway." >Flag the null-reference risk as the priority — it's a correctness/safety issue, well above a cosmetic nitpick.</li>
+<li data-correct="false" data-explain="Ignoring a genuine correctness issue because a smaller one is more comfortable to raise is exactly the wrong instinct — the more important issue should be surfaced, not avoided.">Only mention the spacing issue, since it's less likely to start an argument.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

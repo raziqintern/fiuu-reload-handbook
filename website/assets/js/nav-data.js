@@ -26,6 +26,18 @@ const SITE_TRACKS = [
     ],
   },
   {
+    id: "algo",
+    title: "Algorithms & Data Structures",
+    lessons: [
+      { id: "algo-01-big-o", title: "1. Big O Notation", file: "algo-01-big-o.html" },
+      { id: "algo-02-arrays-time", title: "2. Arrays & Time Complexity", file: "algo-02-arrays-time.html" },
+      { id: "algo-03-searching", title: "3. Searching: Linear vs. Binary", file: "algo-03-searching.html" },
+      { id: "algo-04-sorting", title: "4. Sorting: How & Why", file: "algo-04-sorting.html" },
+      { id: "algo-05-recursion", title: "5. Recursion", file: "algo-05-recursion.html" },
+      { id: "algo-06-stacks-queues", title: "6. Stacks, Queues & Dictionaries", file: "algo-06-stacks-queues.html" },
+    ],
+  },
+  {
     id: "csharp",
     title: "C# Fundamentals",
     lessons: [
@@ -55,6 +67,19 @@ const SITE_TRACKS = [
       { id: "sql-02-joins", title: "2. Joins & Filtering", file: "sql-02-joins.html" },
       { id: "sql-03-reload-db-shape", title: "3. How reload_db Is Organised", file: "sql-03-reload-db-shape.html" },
       { id: "sql-04-conventions", title: "4. Stored Procs, MAINT & NOLOCK", file: "sql-04-conventions.html" },
+    ],
+  },
+  {
+    id: "design",
+    title: "Software Design & Best Practices",
+    lessons: [
+      { id: "design-01-oop-pillars", title: "1. OOP Pillars", file: "design-01-oop-pillars.html" },
+      { id: "design-02-solid", title: "2. SOLID Principles", file: "design-02-solid.html" },
+      { id: "design-03-patterns-in-reload", title: "3. Design Patterns reload Actually Uses", file: "design-03-patterns-in-reload.html" },
+      { id: "design-04-git-basics", title: "4. Git & Version Control", file: "design-04-git-basics.html" },
+      { id: "design-05-code-review", title: "5. Code Review Best Practices", file: "design-05-code-review.html" },
+      { id: "design-06-testing", title: "6. Testing Fundamentals", file: "design-06-testing.html" },
+      { id: "design-07-security-basics", title: "7. Security Basics", file: "design-07-security-basics.html" },
     ],
   },
   {

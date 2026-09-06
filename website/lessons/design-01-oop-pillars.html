@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OOP Pillars · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="design-01-oop-pillars">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Software Design &amp; Best Practices</span>
+<h1>OOP Pillars</h1>
+<p class="lede">A new track: language-agnostic ideas about how to <em>structure</em> code well, not just how to write syntax that runs. You've already met every concept in this track in passing — this is where they get named properly.</p>
+
+<h2>Encapsulation: hide the internals, expose a controlled surface</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">class Terminal {
+  constructor(id, balance) {
+    this._id = id;
+    this._balance = balance; // leading underscore: "internal, don't touch directly"
+  }
+  deposit(amount) {
+    if (amount <= 0) throw new Error("Deposit must be positive");
+    this._balance += amount;
+  }
+  getBalance() {
+    return this._balance;
+  }
+}
+
+const t = new Terminal("TNG-0042", 100);
+t.deposit(50);
+console.log(t.getBalance());</pre>
+</div>
+<p>Nothing forces you to go through <code>deposit()</code> — you could still write <code>t._balance = -999</code> directly. Encapsulation here is a <em>convention</em> (the underscore, the method that validates), not a hard technical lock — the same underscore-prefix convention you saw on reload's real <code>_provider</code>/<code>_accountCompo</code> fields in <a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>.</p>
+
+<h2>Inheritance and polymorphism: one call, different behavior</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">class PaymentMethod {
+  process(amount) {
+    throw new Error("process() must be implemented by a subclass");
+  }
+}
+
+class TngPayment extends PaymentMethod {
+  process(amount) {
+    return `Processed RM${amount} via TNG`;
+  }
+}
+
+class CardPayment extends PaymentMethod {
+  process(amount) {
+    return `Processed RM${amount} via Card`;
+  }
+}
+
+const methods = [new TngPayment(), new CardPayment()];
+for (const m of methods) {
+  console.log(m.process(25));
+}</pre>
+</div>
+<p><strong>Inheritance</strong>: both classes extend <code>PaymentMethod</code>, inheriting its shape. <strong>Polymorphism</strong>: the loop calls <code>m.process(25)</code> identically for both objects, but each runs its own version — the caller doesn't need to know or care which concrete class it's holding.</p>
+
+<h2>Abstraction: expose what, hide how</h2>
+<p>You've already seen this formally: <code>ITerminalService</code> in <a href="cs-04-classes.html">C# Fundamentals → Classes, Objects &amp; Interfaces</a> is pure abstraction — it declares <em>what</em> <code>Login</code> does (takes a terminal id, returns a bool) without exposing <em>how</em> <code>TerminalService</code> implements it. The caller depends only on the abstraction.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">In the payment example above, what specifically is the polymorphism?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="That's inheritance — both classes sharing a common parent. Polymorphism is about what happens when you call a method on them, not the shared parent itself." >Both classes extending PaymentMethod.</li>
+<li data-correct="true" data-explain="Polymorphism specifically means the same method call (m.process(25)) produces different behavior depending on the actual runtime type of the object — the loop doesn't need an if/else to check which class it has." >The loop calling m.process(25) identically on both objects, but getting different behavior from each.</li>
+<li data-correct="false" data-explain="Throwing an error in the base class is a design choice to force subclasses to override the method — it's related to abstraction, not the definition of polymorphism itself.">PaymentMethod.process() throwing an error if called directly.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

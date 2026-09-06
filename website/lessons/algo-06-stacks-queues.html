@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stacks, Queues & Dictionaries · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="algo-06-stacks-queues">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Algorithms &amp; Data Structures</span>
+<h1>Stacks, Queues &amp; Dictionaries</h1>
+<p class="lede">Three more shapes data comes in, beyond a plain array — each one exists because it makes one specific operation fast and natural.</p>
+
+<h2>Stack: Last In, First Out (LIFO)</h2>
+<p>Think of a stack of plates — you add to the top, and you take from the top. In JavaScript, a plain array's <code>.push()</code>/<code>.pop()</code> already gives you this.</p>
+
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">// Stack: Last In, First Out — think "undo history"
+const stack = [];
+stack.push("open connection");
+stack.push("begin transaction");
+stack.push("insert row");
+
+console.log("Undoing:", stack.pop()); // undoes the MOST RECENT action first
+console.log("Undoing:", stack.pop());</pre>
+</div>
+
+<h2>Queue: First In, First Out (FIFO)</h2>
+<p>Think of a line at a counter — first person in line is served first. <code>.push()</code> to add, <code>.shift()</code> to remove from the front.</p>
+
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">// Queue: First In, First Out — think "job processing order"
+const queue = [];
+queue.push("transaction A");
+queue.push("transaction B");
+queue.push("transaction C");
+
+console.log("Processing:", queue.shift()); // processes the OLDEST first
+console.log("Processing:", queue.shift());</pre>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">Why the distinction matters</span>
+Picking the wrong one silently changes your processing order. A retry queue that should process failed transactions in the order they failed (FIFO) but is accidentally implemented as a stack (LIFO) will keep retrying the newest failure first and can leave an old one stuck at the bottom indefinitely.
+</div>
+
+<h2>Dictionary (Map): key-based O(1) lookup</h2>
+<p>When you need to look things up by a meaningful key instead of a numeric position, a dictionary gives you roughly O(1) lookup — a real, practical alternative to the O(n) array search from <a href="algo-02-arrays-time.html">Arrays &amp; Time Complexity</a>.</p>
+
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">const secretsCache = new Map();
+secretsCache.set("TNG#ApiKey", "cached-value-1");
+secretsCache.set("Astro#Password", "cached-value-2");
+
+console.log(secretsCache.get("TNG#ApiKey"));
+console.log(secretsCache.has("Unknown#Key"));
+console.log(secretsCache.size);</pre>
+</div>
+
+<div class="callout real">
+<span class="callout-title">This is a real structure in reload, not a toy example</span>
+Recall <code>SecretsHelper.SecretsDictionary</code> from <a href="conv-06-config-secrets.html">Fiuu C# Conventions → Configuration &amp; Secrets</a> — a <code>Dictionary&lt;string, string&gt;</code> caching resolved AWS Secrets Manager values by label, precisely so a repeated lookup by key doesn't need to re-fetch or re-scan. The Game module's logging (<a href="conv-04-logging.html">Logging</a>) uses a <code>ConcurrentDictionary&lt;string, Logger&gt;</code> the same way — one logger per country code, looked up by key instead of searched for.</p>
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You're building a retry mechanism that must process failed transactions in the exact order they originally failed. Which structure fits?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="A stack (LIFO) would process the most recently failed transaction first, not the order they originally failed — the opposite of what's needed here." >A stack, so the most recent failure is retried first.</li>
+<li data-correct="true" data-explain="FIFO (queue) processing preserves the original failure order — the oldest failure is retried first, exactly matching the requirement." >A queue, so the oldest failure is retried first, in original order.</li>
+<li data-correct="false" data-explain="A dictionary is for key-based lookup, not for preserving processing order — it doesn't guarantee any particular iteration order for this purpose.">A dictionary, keyed by transaction ID.</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You've completed Algorithms &amp; Data Structures</span>
+That's the whole track — Big O, arrays, searching, sorting, recursion, and the three data structures beyond a plain array. Next: back to language fundamentals with <strong>C# Fundamentals</strong>, where you'll recognise <code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey,TValue&gt;</code>, and LINQ's <code>.OrderBy()</code>/<code>.FirstOrDefault()</code> as exactly the concepts from this track, just spelled differently.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git & Version Control · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="design-04-git-basics">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Software Design &amp; Best Practices</span>
+<h1>Git &amp; Version Control</h1>
+<p class="lede">Reload's own repos (<code>reload</code>, <code>reload_db</code>, the <code>class-library</code> submodule) are all Git — and the review culture you'll meet in <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a> is entirely built on top of Git's branch/merge-request workflow. This lesson is the mechanics underneath that culture.</p>
+
+<h2>The core mental model</h2>
+<p>Git tracks <strong>snapshots</strong> of your entire project over time, called <strong>commits</strong>. Each commit points to the commit before it, forming a history. A <strong>branch</strong> is just a movable label pointing at one commit — creating a branch doesn't copy any files, it just gives you a new label to move independently of <code>master</code>/<code>main</code> while you work.</p>
+
+<h2>The everyday command loop</h2>
+<pre class="code-block">git status                  # what's changed since the last commit?
+git add path/to/file.cs     # stage a specific change
+git commit -m "message"     # snapshot the staged changes
+git push                    # send your commits to the shared remote (e.g. GitHub/GitLab)
+git pull                    # bring down commits others have pushed</pre>
+
+<div class="callout tip">
+<span class="callout-title">Stage deliberately, not with git add .</span>
+<code>git add .</code> stages every changed file in the current directory, including ones you didn't mean to touch (stray config, debug prints, an accidentally-edited unrelated file). Reviewing <code>git status</code> and adding specific files is slower but catches mistakes before they're committed — and definitely before they're pushed for someone else to review.
+</div>
+
+<h2>Branches: work in isolation, merge when ready</h2>
+<pre class="code-block">git checkout -b fix/duplicate-transaction-race   # create and switch to a new branch
+# ...make changes, commit them...
+git push -u origin fix/duplicate-transaction-race # push the branch to the remote</pre>
+<p>A branch name that describes the actual change (like the one above, echoing the real issue #1483 from <a href="dbg-04-trace-a-bug.html">Debugging Reload → Worked Example</a>) is far more useful in a project's history six months later than <code>my-branch</code> or <code>fix</code>.</p>
+
+<h2>What a merge request/pull request actually is</h2>
+<p>A merge request (GitLab's term — GitHub calls the same thing a pull request) is a proposal: "merge the commits on this branch into <code>master</code>." It's the unit reviewers actually look at — a diff of every change, plus a place for line-by-line comments. This is the exact mechanism behind every quoted reviewer comment in the Debugging Reload track — <code>khenggek</code> and <code>deepcode_ai</code> are both commenting on merge requests, not on individual commits.</p>
+
+<h2>Merge conflicts: two changes to the same lines</h2>
+<p>If two branches both modify the same lines of the same file, Git can't automatically decide which version wins — that's a <strong>merge conflict</strong>. Resolving one means manually choosing (or combining) the correct final content for those lines before the merge can complete. This isn't a Git failure; it's Git correctly refusing to silently discard someone's work.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why create a new branch instead of committing directly to master while working on a fix?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Branching doesn't run tests for you — that's a separate CI/testing concern, not what branches are for." >Branches automatically run tests before allowing a commit.</li>
+<li data-correct="true" data-explain="A branch isolates work-in-progress from the stable master branch, and gives reviewers a specific, reviewable diff (the merge/pull request) before those changes become part of the shared history everyone builds on." >It isolates your in-progress work from the stable shared history, and gives reviewers a clear diff to review before it's merged.</li>
+<li data-correct="false" data-explain="Branches don't create separate physical copies of the repository — that's what a full clone does, an unrelated concept." >It creates a separate copy of the entire repository on disk.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

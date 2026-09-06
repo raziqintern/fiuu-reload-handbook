@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testing Fundamentals · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="design-06-testing">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Software Design &amp; Best Practices</span>
+<h1>Testing Fundamentals</h1>
+<p class="lede">A unit test is just code that checks other code's behavior automatically, so a human doesn't have to manually re-verify it every time something nearby changes.</p>
+
+<h2>The shape of a test: Arrange, Act, Assert</h2>
+<p>Almost every unit test follows the same three-part structure: set up the inputs (<strong>Arrange</strong>), call the code you're testing (<strong>Act</strong>), and check the result is what you expected (<strong>Assert</strong>). You don't need a testing framework to see this in action — here it is hand-rolled, testing the same validation function from earlier in this site:</p>
+
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">function validateReload(amount, method) {
+  if (amount <= 0) return "Amount must be positive";
+  if (amount > 500) return "Exceeds max reload limit";
+  if (!method) return "Payment method required";
+  return "OK";
+}
+
+function assertEqual(actual, expected, testName) {
+  const pass = actual === expected;
+  console.log((pass ? "PASS" : "FAIL") + ": " + testName);
+}
+
+// Arrange + Act + Assert, three times over
+assertEqual(validateReload(50, "tng"), "OK", "valid reload should pass");
+assertEqual(validateReload(-5, "tng"), "Amount must be positive", "negative amount should fail");
+assertEqual(validateReload(50, null), "Payment method required", "missing method should fail");</pre>
+</div>
+
+<p>You've now seen this exact validation logic implemented three times across this site — <a href="js-03-functions.html">JavaScript</a>, <a href="cs-03-methods.html">C#</a>, and here again — and this is the first time you've seen it <em>verified</em> automatically instead of by eyeballing the output.</p>
+
+<h2>Why untested code is a real, tracked risk — not a theoretical concern</h2>
+<div class="callout warn">
+<span class="callout-title">A real example from reload itself</span>
+<code>CardNumberValidator.IsValid</code> encodes a blacklist bitmap lookup scheme with several magic numbers and no visible unit tests anywhere in the sampled codebase (<a href="dbg-02-pitfalls.html">Debugging Reload → Known Patterns &amp; Pitfalls</a>). The documented guidance is explicit: treat changes to this class as high-risk specifically <em>because</em> there's no test suite to catch a regression — you're relying entirely on manual review and production behavior to notice a mistake.
+</div>
+
+<h2>What tests actually buy you</h2>
+<ul>
+<li><strong>Confidence to change code.</strong> A good test suite tells you within seconds whether a refactor broke something, instead of waiting for a bug report.</li>
+<li><strong>Executable documentation.</strong> A test named <code>"negative amount should fail"</code> tells a future reader what the function is supposed to do, in a way that can't silently go stale the way a comment can.</li>
+<li><strong>A place to reproduce a bug before fixing it.</strong> Writing a failing test that reproduces a reported bug, <em>then</em> fixing the code until it passes, proves the fix actually addresses the reported behavior — not just "seems fine now."</li>
+</ul>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why does the lack of unit tests on CardNumberValidator specifically raise the risk of changing it, compared to a similarly complex but well-tested class?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Tests don't change how a class executes at runtime — this isn't about performance." >Without tests, the class runs slower in production.</li>
+<li data-correct="true" data-explain="With no automated tests, a change that subtly breaks the blacklist logic has no fast, automatic way to be caught — the only way to notice is manual review (easy to miss in dense, magic-number-heavy code) or a real production failure." >A regression introduced by a change has no automated way to be caught before it reaches production or manual review misses it.</li>
+<li data-correct="false" data-explain="Tests don't affect a class's access modifiers or visibility — that's an unrelated language feature.">The class becomes impossible to mark as public.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

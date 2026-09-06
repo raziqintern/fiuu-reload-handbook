@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Searching: Linear vs. Binary · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="algo-03-searching">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Algorithms &amp; Data Structures</span>
+<h1>Searching: Linear vs. Binary</h1>
+<p class="lede">Two ways to find something in a list — and a live, counted comparison of exactly how much faster the second one is.</p>
+
+<h2>Linear search: check everything, in order</h2>
+<p>This is what <code>.indexOf()</code>/<code>FirstOrDefault()</code> do internally — check element 0, then 1, then 2, until you find it or run out of elements. Works on any list, sorted or not.</p>
+
+<h2>Binary search: only works on sorted data, but is dramatically faster</h2>
+<p>If the list is sorted, you don't need to check every element. Check the middle one: if it's too big, the answer must be in the left half; if it's too small, it must be in the right half. Throw away the half that can't contain the answer, and repeat on what's left.</p>
+
+<h2>Try it yourself: count the actual steps each one takes</h2>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">function linearSearch(arr, target) {
+  let steps = 0;
+  for (let i = 0; i < arr.length; i++) {
+    steps++;
+    if (arr[i] === target) return steps;
+  }
+  return -1;
+}
+
+function binarySearch(arr, target) {
+  let steps = 0;
+  let low = 0, high = arr.length - 1;
+  while (low <= high) {
+    steps++;
+    const mid = Math.floor((low + high) / 2);
+    if (arr[mid] === target) return steps;
+    if (arr[mid] < target) low = mid + 1;
+    else high = mid - 1;
+  }
+  return -1;
+}
+
+// a sorted array of 16 numbers — binary search REQUIRES sorted data
+const sorted = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32];
+
+console.log("Linear search steps:", linearSearch(sorted, 32));
+console.log("Binary search steps:", binarySearch(sorted, 32));</pre>
+</div>
+
+<p>Try changing <code>32</code> to <code>2</code> (the first element) and re-running — linear search gets lucky and takes just 1 step, but binary search still takes roughly the same number of steps either way. That's the real trade-off: binary search's worst case is consistently good; linear search's worst case is genuinely bad.</p>
+
+<div class="callout warn">
+<span class="callout-title">The one non-negotiable requirement</span>
+Binary search only works correctly on already-sorted data. Run it on an unsorted array and it will silently give you wrong answers sometimes — not an error, a wrong result, which is far more dangerous. Never reach for binary search without confirming the data is actually sorted first.
+</div>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You have a large sorted array and need to search it repeatedly. Why is binary search almost always the better choice over linear search here?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Binary search's O(log n) growth means doubling the data barely increases the number of steps needed, while linear search's O(n) steps grow directly with size — the gap widens dramatically as the array gets larger." >Its number of steps grows much more slowly as the array gets bigger — O(log n) versus O(n).</li>
+<li data-correct="false" data-explain="Binary search works on any sorted data type that supports ordering comparisons — it's not limited to numbers." >It only works correctly on arrays of numbers, never strings.</li>
+<li data-correct="false" data-explain="Binary search specifically requires sorted data to work correctly — it doesn't remove that requirement." >It doesn't require the data to be sorted, unlike linear search.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>
