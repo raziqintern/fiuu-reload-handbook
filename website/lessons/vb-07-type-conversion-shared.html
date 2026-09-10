@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Type Conversion: CType, DirectCast & TryCast · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="vb-07-type-conversion-shared">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">VB.NET Fundamentals</span>
+<h1>Type Conversion: CType, DirectCast &amp; TryCast</h1>
+<p class="lede">VB.NET has three named ways to explicitly convert a value's type, each with a different answer to "what relationship must the two types have, and what happens if the conversion turns out to be impossible at runtime." All three are real, live patterns in BackOffice — this lesson also covers <code>Shared</code> members and <code>Enum</code>, since the real example that grounds all three casts needs both.</p>
+
+<h2>The concept: explicit conversion is one idea, three mechanisms</h2>
+<p>Converting a value from one type to another is a single concept — but VB.NET gives you three keywords for it because they make fundamentally different trade-offs between generality, speed, and failure behavior. Per Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/operators/ctype-operator">CType Operator reference</a>, which documents all three side by side:</p>
+<table>
+<tr><th>Keyword</th><th>Data types</th><th>Argument relationship required</th><th>Run-time failure</th></tr>
+<tr><td><code>CType</code></td><td>Any data types</td><td>A widening or narrowing conversion must be <em>defined</em> between the two types</td><td>Throws <code>InvalidCastException</code></td></tr>
+<tr><td><code>DirectCast</code></td><td>Any data types</td><td>One type must <strong>inherit from or implement</strong> the other</td><td>Throws <code>InvalidCastException</code></td></tr>
+<tr><td><code>TryCast</code></td><td>Reference types only</td><td>One type must <strong>inherit from or implement</strong> the other</td><td>Returns <code>Nothing</code></td></tr>
+</table>
+<p><code>DirectCast</code> and <code>TryCast</code> both require a real inheritance/interface relationship between the two types — they're for "I have an <code>Object</code> that I know is actually a <code>GridView</code>," not for genuinely converting data. <code>CType</code> is the general-purpose one: it also handles conversions where no such relationship exists at all — <code>String</code> to <code>Integer</code>, a boxed enum value to its underlying <code>Integer</code>, or a class's own user-defined conversion operator.</p>
+
+<h2>CType — real usage: converting a boxed enum value, where DirectCast can't help</h2>
+<p>Enums first: a real one, declared with <code>Public Enum</code> — this is VB's syntax for a named set of integer constants, same concept as C#'s <code>enum</code>:</p>
+<pre class="code-block">Public Enum ErrorType
+    ' ... named integer constants
+End Enum</pre>
+<p class="code-cite">Module: BackOffice/Web · File: error.aspx.vb:6</p>
+<p>Now the real <code>CType</code> example — populating a dropdown from every value of an enum, filtered and sorted:</p>
+<pre class="code-block">ddlWalletType.DataSource = (From item In [Enum].GetValues(GetType(EnumWalletType))
+                            Where CType(item, Integer) &lt;&gt; EnumWalletType.Consignment
+                            Order By CType(item, Integer)
+                            Select New With {.Text = item.ToString(), .Value = CType(item, Integer)})</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/DealerCreate.aspx.vb:539-542</p>
+<div class="callout real">
+<span class="callout-title">Why CType, specifically, is the only one of the three that works here</span>
+<code>[Enum].GetValues(...)</code> returns a plain array of <code>Object</code> — each element is a boxed enum value with no compile-time type information beyond "some object." Converting a boxed value type's contents to <code>Integer</code> is not an inheritance/interface relationship (an <code>Integer</code> doesn't "inherit from" the enum, or vice versa) — it's exactly the kind of conversion <code>DirectCast</code> and <code>TryCast</code> are structurally unable to perform, per the table above. <code>CType</code> is the only one of the three general enough to do it.
+</div>
+
+<h2>DirectCast — real usage: you already know the real type, you just need the compiler to agree</h2>
+<pre class="code-block">gvCommissions.DataSource = DirectCast(ViewState("CommDetails"), DataTable)
+Dim HeaderGrid As GridView = DirectCast(sender, GridView)</pre>
+<p class="code-cite">Module: BackOffice/Web · Files: WebForms/Commission.aspx.vb:63; WebForms/CommissionEdit.aspx.vb:537</p>
+<p>Both real: <code>ViewState(...)</code> and an event handler's <code>sender</code> parameter are typed <code>Object</code> by the framework itself — but the code storing/raising them is the same code reading them back, so the actual runtime type is already known with certainty. <code>DirectCast</code> is the right tool exactly here: a real inheritance relationship exists (<code>DataTable</code> and <code>GridView</code> both ultimately derive from <code>Object</code>, and the value genuinely <em>is</em> one), and per the table above it's faster than <code>CType</code> for exactly this <code>Object</code>-to-concrete-type shape, since it skips the general-purpose conversion machinery entirely.</p>
+
+<h2>TryCast — real usage: the cast might genuinely fail, and that's an expected outcome, not a bug</h2>
+<pre class="code-block">Dim tpSAPSetting As TabPanel = TryCast(FindControlRecursive(SAPSettingTabId), AjaxControlToolkit.TabPanel)
+Dim tpSAPDealerSetting As TabPanel = TryCast(FindControlRecursive(SAPDealerSettingTabId), AjaxControlToolkit.TabPanel)
+
+If tpSAPSetting IsNot Nothing OrElse ...</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/RestrictedPage.vb:72-75</p>
+<div class="callout tip">
+<span class="callout-title">The idiomatic pairing: TryCast + IsNot Nothing</span>
+<code>FindControlRecursive</code> might legitimately not find a control with that ID on every page — that's not a bug to guard against defensively, it's an expected outcome depending on which page is being rendered. <code>TryCast</code> returning <code>Nothing</code> on failure (instead of <code>DirectCast</code>'s exception) turns "did this control exist" into a normal <a href="vb-06-error-handling.html"><code>IsNot Nothing</code> check</a>, not exception handling — exactly the real pattern here, checked immediately on the next line.
+</div>
+
+<h2>Shared — one copy, not one per instance</h2>
+<p>Per Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/modifiers/shared">Shared reference</a>: <em>"Sharing a member of a class or structure makes it available to every instance, rather than non-shared, where each instance keeps its own copy."</em> This is VB's name for what C# calls <code>static</code> — the same concept, different keyword. Real, verified factory-method usage, overloaded by parameter type:</p>
+<pre class="code-block">Public Shared Function Parse(stock As IStockInfo) As IAllocationStock
+Public Shared Function Parse(stock As IAllocationOrderItem) As IAllocationStock</pre>
+<p class="code-cite">Module: BackOffice/Web · File: Models/AllocationStock.vb:33,50</p>
+<p>Called as <code>AllocationStock.Parse(someStock)</code> — through the <em>class</em> name, never through an instance variable — which is exactly the point: no <code>AllocationStock</code> object needs to exist yet to call the method that builds one. This pairs naturally with the <code>Overloads</code> keyword from <a href="vb-03-procedures.html">Procedures</a>: both <code>Parse</code> overloads must (and do) declare <code>Overloads</code> since they share a name in the same class.</p>
+
+<h2>Best practice</h2>
+<ul>
+<li>Default to <code>DirectCast</code> when you already know the real type with certainty (a <code>sender</code> parameter you wired up yourself, a <code>ViewState</code> value you stored yourself) — it fails loudly and fast if that certainty was ever wrong.</li>
+<li>Reach for <code>TryCast</code> the moment "the cast might legitimately not succeed" is a real, expected possibility — pair it with <code>IsNot Nothing</code>, never leave the result unchecked.</li>
+<li>Reach for <code>CType</code> only when neither of the above applies — genuinely converting between unrelated types (a boxed enum to its underlying integer, a string to a number) where no inheritance relationship could ever exist.</li>
+</ul>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why can't <code>DirectCast</code> be used to convert a boxed enum value (from <code>[Enum].GetValues(...)</code>, typed <code>Object</code>) to <code>Integer</code>?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="DirectCast's restriction isn't about enums specifically — it's about the relationship between the source and target types in general." >Enums are a special case DirectCast never supports.</li>
+<li data-correct="true" data-explain="DirectCast (and TryCast) require an inheritance/implementation relationship between the two types. A boxed value type's contents converting to Integer isn't that kind of relationship — it's exactly the general-purpose conversion CType exists for." >DirectCast requires an inheritance/implementation relationship between the source and target types, and converting a boxed value to a different value type isn't that — it needs CType's more general conversion.</li>
+<li data-correct="false" data-explain="Object is a perfectly valid source type for DirectCast — the issue is the target type's relationship to it, not Object itself being disallowed." >DirectCast doesn't accept Object as a source type at all.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>Dim tpSAPSetting As TabPanel = TryCast(FindControlRecursive(SAPSettingTabId), AjaxControlToolkit.TabPanel)</code> — the control genuinely doesn't exist on this page. What happens?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Throwing on failure is DirectCast's behavior, not TryCast's — that's precisely the distinction between the two." >An InvalidCastException is thrown immediately.</li>
+<li data-correct="true" data-explain="TryCast returns Nothing on a failed conversion instead of throwing — which is exactly why the real code checks tpSAPSetting IsNot Nothing on the very next line, treating a missing control as a normal, expected outcome." >tpSAPSetting is set to Nothing — no exception — which is exactly what the following IsNot Nothing check is there to handle.</li>
+<li data-correct="false" data-explain="TryCast never silently returns a default/empty instance of the target type on failure — its documented failure behavior is specifically returning Nothing.">tpSAPSetting is set to a new, empty TabPanel automatically.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/search.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

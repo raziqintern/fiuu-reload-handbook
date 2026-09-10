@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LINQ in VB.NET: Query Syntax, Lambdas & Anonymous Types · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="vb-08-linq-lambdas">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">VB.NET Fundamentals</span>
+<h1>LINQ in VB.NET: Query Syntax, Lambdas &amp; Anonymous Types</h1>
+<p class="lede">C# Fundamentals covered LINQ as method calls (<code>.Where(...)</code>, <code>.Select(...)</code>). VB.NET has that too — but it also has a second, SQL-shaped way to write the exact same query, actually used in BackOffice. Both need one more concept first: VB's own lambda syntax.</p>
+
+<h2>The concept: a lambda expression is an unnamed function, written inline</h2>
+<p>Per Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/procedures/lambda-expressions">Lambda Expressions reference</a>: <em>"A lambda expression is a function or subroutine without a name that can be used wherever a delegate is valid."</em> You build one with the same <code>Function</code>/<code>Sub</code> keywords as a normal procedure — the difference is it has no name, and it's written as part of a larger statement instead of declared separately:</p>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Dim increment = Function(x) x + 1
+Console.WriteLine(increment(1))
+
+Dim isEven = Function(n As Integer) n Mod 2 = 0
+Console.WriteLine(isEven(4))
+Console.WriteLine(isEven(5))</pre>
+<pre class="tryit-output-src">2
+True
+False</pre>
+</div>
+<p>Real, verified usage — both are lambdas passed directly as an argument, never given a name at all:</p>
+<pre class="code-block">Dim isAnyCheckedPlatformIndicator As Boolean = cblPlatformIndicator.Items.Cast(Of ListItem)().Any(Function(item) item.Selected)
+Dim countries = service.GetCountries().Where(Function(c) c.Id = ddlCountry.SelectedValue)</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/DealerCreate.aspx.vb:98,389</p>
+<div class="callout tip">
+<span class="callout-title">This is the exact same shape as C#'s lambdas — different keyword, same idea</span>
+C# Fundamentals' <a href="cs-06-collections-linq.html">Collections &amp; LINQ</a> lesson used <code>x => x.Something</code>. VB.NET's <code>Function(x) x.Something</code> is the same concept — an inline, unnamed function — spelled with a keyword instead of an arrow. <code>.Where(Function(c) c.Id = ...)</code> and C#'s <code>.Where(c => c.Id == ...)</code> compile to functionally the same thing.
+</div>
+
+<h2>VB.NET's second option: query syntax — the same LINQ, written like SQL</h2>
+<p>Everything above is <strong>method syntax</strong> — chained <code>.Where(...)</code>/<code>.Select(...)</code> calls, same as C#. VB.NET also has <strong>query syntax</strong>: <code>From</code>/<code>Where</code>/<code>Order By</code>/<code>Select</code> keywords that read like a SQL statement, compiling down to the exact same method calls underneath. This isn't a simplified toy version — it's real, used in production:</p>
+<pre class="code-block">ddlWalletType.DataSource = (From item In [Enum].GetValues(GetType(EnumWalletType))
+                            Where CType(item, Integer) &lt;&gt; EnumWalletType.Consignment
+                            Order By CType(item, Integer)
+                            Select New With {.Text = item.ToString(), .Value = CType(item, Integer)})</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/DealerCreate.aspx.vb:539-542</p>
+<p>Reading it clause by clause: <code>From item In [Enum].GetValues(...)</code> declares a <em>range variable</em>, <code>item</code>, iterating the source — the query-syntax equivalent of the lambda parameter in method syntax. <code>Where</code> filters, exactly like <code>.Where(...)</code>. <code>Order By</code> sorts — there's no method-syntax equivalent keyword shown yet, but it corresponds to <code>.OrderBy(...)</code>. <code>Select</code> defines the shape of each result.</p>
+
+<h2>The concept inside that Select: anonymous types</h2>
+<p><code>New With {.Text = item.ToString(), .Value = CType(item, Integer)}</code> creates an object of a type that has no name anywhere in the code — VB.NET generates one on the fly, with exactly the properties listed (<code>Text</code>, <code>Value</code>), typed from whatever each expression evaluates to. This exists specifically for cases like this one: the query's result only needs to exist briefly, to bind to <code>ddlWalletType</code>'s <code>DataSource</code> — defining a real, named class just to hold two properties for one local use would be pure ceremony.</p>
+<div class="callout warn">
+<span class="callout-title">When an anonymous type stops being the right tool</span>
+The moment a shape needs to be passed between methods, stored, or referred to by a real type name anywhere else, that's the signal to define an actual class instead — an anonymous type's "type" only has meaning within the method (and nearby lambdas) that created it; you can't write a method signature that accepts or returns one by name.
+</div>
+
+<h2>Best practice</h2>
+<ul>
+<li>Reach for query syntax when a query has several chained operations (filter, then sort, then shape) and would read as a long, nested chain in method syntax — the SQL-like structure keeps each step on its own line, in the same order SQL developers already read intuitively. Reach for method syntax for a single operation (one <code>.Where(...)</code>, one <code>.Any(...)</code>) — query syntax's <code>From</code>/<code>Select</code> ceremony isn't worth it for one clause.</li>
+<li>Keep lambda bodies short — a lambda that needs several statements and local variables to express its logic is a sign the logic deserves a real, named method instead, referenced with <code>AddressOf</code>.</li>
+</ul>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">In <code>From item In [Enum].GetValues(...) Where CType(item, Integer) &lt;&gt; EnumWalletType.Consignment ...</code>, what is <code>item</code>?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="item isn't declared with Dim anywhere — the From clause itself is what introduces it, the same way a lambda parameter is introduced by the lambda's own parameter list." >A pre-existing variable declared earlier with Dim.</li>
+<li data-correct="true" data-explain="From item In ... declares item as a range variable, scoped to the query — it plays exactly the same role a lambda's parameter (like the item in .Any(Function(item) ...)) plays in method syntax; query syntax just spells it differently." >A range variable, introduced by the From clause itself, that represents each element from the source collection in turn — the query-syntax equivalent of a lambda's parameter.</li>
+<li data-correct="false" data-explain="Where doesn't declare variables — it only filters using a variable already introduced by From (or a prior clause).">A variable created by the Where clause.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>Select New With {.Text = item.ToString(), .Value = CType(item, Integer)}</code> — what kind of object does each result actually have?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="No class named anything like this is declared anywhere in the code — that's precisely the point of an anonymous type." >An instance of a real, named class the query looked up automatically.</li>
+<li data-correct="true" data-explain="New With {...} constructs an anonymous type — the compiler generates a type with exactly the listed properties (Text, Value) on the fly, with no name in source code, for cases where the shape only needs to exist briefly and locally." >An anonymous type — a compiler-generated type with exactly the properties listed (Text, Value), never given a name in the source code.</li>
+<li data-correct="false" data-explain="A Dictionary would need explicit key/value construction syntax, not New With {} — that syntax is specifically for anonymous types.">A Dictionary(Of String, Integer).</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You've completed VB.NET Fundamentals</span>
+That's the full track: syntax and Option Strict, control flow, procedures, classes and inheritance, events and WithEvents/Handles, structured error handling, type conversion, Shared members and Enums, and LINQ query syntax with lambdas and anonymous types — all grounded in real BackOffice code. Next: <strong>C#/.NET Deep Dives</strong> — theory that applies to both languages equally, since they share one runtime.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/search.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

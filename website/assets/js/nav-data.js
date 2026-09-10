@@ -47,6 +47,8 @@ const SITE_TRACKS = [
       { id: "vb-04-classes-inheritance", title: "4. Classes, Inheritance & Interfaces", file: "vb-04-classes-inheritance.html", tags: ["Property", "constructor", "New", "Me", "MustInherit", "MustOverride", "abstract class", "RestrictedPage", "Overridable", "NotOverridable", "Overrides", "Shadows", "Implements", "interface implementation", "ITerminalService"] },
       { id: "vb-05-events-webforms", title: "5. Events: WithEvents, Handles & AddHandler", file: "vb-05-events-webforms.html", tags: ["WithEvents", "Handles", "Handles Me.Load", "AddHandler", "RemoveHandler", "AddressOf", "event wiring", "designer.vb", "dynamic control", "shared event", "My.Application.Shutdown"] },
       { id: "vb-06-error-handling", title: "6. Error Handling: Try/Catch, When & Is Nothing", file: "vb-06-error-handling.html", tags: ["Try Catch Finally", "Catch When", "exception filter", "Is Nothing", "IsNot Nothing", "reference equality", "= Nothing", "On Error Goto", "DivideByZeroException", "swallowed exception"] },
+      { id: "vb-07-type-conversion-shared", title: "7. Type Conversion: CType, DirectCast & TryCast", file: "vb-07-type-conversion-shared.html", tags: ["CType", "DirectCast", "TryCast", "explicit conversion", "InvalidCastException", "Shared", "static", "Enum", "Public Enum", "factory method", "boxed value type", "widening conversion", "narrowing conversion"] },
+      { id: "vb-08-linq-lambdas", title: "8. LINQ: Query Syntax, Lambdas & Anonymous Types", file: "vb-08-linq-lambdas.html", tags: ["lambda expression", "Function(x)", "query syntax", "From In Where Order By Select", "method syntax", "range variable", "anonymous type", "New With", "LINQ", "delegate"] },
     ],
   },
   {
