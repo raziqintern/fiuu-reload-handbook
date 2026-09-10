@@ -15,9 +15,9 @@
 
 <span class="track-label">VB.NET Fundamentals</span>
 <h1>Type Conversion: CType, DirectCast &amp; TryCast</h1>
-<p class="lede">VB.NET has three named ways to explicitly convert a value's type, each with a different answer to "what relationship must the two types have, and what happens if the conversion turns out to be impossible at runtime." All three are real, live patterns in BackOffice — this lesson also covers <code>Shared</code> members and <code>Enum</code>, since the real example that grounds all three casts needs both.</p>
+<p class="lede">VB.NET has three named ways to explicitly convert a value's type, each with a different answer to "what relationship must the two types have, and what happens if the conversion turns out to be impossible at runtime." This lesson also covers <code>Shared</code> members and <code>Enum</code>, since the real example that grounds the casts needs both.</p>
 
-<h2>The concept: explicit conversion is one idea, three mechanisms</h2>
+<h2>Explicit conversion is one idea, three mechanisms</h2>
 <p>Converting a value from one type to another is a single concept — but VB.NET gives you three keywords for it because they make fundamentally different trade-offs between generality, speed, and failure behavior. Per Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/operators/ctype-operator">CType Operator reference</a>, which documents all three side by side:</p>
 <table>
 <tr><th>Keyword</th><th>Data types</th><th>Argument relationship required</th><th>Run-time failure</th></tr>
@@ -27,13 +27,23 @@
 </table>
 <p><code>DirectCast</code> and <code>TryCast</code> both require a real inheritance/interface relationship between the two types — they're for "I have an <code>Object</code> that I know is actually a <code>GridView</code>," not for genuinely converting data. <code>CType</code> is the general-purpose one: it also handles conversions where no such relationship exists at all — <code>String</code> to <code>Integer</code>, a boxed enum value to its underlying <code>Integer</code>, or a class's own user-defined conversion operator.</p>
 
-<h2>CType — real usage: converting a boxed enum value, where DirectCast can't help</h2>
-<p>Enums first: a real one, declared with <code>Public Enum</code> — this is VB's syntax for a named set of integer constants, same concept as C#'s <code>enum</code>:</p>
+<h2>Enums: a named set of integer constants</h2>
+<p>Before the casts, the type they're most often converting: <code>Public Enum</code> is VB's syntax for a small, closed set of named values backed by an integer — the same concept as C#'s <code>enum</code>. Two real ones:</p>
 <pre class="code-block">Public Enum ErrorType
     ' ... named integer constants
+End Enum
+
+Public Enum EnumWalletType
+    ' ... named integer constants, one of which is Consignment
 End Enum</pre>
-<p class="code-cite">Module: BackOffice/Web · File: error.aspx.vb:6</p>
-<p>Now the real <code>CType</code> example — populating a dropdown from every value of an enum, filtered and sorted:</p>
+<p class="code-cite">Module: BackOffice/Web · Files: error.aspx.vb:6; Fiuu.CEPP.Models.Interfaces (EnumWalletType)</p>
+<div class="callout tip">
+<span class="callout-title">The question this naturally raises: why not just use plain integers?</span>
+Nothing stops you from writing <code>If walletType = 3 Then</code> instead of <code>If walletType = EnumWalletType.Consignment Then</code> — both compile, both run identically. The difference shows up when someone else reads the code six months later: <code>3</code> carries no information at all without cross-referencing the enum's definition, while <code>EnumWalletType.Consignment</code> is self-explanatory at the call site. The enum also gives the compiler something to check — assign an out-of-range plain integer and nothing complains; assign a name that isn't a member of the enum and it won't compile at all.
+</div>
+
+<h2>CType: the general-purpose conversion, real usage on a boxed enum value</h2>
+<p>Populating a dropdown from every value of an enum, filtered and sorted — real, production code:</p>
 <pre class="code-block">ddlWalletType.DataSource = (From item In [Enum].GetValues(GetType(EnumWalletType))
                             Where CType(item, Integer) &lt;&gt; EnumWalletType.Consignment
                             Order By CType(item, Integer)
@@ -43,14 +53,45 @@ End Enum</pre>
 <span class="callout-title">Why CType, specifically, is the only one of the three that works here</span>
 <code>[Enum].GetValues(...)</code> returns a plain array of <code>Object</code> — each element is a boxed enum value with no compile-time type information beyond "some object." Converting a boxed value type's contents to <code>Integer</code> is not an inheritance/interface relationship (an <code>Integer</code> doesn't "inherit from" the enum, or vice versa) — it's exactly the kind of conversion <code>DirectCast</code> and <code>TryCast</code> are structurally unable to perform, per the table above. <code>CType</code> is the only one of the three general enough to do it.
 </div>
+<p>The same keyword behaves three different ways depending on what you feed it — worth seeing side by side, since this is exactly where "creative or unexpected" results show up in practice:</p>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">' 1. A defined, safe conversion at compile time AND runtime — succeeds.
+Dim a As Integer = CType("123", Integer)
 
-<h2>DirectCast — real usage: you already know the real type, you just need the compiler to agree</h2>
-<pre class="code-block">gvCommissions.DataSource = DirectCast(ViewState("CommDetails"), DataTable)
-Dim HeaderGrid As GridView = DirectCast(sender, GridView)</pre>
-<p class="code-cite">Module: BackOffice/Web · Files: WebForms/Commission.aspx.vb:63; WebForms/CommissionEdit.aspx.vb:537</p>
-<p>Both real: <code>ViewState(...)</code> and an event handler's <code>sender</code> parameter are typed <code>Object</code> by the framework itself — but the code storing/raising them is the same code reading them back, so the actual runtime type is already known with certainty. <code>DirectCast</code> is the right tool exactly here: a real inheritance relationship exists (<code>DataTable</code> and <code>GridView</code> both ultimately derive from <code>Object</code>, and the value genuinely <em>is</em> one), and per the table above it's faster than <code>CType</code> for exactly this <code>Object</code>-to-concrete-type shape, since it skips the general-purpose conversion machinery entirely.</p>
+' 2. A defined conversion at compile time, but this particular value can't
+'    actually make the trip at runtime — compiles fine, throws when it runs.
+Dim b As Integer = CType("not a number", Integer)
 
-<h2>TryCast — real usage: the cast might genuinely fail, and that's an expected outcome, not a bug</h2>
+' 3. No conversion is defined between these two types at all —
+'    this line does not compile, ever, regardless of the value.
+' Dim c As Date = CType("hello", Boolean)</pre>
+<pre class="tryit-output-src">Case 1: a = 123
+Case 2: throws System.FormatException at runtime (CType hands off to the standard
+        numeric parser here, which is where this particular exception comes from)
+Case 3: compile-time error — commented out above because it would stop the
+        whole file from building</pre>
+</div>
+<div class="callout warn">
+<span class="callout-title">The wrong way to read the comparison table above</span>
+It's tempting to read "CType: any data types" as "CType never fails" — case 2 above is exactly why that's wrong. <code>CType</code> being more general than <code>DirectCast</code>/<code>TryCast</code> means it accepts a wider range of type <em>pairs</em>, not that every individual <em>value</em> passed through it will actually convert successfully. Always ask "is this specific value valid for the target type," not just "is this pair of types allowed."
+</div>
+
+<h2>DirectCast: casting where the framework already forces a type down to Object</h2>
+<p>Two real lines, from two different real problems, both solved by <code>DirectCast</code>:</p>
+<pre class="code-block">gvCommissions.DataSource = DirectCast(ViewState("CommDetails"), DataTable)</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/Commission.aspx.vb:63</p>
+<pre class="code-block">Dim HeaderGrid As GridView = DirectCast(sender, GridView)</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/CommissionEdit.aspx.vb:537</p>
+<div class="callout real">
+<span class="callout-title">The context that makes both of these necessary, not just stylistic</span>
+<code>ViewState</code> is ASP.NET's built-in per-page dictionary for surviving a postback (see <a href="../lessons/dbg-06-postback-state-trap.html">Debugging Reload → The Postback State Trap</a> for what postbacks actually are) — its indexer is typed <code>As Object</code> no matter what you actually stored in it, because <code>ViewState</code> has to be able to hold anything, for any page, ever written. Earlier in this same method, something did <code>ViewState("CommDetails") = someDataTable</code> — but the compiler has no memory of that by the time this line reads it back; all it sees is <code>Object</code>. Likewise, a WebForms event handler's <code>sender</code> parameter is <em>always</em> typed <code>Object</code> in the framework's own method signature — <code>Sub GridView1_RowCommand(sender As Object, e As GridViewCommandEventArgs)</code> — regardless of which specific control actually raised the event. <code>DirectCast</code> is correct in both cases because the surrounding code is the reason the real type is known with certainty: the same class wrote the <code>ViewState</code> value it's now reading, and the same markup file wired up the specific control that's now arriving as <code>sender</code>.
+</div>
+<div class="callout warn">
+<span class="callout-title">The wrong scenario: when that certainty is misplaced</span>
+Imagine <code>CommissionEdit.aspx.vb</code> had two different grids on the page, and a shared row-command handler wired to both by mistake — one a <code>GridView</code>, the other a <code>DataList</code>. <code>DirectCast(sender, GridView)</code> works perfectly for clicks from the first grid, and throws <code>InvalidCastException</code> the instant a click comes from the second — because a <code>DataList</code> genuinely doesn't inherit from or implement <code>GridView</code>, no matter how confident the code was. This is the real risk <code>DirectCast</code> carries: it doesn't verify your certainty, it just fails loudly the moment that certainty turns out to be wrong. That's a deliberate trade-off (see Best practice below), not a flaw — but it's the concrete failure mode to have in mind before reaching for it.
+</div>
+
+<h2>TryCast: when "the cast might fail" is the normal case, not a bug</h2>
 <pre class="code-block">Dim tpSAPSetting As TabPanel = TryCast(FindControlRecursive(SAPSettingTabId), AjaxControlToolkit.TabPanel)
 Dim tpSAPDealerSetting As TabPanel = TryCast(FindControlRecursive(SAPDealerSettingTabId), AjaxControlToolkit.TabPanel)
 
@@ -58,21 +99,63 @@ If tpSAPSetting IsNot Nothing OrElse ...</pre>
 <p class="code-cite">Module: BackOffice/Web · File: WebForms/RestrictedPage.vb:72-75</p>
 <div class="callout tip">
 <span class="callout-title">The idiomatic pairing: TryCast + IsNot Nothing</span>
-<code>FindControlRecursive</code> might legitimately not find a control with that ID on every page — that's not a bug to guard against defensively, it's an expected outcome depending on which page is being rendered. <code>TryCast</code> returning <code>Nothing</code> on failure (instead of <code>DirectCast</code>'s exception) turns "did this control exist" into a normal <a href="vb-06-error-handling.html"><code>IsNot Nothing</code> check</a>, not exception handling — exactly the real pattern here, checked immediately on the next line.
+<code>FindControlRecursive</code> might legitimately not find a control with that ID on every page — that's not a bug to guard against defensively, it's an expected outcome depending on which page is being rendered (not every page has a SAP settings tab). <code>TryCast</code> returning <code>Nothing</code> on failure (instead of <code>DirectCast</code>'s exception) turns "did this control exist" into a normal <a href="vb-06-error-handling.html"><code>IsNot Nothing</code> check</a>, not exception handling — exactly the real pattern here, checked immediately on the next line.
+</div>
+<div class="callout warn">
+<span class="callout-title">The wrong scenario: TryCast has a restriction CType and DirectCast don't</span>
+Per the comparison table, <code>TryCast</code> works on <strong>reference types only</strong>. This does not compile, for any value:
+<pre class="code-block">' Integer is a value type — TryCast flatly refuses this at compile time,
+' regardless of what n actually is.
+Dim result = TryCast(n, Integer)</pre>
+Reaching for <code>TryCast</code> out of habit on a value-type target is the one scenario where you're forced back to <code>CType</code> even when "might fail gracefully" is exactly the behavior you wanted — there's no <code>Nothing</code>-returning safe cast for value types in VB.NET; <code>Integer?</code> (see <a href="theory-03-nullable-types.html">C#/.NET Deep Dives → Nullable Types</a>, which applies to VB.NET equally) combined with a manual check is the nearest equivalent.
 </div>
 
-<h2>Shared — one copy, not one per instance</h2>
-<p>Per Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/modifiers/shared">Shared reference</a>: <em>"Sharing a member of a class or structure makes it available to every instance, rather than non-shared, where each instance keeps its own copy."</em> This is VB's name for what C# calls <code>static</code> — the same concept, different keyword. Real, verified factory-method usage, overloaded by parameter type:</p>
+<h2>Shared: one copy for the whole class, not one per instance</h2>
+<p>Per Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/modifiers/shared">Shared reference</a>: <em>"Sharing a member of a class or structure makes it available to every instance, rather than non-shared, where each instance keeps its own copy."</em> This is VB's name for what C# calls <code>static</code> — same concept, different keyword.</p>
+<div class="callout tip">
+<span class="callout-title">The question this naturally raises: what would it look like if it weren't shared?</span>
+Side by side — same class, same field, only the <code>Shared</code> keyword differs, run against two separate instances:
+</div>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Class NonSharedCounter
+    Public Count As Integer = 0
+End Class
+
+Class SharedCounter
+    Public Shared Count As Integer = 0
+End Class
+
+Dim a As New NonSharedCounter()
+Dim b As New NonSharedCounter()
+a.Count += 1
+a.Count += 1
+b.Count += 1
+Console.WriteLine("Non-shared — a: " & a.Count & ", b: " & b.Count)
+
+SharedCounter.Count += 1
+SharedCounter.Count += 1
+SharedCounter.Count += 1
+Console.WriteLine("Shared — every reference sees: " & SharedCounter.Count)</pre>
+<pre class="tryit-output-src">Non-shared — a: 2, b: 1
+Shared — every reference sees: 3</pre>
+</div>
+<p>Two separate <code>NonSharedCounter</code> objects each keep their own independent <code>Count</code> — incrementing <code>a</code> twice never touches <code>b</code>. There's only ever <em>one</em> <code>SharedCounter.Count</code> in memory, no matter how many (or how few — even zero) instances of the class exist; every increment, from anywhere, changes the same value everyone else sees.</p>
+<p>Now the real, verified pattern — a <code>Shared</code> factory method, overloaded by parameter type:</p>
 <pre class="code-block">Public Shared Function Parse(stock As IStockInfo) As IAllocationStock
 Public Shared Function Parse(stock As IAllocationOrderItem) As IAllocationStock</pre>
 <p class="code-cite">Module: BackOffice/Web · File: Models/AllocationStock.vb:33,50</p>
 <p>Called as <code>AllocationStock.Parse(someStock)</code> — through the <em>class</em> name, never through an instance variable — which is exactly the point: no <code>AllocationStock</code> object needs to exist yet to call the method that builds one. This pairs naturally with the <code>Overloads</code> keyword from <a href="vb-03-procedures.html">Procedures</a>: both <code>Parse</code> overloads must (and do) declare <code>Overloads</code> since they share a name in the same class.</p>
+<div class="callout warn">
+<span class="callout-title">The wrong scenario: making a factory method non-Shared by mistake</span>
+If <code>Parse</code> were declared without <code>Shared</code>, every call site would first need an existing <code>AllocationStock</code> instance to call it on — <code>someExistingStock.Parse(newStock)</code> — which makes no sense for a method whose entire job is <em>producing</em> the instance in the first place. This is the concrete tell for "this should probably be <code>Shared</code>": if calling the method requires an instance you don't actually have yet (or one that's logically unrelated to what the method returns), the method belongs on the class, not on an instance.
+</div>
 
 <h2>Best practice</h2>
 <ul>
-<li>Default to <code>DirectCast</code> when you already know the real type with certainty (a <code>sender</code> parameter you wired up yourself, a <code>ViewState</code> value you stored yourself) — it fails loudly and fast if that certainty was ever wrong.</li>
-<li>Reach for <code>TryCast</code> the moment "the cast might legitimately not succeed" is a real, expected possibility — pair it with <code>IsNot Nothing</code>, never leave the result unchecked.</li>
-<li>Reach for <code>CType</code> only when neither of the above applies — genuinely converting between unrelated types (a boxed enum to its underlying integer, a string to a number) where no inheritance relationship could ever exist.</li>
+<li><strong>Default to <code>DirectCast</code></strong> when you already know the real type with certainty (a <code>sender</code> parameter you wired up yourself, a <code>ViewState</code> value you stored yourself) — it fails loudly and fast if that certainty was ever wrong, which is exactly what you want for a bug you'd rather catch than silently limp past.</li>
+<li><strong>Reach for <code>TryCast</code></strong> the moment "the cast might legitimately not succeed" is a real, expected possibility on a reference type — pair it with <code>IsNot Nothing</code>, never leave the result unchecked.</li>
+<li><strong>Reach for <code>CType</code> only when neither of the above applies</strong> — genuinely converting between unrelated types (a boxed enum to its underlying integer, a string to a number) where no inheritance relationship could ever exist — and still expect it to be able to throw at runtime on a bad individual value, even though the type pair itself is allowed.</li>
+<li><strong>Reach for <code>Shared</code></strong> when a value or method is conceptually about the whole class, not any one instance of it — a factory method with no natural "existing instance" to call it on, or a value every instance should agree on.</li>
 </ul>
 
 <h2>Check your understanding</h2>
@@ -91,6 +174,15 @@ Public Shared Function Parse(stock As IAllocationOrderItem) As IAllocationStock<
 <li data-correct="false" data-explain="Throwing on failure is DirectCast's behavior, not TryCast's — that's precisely the distinction between the two." >An InvalidCastException is thrown immediately.</li>
 <li data-correct="true" data-explain="TryCast returns Nothing on a failed conversion instead of throwing — which is exactly why the real code checks tpSAPSetting IsNot Nothing on the very next line, treating a missing control as a normal, expected outcome." >tpSAPSetting is set to Nothing — no exception — which is exactly what the following IsNot Nothing check is there to handle.</li>
 <li data-correct="false" data-explain="TryCast never silently returns a default/empty instance of the target type on failure — its documented failure behavior is specifically returning Nothing.">tpSAPSetting is set to a new, empty TabPanel automatically.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Two separate instances of a class each read and increment a <code>Shared</code> field. What does each instance see?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Independent copies per instance is exactly the non-shared behavior — the whole point of Shared is that this does NOT happen." >Each instance has its own independent copy, unaffected by the other's changes.</li>
+<li data-correct="true" data-explain="A Shared field is stored once, at the class level, regardless of how many instances exist. Both instances read and write the exact same storage location — an increment through either one is visible to both immediately." >Both instances see the same single value — an increment through either instance changes what the other one reads next.</li>
+<li data-correct="false" data-explain="Shared fields don't require any instance to exist at all, let alone the first one specifically — they belong to the class itself." >Only the first instance created can actually access the field; later instances get an error.</li>
 </ul>
 </div>
 
