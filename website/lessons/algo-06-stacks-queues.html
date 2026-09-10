@@ -114,7 +114,7 @@ False
 
 <div class="callout real">
 <span class="callout-title">This is a real structure in reload, not a toy example</span>
-Recall <code>SecretsHelper.SecretsDictionary</code> from <a href="conv-06-config-secrets.html">Fiuu C# Conventions → Configuration &amp; Secrets</a> — a <code>Dictionary&lt;string, string&gt;</code> caching resolved AWS Secrets Manager values by label, precisely so a repeated lookup by key doesn't need to re-fetch or re-scan. The Game module's logging (<a href="conv-04-logging.html">Logging</a>) uses a <code>ConcurrentDictionary&lt;string, Logger&gt;</code> the same way — one logger per country code, looked up by key instead of searched for. The examples above use exactly these real types.
+Later, in <a href="conv-06-config-secrets.html">Fiuu Code Conventions → Configuration &amp; Secrets</a>, you'll meet <code>SecretsHelper.SecretsDictionary</code> — a <code>Dictionary&lt;string, string&gt;</code> caching resolved AWS Secrets Manager values by label, precisely so a repeated lookup by key doesn't need to re-fetch or re-scan. The Game module's logging (<a href="conv-04-logging.html">Logging</a>) uses a <code>ConcurrentDictionary&lt;string, Logger&gt;</code> the same way — one logger per country code, looked up by key instead of searched for. The examples above use exactly these real types.
 </div>
 
 <h2>Best practice</h2>

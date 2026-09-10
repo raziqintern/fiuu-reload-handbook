@@ -37,6 +37,10 @@ Public Function ToCSVDisplayString(ByVal text As String) As String
     Return text.Replace(",", " ").Replace("""", " ")
 End Function</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/CEPP/BackOffice/Web/Helpers/BackofficeExtension.vb</p>
+<div class="callout tip">
+<span class="callout-title">The concept: extension methods — adding a method to a type you don't own</span>
+<code>ToCSVDisplayString</code> isn't a member of <code>String</code> — it's a regular function, marked with the <code>&lt;Extension()&gt;</code> attribute, that VB.NET lets you call using instance-method syntax (<code>dealerName.ToCSVDisplayString()</code>) as if <code>String</code> itself had grown a new method. Per <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/procedures/extension-methods">Microsoft's Extension Methods reference</a>: <em>"Extension methods make it possible to write a method that can be called as if it were an instance method of the existing type."</em> The rule that makes it work: it must be a <code>Sub</code> or <code>Function</code> declared inside a <code>Module</code> (never a <code>Class</code>), marked <code>&lt;Extension()&gt;</code>, and its <em>first parameter</em> specifies which type it extends — that first parameter is what gets bound to whatever value the method is called on. This is exactly how <code>BackofficeExtension.vb</code>'s helper works: its first parameter, <code>text As String</code>, is why it can be called as <code>dealerName.ToCSVDisplayString()</code> on any string value.
+</div>
 <p>This is called on <code>DealerName</code>/<code>Dealer.Name</code> and similar free-text fields in <code>ReportVoucherRedemption.aspx.vb</code>, <code>RestorifyCarbonCalculatorList.aspx.vb</code>, <code>RestorifyCarbonCalculatorPaymentList.aspx.vb</code>, and more. It avoids the alignment problem — but only by permanently replacing every comma and every double quote in the source value with a space, silently and unrecoverably, on every single export.</p>
 
 <div class="callout real">
@@ -75,6 +79,11 @@ End Function</pre>
 <li data-correct="false" data-explain="This isn't primarily a performance concern — string replacement is cheap. The real problem is data correctness, not speed." >It's too slow to run on every row of a large export.</li>
 <li data-correct="false" data-explain="It's a real, already-shipped function used on several BackOffice reports — the problem isn't that it's untested, it's that its underlying approach is the wrong one.">It doesn't compile, since VB.NET extension methods can't return strings.</li>
 </ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You've completed Fiuu Code Conventions</span>
+That's every convention this track set out to cover: naming, layering, error handling, logging, data access, configuration, comment style, and — real VB.NET code, not just C# — CSV export escaping. All reverse-engineered from real code, not written down anywhere official until this handbook. Next: <strong>Debugging Reload</strong>, which builds directly on everything you just learned.
 </div>
 
 <div id="lesson-footer"></div>

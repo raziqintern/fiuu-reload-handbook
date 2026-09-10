@@ -82,6 +82,11 @@ console.log(terminal.merchantName); // this line throws</pre>
 </ul>
 </div>
 
+<div class="callout tip">
+<span class="callout-title">A quick gloss: jQuery, in case you haven't met it yet</span>
+jQuery is a JavaScript library, not a separate language — <code>$(document).ready(fn)</code> just means "run <code>fn</code> once the page's HTML has finished loading," and <code>.change()</code>/<code>.click()</code> attach event handlers the same way <code>addEventListener</code> does, just with jQuery's own shorthand method names. It's still plain JavaScript underneath; this codebase's older WebForms pages use it alongside vanilla JS. You don't need to learn jQuery itself for this quiz — everything that matters is the same "code after a thrown error doesn't run" behavior from earlier on this page.
+</div>
+
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">A jQuery <code>$(document).ready(...)</code> block calls a helper function on its very first line, then binds three more event handlers afterward in that same block. The helper function was never actually defined anywhere in the file — a paste error dropped it. What happens to the three event handlers?</p>
 <ul class="quiz-options">
@@ -93,7 +98,7 @@ console.log(terminal.merchantName); // this line throws</pre>
 
 <div class="callout tip">
 <span class="callout-title">You now know enough JavaScript</span>
-That's the JS track. Next: Algorithms &amp; Data Structures — language-agnostic thinking tools that apply to everything after this — before C#, the language reload's actual class-library is written in.
+That's the JS track. Next: <strong>C# Fundamentals</strong> — the language reload's actual class-library is written in — then <strong>VB.NET Fundamentals</strong>. Algorithms &amp; Data Structures comes after both, once there's real C#/VB.NET syntax to show the examples in.
 </div>
 
 <div id="lesson-footer"></div>

@@ -36,6 +36,11 @@ public override string Message
 }</pre>
 <p class="code-cite">reload/class-library/Reloads/TNG/Exceptions/TNGEODException.cs:14-33</p>
 
+<div class="callout tip">
+<span class="callout-title">The concept this code got wrong: constructor chaining</span>
+Per Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/instance-constructors">Instance constructors reference</a>, its own canonical example is a one-line parameterless constructor delegating into a two-parameter one: <code>public Coords() : this(0, 0) { }</code>. C# lets one constructor call another constructor on the <em>same</em> object, via <code>: this(...)</code> right after the parameter list — this runs the other constructor's body first, on <code>this</code> object, before the current constructor's own body runs. It exists specifically so multiple constructors can share initialization logic instead of duplicating it: <code>public Foo() : this(someDefault) { }</code> makes the parameterless constructor delegate straight into the parameterized one. The broken code above looks like it's attempting this, but <code>new TNGEODException(...)</code> (no <code>: this</code>) is a completely different thing: it constructs a brand-new, second, unrelated object and immediately throws it away — the original <code>this</code> object being constructed is never touched by it at all.
+</div>
+
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">What's actually wrong with the parameterless constructor above?</p>
 <ul class="quiz-options">

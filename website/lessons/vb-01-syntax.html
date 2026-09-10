@@ -38,31 +38,68 @@ An earlier version of this track claimed reload has "zero VB.NET" because <code>
 </div>
 <p>Practically: in most BackOffice hand-written code, a narrowing conversion that would be a compile error in a stricter project instead either converts silently (sometimes losing data, e.g. a <code>Double</code> truncated into an <code>Integer</code>) or throws an <code>InvalidCastException</code> at runtime — the compiler won't catch it for you ahead of time. This is a real, structural reason bugs here can surface as a runtime type error instead of a build failure; treat any type conversion in this codebase as unverified by the compiler unless you've confirmed the specific file opts into <code>Option Strict On</code>.</p>
 
-<h2>Declaring several variables in one Dim — and the VB6 trap this fixed</h2>
-<p>VB.NET lets one <code>Dim</code> declare several variables of the <em>same</em> type, comma-separated, with the type named once at the end. Real, verified examples:</p>
+<h2>The concept: a declaration statement can name a shared type once for a whole list</h2>
+<p><code>Dim</code>'s grammar isn't "one name, one type" — it's a comma-separated <em>list</em> of variable names, where a name that has no <code>As</code> clause of its own inherits the type of the next one that does. This is a general grammar rule about how the statement parses, not a special case for any particular type.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/dim-statement">Dim Statement reference</a>, "Declaring multiple variables" section, states it exactly: <em>"You can specify different data types for different variables by using a separate <code>As</code> clause for each variable you declare. Each variable takes the data type specified in the first <code>As</code> clause encountered after its <code>variablename</code> part."</code></em> Its own example: <code>Dim a, b, c As Single, x, y As Double, i As Integer</code> — <code>a</code>, <code>b</code>, <code>c</code> are all <code>Single</code>; <code>x</code>, <code>y</code> are both <code>Double</code>.
+</div>
+<p>Real, verified applications of this same rule in BackOffice — each is one instance of the identical grammar, just with a different shared type:</p>
 <pre class="code-block">Dim iQty, iMaxQty As Integer
 Dim dtStartDate, dtEndDate As DateTime
 Dim sM2MServiceProviderColumnName, sM2MSIMCardSerialNoColumnName As String</pre>
-<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/OfflineSalesCreate.aspx.vb:147; ReportStockMovementSummary.aspx.vb:193; M2MSIMCardSerialNoBulkCreate.aspx.vb:67</p>
-<p>In <code>Dim iQty, iMaxQty As Integer</code>, <strong>both</strong> <code>iQty</code> and <code>iMaxQty</code> are <code>Integer</code> — the type after the last name in the list applies to every name before it that doesn't have its own <code>As</code> clause. You can also mix explicit types in one statement: <code>Dim x As Long, i, j, k As Integer, s As String</code> declares <code>x</code> as <code>Long</code>, <code>i</code>/<code>j</code>/<code>k</code> as <code>Integer</code>, and <code>s</code> as <code>String</code> — each name takes the type from the next <code>As</code> clause that actually follows it.</p>
+<p class="code-cite">Module: BackOffice/Web · Files: WebForms/OfflineSalesCreate.aspx.vb:147; WebForms/ReportStockMovementSummary.aspx.vb:193; WebForms/M2MSIMCardSerialNoBulkCreate.aspx.vb:67</p>
+
 <div class="callout warn">
-<span class="callout-title">Why this is worth knowing explicitly: VB6 did something dangerously different</span>
-In classic VB6, <code>Dim x, y As Integer</code> only gave <code>Integer</code> to <code>y</code> — <code>x</code> silently became a <code>Variant</code> (VB6's untyped catch-all), with no error and no warning. VB.NET fixed this specific footgun: every name in a comma-separated <code>Dim</code> gets a real, specific type, never an untyped fallback. If you ever read genuinely old VB6 code (not VB.NET) side-by-side with this codebase, don't assume the same line means the same thing in both — this is one of the sharpest behavioral differences between the two, not just a syntax tweak.
+<span class="callout-title">Why this specific rule is worth knowing explicitly: VB6 parsed the same-looking line differently</span>
+In classic VB6, <code>Dim x, y As Integer</code> only gave <code>Integer</code> to <code>y</code> — <code>x</code> silently became a <code>Variant</code> (VB6's untyped catch-all), with no error and no warning. VB.NET's grammar (quoted above) is what actually changed: every name now resolves to a real type via the next <code>As</code> clause, with no untyped fallback in the language at all. If you ever read genuinely old VB6 code (not VB.NET) side-by-side with this codebase, don't assume identical syntax means identical behavior — the grammar itself was revised, not just cleaned up stylistically.
 </div>
 
-<h2>String vs. String() — a single value vs. an array of them</h2>
-<p><code>String</code> and <code>String()</code> are as different as <code>int</code> and <code>int[]</code> in C# — one is a single value, the other is a collection of them — but VB.NET's syntax makes the two easy to visually confuse, especially since the array parentheses can legally go on <em>either</em> the type or the variable name. Real, verified examples, both forms:</p>
+<h2>The concept: an array is a type of its own, built from any other type</h2>
+<p>This is the root idea everything below is one instance of — it's not a <code>String</code>-specific quirk, it's a general rule of the VB.NET type system: <strong>for any type <code>T</code>, <code>T()</code> is a distinct type meaning "an array of <code>T</code>."</strong> This applies uniformly — <code>Integer</code> and <code>Integer()</code>, <code>Boolean</code> and <code>Boolean()</code>, <code>String</code> and <code>String()</code>, even a class you wrote yourself and an array of it, are all the same relationship, every time. A single <code>T</code> holds one value; <code>T()</code> holds a reference to an ordered, indexed collection of them. Learn this once as a general mechanism and you already know how it works for every type in the language — there's nothing extra to learn per-type.</p>
+
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/dim-statement">Dim Statement reference</a> states the rule directly: <em>"To specify that a variable holds an array, follow its <code>variablename</code> immediately with parentheses."</em> The dedicated <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/arrays/">Arrays in Visual Basic</a> guide confirms the two declaration positions are fully interchangeable and shows the same construction applied across multiple types — <code>Integer</code>, <code>Double</code>, <code>String</code> — not as separate features, but as the one array mechanism used consistently.
+</div>
+
+<p>Two syntax positions, same meaning — VB.NET lets the array parentheses sit on either the type or the variable name:</p>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">' Both lines declare exactly the same thing: a variable holding
+' a reference to an array of Integer. Try changing the type in
+' both places — Boolean, String, Double — the rule doesn't change.
+Dim scoresA As Integer() = {10, 20, 30}
+Dim scoresB() As Integer = {10, 20, 30}
+
+Console.WriteLine(scoresA(1))
+Console.WriteLine(scoresB(1))
+Console.WriteLine(scoresA.GetType().Name)</pre>
+<pre class="tryit-output-src">20
+20
+Int32[]</pre>
+</div>
+
+<h3>The same rule, three different types — proving it's general, not String-specific</h3>
+<pre class="code-block">Dim flags As Boolean() = {True, False, True}      ' an array of Boolean
+Dim prices As Double() = {9.9, 12.5, 3.0}          ' an array of Double
+Dim names As String() = {"Alice", "Bob"}           ' an array of String</pre>
+<p>Nothing about the array mechanism changes between these three lines except which type comes before the <code>()</code> — that's the whole concept. Once you've internalized this, a method returning <code>Boolean()</code> or <code>Double()</code> is exactly as unsurprising as one returning <code>String()</code>.</p>
+
+<div class="callout real">
+<span class="callout-title">Real application of this rule in BackOffice</span>
 <pre class="code-block">Dim names As String() = [Enum].GetNames(GetType(Fiuu.CEPP.Models.Interfaces.EnumVoidSupportType))
 Dim arrEmail As String() = Split(sEmailAddress, ";")</pre>
-<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/DealerCreate.aspx.vb:512,553</p>
-<p><code>Dim names As String()</code> and the equivalent-but-less-common <code>Dim names() As String</code> declare exactly the same thing: a variable holding a <em>reference to an array of strings</em>, not a string itself. <code>Split(...)</code> and <code>[Enum].GetNames(...)</code> both return <code>String()</code>, never a plain <code>String</code> — this is precisely why splitting a semicolon-delimited email list needs an array-typed variable to catch the result.</p>
-<div class="callout tip">
-<span class="callout-title">What actually goes wrong when this gets confused</span>
-Passing a <code>String()</code> where a method expects a plain <code>String</code> (or vice versa) is a real, catchable type mismatch — with <code>Option Strict On</code>, it's a compile error. With <code>Option Strict Off</code> (BackOffice's actual project default — see above), some of these mismatches can still compile and fail at runtime instead, or silently call <code>.ToString()</code> on the array (producing the unhelpful literal text <code>System.String[]</code> rather than the joined values you probably meant). If you ever see the literal string <code>"System.String[]"</code> show up somewhere in output or a log, that's the exact signature of a <code>String()</code> being stringified instead of joined — reach for <code>String.Join(", ", arr)</code> when you actually want the array's contents as one string.
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/DealerCreate.aspx.vb:512,553</p>
+<code>[Enum].GetNames(...)</code> and <code>Split(...)</code> both return <code>String()</code> because "a list of strings" is what they fundamentally produce — an enum's names, or a delimited value's pieces. This is the general array rule appearing in real code, not a special case of it.
 </div>
 
-<h2>Array bounds: the number in the parentheses is the highest index, not the size</h2>
-<p>A classic, still-relevant VB.NET trap: <code>Dim scores(9) As Integer</code> does not create an array of size <code>9</code> — the number in parentheses is the array's <strong>upper bound</strong> (the highest valid index), and VB.NET arrays are always zero-based. <code>Dim scores(9) As Integer</code> creates <strong>10</strong> elements, indices <code>0</code> through <code>9</code> inclusive:</p>
+<div class="callout warn">
+<span class="callout-title">What actually breaks when the distinction is missed</span>
+Passing a <code>String()</code> where a method expects a plain <code>String</code> (or vice versa) is a real type mismatch — with <code>Option Strict On</code>, the compiler catches it. With <code>Option Strict Off</code> (BackOffice's real project default — see above), some of these mismatches compile anyway and either fail at runtime or silently call <code>.ToString()</code> on the array, producing the literal text <code>System.String[]</code> instead of the values you meant. Seeing <code>"System.String[]"</code> anywhere in output or a log is the exact signature of this — reach for <code>String.Join(", ", arr)</code> when you want the array's contents rendered as one string, for any array type, not just <code>String()</code>.
+</div>
+
+<h2>A sub-concept of arrays: sizing — the number in parentheses is the highest index, not the count</h2>
+<p>This only applies once you already have an array type (above) — it's about <em>how big</em> one is, not whether something is an array at all. Per the same <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/arrays/">official Arrays guide</a>: <em>"When you use Visual Basic syntax to define the size of an array, you specify its highest index, not the total number of elements."</em> VB.NET arrays are always zero-based, so <code>Dim scores(9) As Integer</code> creates <strong>10</strong> elements, indices <code>0</code> through <code>9</code> inclusive — this is documented, consistent behavior, not an edge case:</p>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">Dim scores(9) As Integer
 Console.WriteLine("Length: " & scores.Length)
@@ -70,10 +107,14 @@ Console.WriteLine("Last valid index: " & scores.GetUpperBound(0))</pre>
 <pre class="tryit-output-src">Length: 10
 Last valid index: 9</pre>
 </div>
-<p>Reading this correctly matters most when a size looks deliberately chosen — <code>Dim buffer(255) As Byte</code> is a 256-byte buffer, not 255, and getting that off by one when translating a size requirement from a spec or from C# (where <code>new byte[256]</code> unambiguously means 256) is a real, easy mistake in either direction.</p>
+<p>This generalizes exactly like the type rule above: <code>Dim buffer(255) As Byte</code> is a 256-byte buffer regardless of which type sits before it — the "N means N+1 elements" rule is a property of VB.NET array declaration syntax itself, not of <code>Byte</code> specifically. Getting this off by one when translating a size from a spec, or from C# (where <code>new byte[256]</code> unambiguously means 256), is a real, easy mistake in either direction.</p>
 
 <h2>Static — a local variable that survives past the end of its own method</h2>
-<p>A local variable normally stops existing the moment its method returns. <code>Static</code> is VB.NET's keyword for the opposite: a local variable declared <code>Static</code> keeps its value between separate calls to the same method, for the lifetime of the containing object (or, inside a <code>Shared</code> method, for the lifetime of the whole application — there's only one copy, not one per object instance):</p>
+<p>This is a different axis from <em>where a variable is visible</em> (scope) — it's about <em>how long it continues to exist</em> (lifetime). By default in VB.NET, as in nearly every language, a local variable's lifetime is tied to its scope: it's created on entering its procedure and destroyed on leaving it. <code>Static</code> decouples the two — the variable's scope stays local to the one procedure, but its lifetime extends far beyond a single call.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/dim-statement">Dim Statement reference</a>, "Static local variable lifetime" section, specifies exactly how long: for a procedure in a plain module, the variable is "initialized the first time the procedure is called" and "stops existing when your program stops execution." For a non-<code>Shared</code> procedure in a class, it lives only as long as that specific object instance does.
+</div>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">Sub TrackCalls()
     Static callCount As Integer = 0

@@ -116,7 +116,7 @@ Nested loop, n=100: 10000</pre>
 
 <div class="callout warn">
 <span class="callout-title">Why a new engineer should care about this at all</span>
-Code that's "obviously correct" and works fine in testing with 10 rows can become a real production incident at 100,000 rows if it's secretly O(n²). Recall <a href="dbg-02-pitfalls.html">Debugging Reload → Known Patterns &amp; Pitfalls</a>'s review comment about unbounded report queries — that's this exact concern from a different angle: an operation whose cost scales with data size needs a limit, or its growth rate needs to be genuinely linear, not quadratic.
+Code that's "obviously correct" and works fine in testing with 10 rows can become a real production incident at 100,000 rows if it's secretly O(n²). Later, in <a href="dbg-02-pitfalls.html">Debugging Reload → Known Patterns &amp; Pitfalls</a>, you'll see a real reviewer comment about exactly this concern from a different angle — unbounded report queries: an operation whose cost scales with data size needs a limit, or its growth rate needs to be genuinely linear, not quadratic.
 </div>
 
 <h2>Check your understanding</h2>

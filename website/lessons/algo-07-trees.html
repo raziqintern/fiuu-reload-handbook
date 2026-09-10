@@ -22,7 +22,7 @@
 
 <div class="callout real">
 <span class="callout-title">This isn't a contrived example — it's CEPP's actual structure</span>
-Recall from the Architecture Map track: <code>CEPP</code>, reload's master-data hub, organizes its org hierarchy as <strong>Company → Dealers → Stores → Terminals</strong> — a real, four-level tree. Every terminal belongs to exactly one store, every store to exactly one dealer, every dealer to exactly one company. That's a tree, not a graph, specifically because there's no scenario where a terminal belongs to two stores at once.
+You'll trace this in full later, in the Architecture Map track: <code>CEPP</code>, reload's master-data hub, organizes its org hierarchy as <strong>Company → Dealers → Stores → Terminals</strong> — a real, four-level tree. Every terminal belongs to exactly one store, every store to exactly one dealer, every dealer to exactly one company. That's a tree, not a graph, specifically because there's no scenario where a terminal belongs to two stores at once.
 </div>
 
 <h2>Example: counting terminals with a recursive traversal</h2>

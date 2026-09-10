@@ -15,7 +15,7 @@
 
 <span class="track-label">C#/.NET Deep Dives</span>
 <h1>Garbage Collection &amp; Object Lifetime</h1>
-<p class="lede">This is the lesson that explains the real reload incident referenced twice already on this site — and the one piece of theory that would have caught it before it shipped.</p>
+<p class="lede">This is the lesson that explains the real reload incident (issue #2592) introduced in the previous lesson — and the one piece of theory that would have caught it before it shipped. It gets a full worked-example treatment later in Debugging Reload.</p>
 
 <h2>What the GC actually does</h2>
 <p>In C/C++, you manually free memory you allocated. In .NET, the <strong>garbage collector</strong> does this for you: it periodically scans for heap objects nothing references anymore, and reclaims their memory automatically. This is why you don't call <code>delete</code> or <code>free()</code> in C#/VB.NET — and it's genuinely one of the biggest sources of memory bugs in unmanaged languages that .NET mostly eliminates.</p>
@@ -27,8 +27,8 @@ The garbage collector manages <em>managed</em> memory — objects on the .NET he
 
 <h2>This is exactly what caused a real reload incident</h2>
 <div class="callout real">
-<span class="callout-title">Issue #2592, revisited</span>
-Every TNG reload transaction opened a <code>.pfx</code> certificate file and RSA-decrypted a session key from scratch, and never released the handle (<a href="dbg-04-trace-a-bug.html">Debugging Reload → Worked Example: Tracing a Bug</a>). This is precisely the gap above: the GC would eventually collect the .NET wrapper object around that handle, but the underlying OS-level crypto handle isn't guaranteed to be released promptly just because the GC ran — and Windows serializes access to crypto key material, so as unreleased handles piled up, every new lookup got slower. The garbage collector was never going to save this code — it wasn't designed to.
+<span class="callout-title">Issue #2592, one more time</span>
+Every TNG reload transaction opened a <code>.pfx</code> certificate file and RSA-decrypted a session key from scratch, and never released the handle — the full investigation is a worked example later in <a href="dbg-04-trace-a-bug.html">Debugging Reload → Worked Example: Tracing a Bug</a>. This is precisely the gap above: the GC would eventually collect the .NET wrapper object around that handle, but the underlying OS-level crypto handle isn't guaranteed to be released promptly just because the GC ran — and Windows serializes access to crypto key material, so as unreleased handles piled up, every new lookup got slower. The garbage collector was never going to save this code — it wasn't designed to.
 </div>
 
 <h2>The real fix: IDisposable and using</h2>

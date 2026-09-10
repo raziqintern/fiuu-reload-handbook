@@ -21,8 +21,8 @@
 <p>A graph is a set of nodes and a set of edges connecting them. Unlike a tree, a node can be reached from more than one other node, and cycles are allowed. That "more than one path leads here" property is exactly what makes graph traversal need one extra piece of bookkeeping a tree traversal doesn't: a record of what's already been visited.</p>
 
 <div class="callout real">
-<span class="callout-title">You've already seen this exact shape</span>
-The reload_db data-flow diagram from <a href="arch-02-reload-db.html">Architecture Map → reload_db</a> — <code>TRANSACTION</code> routing to <code>TNG</code>/<code>BILL_PAYMENT</code>/<code>TICKET</code>, all of which reference <code>CEPP</code> — is a real graph, not a tree. <code>CEPP</code> is reachable from every one of those databases; it has multiple incoming edges. That's precisely the shape a tree structurally cannot represent.
+<span class="callout-title">You'll see this exact shape again later</span>
+The reload_db data-flow diagram in <a href="arch-02-reload-db.html">Architecture Map → reload_db</a> — <code>TRANSACTION</code> routing to <code>TNG</code>/<code>BILL_PAYMENT</code>/<code>TICKET</code>, all of which reference <code>CEPP</code> — is a real graph, not a tree. <code>CEPP</code> is reachable from every one of those databases; it has multiple incoming edges. That's precisely the shape a tree structurally cannot represent.
 </div>
 
 <h2>Example: Breadth-First Search (BFS)</h2>

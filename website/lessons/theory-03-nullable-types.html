@@ -84,7 +84,7 @@ End Sub</pre>
 
 <div class="callout real">
 <span class="callout-title">This is a real, named pattern in reload's own conventions</span>
-Recall <code>Conversion.DBNullToNullableDecimal</code> from <a href="conv-05-data-access.html">Fiuu C# Conventions → Data Access</a> — part of the shared helper family that maps a database <code>NULL</code> into exactly this kind of nullable value type, precisely so "the column was NULL" and "the column was zero" stay distinguishable once the data reaches C#.
+You'll meet this pattern again by name later, in <a href="conv-05-data-access.html">Fiuu Code Conventions → Data Access</a>: a real shared helper, <code>Conversion.DBNullToNullableDecimal</code>, maps a database <code>NULL</code> into exactly this kind of nullable value type, precisely so "the column was NULL" and "the column was zero" stay distinguishable once the data reaches C#.
 </div>
 
 <h2>Best practice</h2>

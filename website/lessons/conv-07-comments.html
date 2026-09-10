@@ -54,11 +54,6 @@ break; // TODO: might not be correct. Was : Exit For</pre>
 <p class="code-cite">reload_db/MAINT/TRANSACTION/StoredProcedure/Celcom.Transactions_Ins.sql:9-14</p>
 <p>This is almost certainly a leftover from SSMS's built-in "Create Stored Procedure" template — kept as a convention rather than deliberately designed. The <code>Description:</code> line is frequently just the table name restated, not an actual description of behavior or pre/post-conditions.</p>
 
-<div class="callout tip">
-<span class="callout-title">You've completed Fiuu C# Conventions</span>
-That's every convention this track set out to cover: naming, layering, error handling, logging, data access, configuration, and comment style — all reverse-engineered from real code, not written down anywhere official until this handbook. Next: <strong>Debugging Reload</strong>, which builds directly on everything you just learned.
-</div>
-
 <h2>Best practice — for working inside this specific codebase</h2>
 <ul>
 <li>Write an inline comment when you're encoding a genuine business rule or a non-obvious magic number — not to restate what well-named code already says. That's the actual pattern this codebase's better comments follow, even though most methods have none at all.</li>

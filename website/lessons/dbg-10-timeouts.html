@@ -49,6 +49,10 @@ catch (SqlException ex) when (ex.Number == -2)
 }</pre>
 <pre class="tryit-output-src">Confirmed: timed out as expected</pre>
 </div>
+<div class="callout tip">
+<span class="callout-title">The concept: exception filters — catching by condition, not just by type</span>
+<code>catch (SqlException ex) when (ex.Number == -2)</code> only enters that block if the exception is a <code>SqlException</code> <em>and</em> the <code>when</code> condition is true — if the condition is false, C# keeps looking for another matching <code>catch</code> (or the exception propagates) instead of entering this block with a false condition. This is C#'s equivalent of the <code>Catch ... When</code> filter already covered for VB.NET in <a href="vb-06-error-handling.html">VB.NET Fundamentals → Error Handling</a> — same concept, same reason to reach for it (multiple catches for the same exception type, each needing different handling depending on a detail of the exception), just C# syntax instead of VB's.
+</div>
 <p>Three cases prove the whole mechanism cheaply: <code>CommandTimeout</code> shorter than the delay (throws, <code>Number == -2</code>), longer than the delay (succeeds, takes exactly as long as the delay), and <code>CommandTimeout = 0</code> against the same delay (succeeds, waits the full delay, no exception regardless of how long it took). None of this needs the real stored procedure, the real database, or the real payment flow — proving the mechanism in isolation first, then trusting it applies to the real call site, is faster and removes noise (auth, business logic branches, real network latency) that has nothing to do with the question being tested.</p>
 
 <div class="callout warn">

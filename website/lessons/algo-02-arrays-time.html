@@ -51,7 +51,7 @@ Console.WriteLine(Array.IndexOf(amounts, 90))</pre>
 
 <div class="callout real">
 <span class="callout-title">This is exactly what LINQ's FirstOrDefault does</span>
-Recall <a href="cs-06-collections-linq.html">C# Fundamentals → Collections &amp; LINQ</a> and the real reviewer comment in <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a> about <code>lstStocks.FirstOrDefault(...)</code>. <code>FirstOrDefault</code> with a condition is a linear, O(n) scan through the list — for a small in-memory list this is irrelevant, but it's worth knowing it's not a magic O(1) lookup the way indexing is.
+Recall <a href="cs-06-collections-linq.html">C# Fundamentals → Collections &amp; LINQ</a>. Later, <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a> shows a real reviewer comment about exactly this on <code>lstStocks.FirstOrDefault(...)</code>: <code>FirstOrDefault</code> with a condition is a linear, O(n) scan through the list — for a small in-memory list this is irrelevant, but it's worth knowing it's not a magic O(1) lookup the way indexing is.
 </div>
 
 <h2>Best practice</h2>

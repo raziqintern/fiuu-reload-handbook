@@ -33,7 +33,7 @@
 
 <div class="callout real">
 <span class="callout-title">reload's class-library does something genuinely unusual here</span>
-Per <a href="arch-01-reload.html">Architecture Map → reload: Topology &amp; Modules</a>: several modules (<code>Fiuu.CEPP</code>, <code>Fiuu.Logging</code>, <code>Fiuu.Lookup</code>, <code>Fiuu.MasterFramework</code>, <code>Fiuu.Provider</code>, and others) exist as <strong>prebuilt <code>.dll</code> files committed directly into the <code>class-library</code> repository's root</strong> — not built from source inside that repo. Their actual source lives elsewhere (in <code>Components/*</code>, a different part of the monorepo). How the built DLL gets from that source into <code>class-library</code>'s root was never confirmed in this handbook's research — no visible build-and-publish pipeline step does it automatically, so the most likely explanation is a developer building locally and manually committing the resulting DLL.
+Traced in full later in <a href="arch-01-reload.html">Architecture Map → reload: Topology &amp; Modules</a> — the short version: several modules (<code>Fiuu.CEPP</code>, <code>Fiuu.Logging</code>, <code>Fiuu.Lookup</code>, <code>Fiuu.MasterFramework</code>, <code>Fiuu.Provider</code>, and others) exist as <strong>prebuilt <code>.dll</code> files committed directly into the <code>class-library</code> repository's root</strong> — not built from source inside that repo. Their actual source lives elsewhere (in <code>Components/*</code>, a different part of the monorepo). How the built DLL gets from that source into <code>class-library</code>'s root was never confirmed in this handbook's research — no visible build-and-publish pipeline step does it automatically, so the most likely explanation is a developer building locally and manually committing the resulting DLL.
 </div>
 
 <div class="callout warn">
@@ -56,7 +56,7 @@ If you're debugging behavior that seems to come from <code>Fiuu.Logging.dll</cod
 
 <div class="callout tip">
 <span class="callout-title">You've completed C#/.NET Deep Dives</span>
-That's value vs. reference types, boxing, nullable types, async/await, threading and locks, generics, garbage collection, and assemblies — the theory that explains <em>why</em> C#/.NET code behaves the way it does, including the real reload incident this track kept coming back to. Next: <strong>SQL &amp; reload_db</strong>.
+That's value vs. reference types, boxing, nullable types, async/await, threading and locks, generics, garbage collection, and assemblies — the theory that explains <em>why</em> C#/.NET code behaves the way it does, including the real reload incident this track kept coming back to. Next: <strong>Algorithms &amp; Data Structures</strong> — now that generics and the rest of C#/VB.NET are in place, its examples will actually make sense.
 </div>
 
 <div id="lesson-footer"></div>

@@ -26,21 +26,6 @@ const SITE_TRACKS = [
     ],
   },
   {
-    id: "algo",
-    title: "Algorithms & Data Structures",
-    lessons: [
-      { id: "algo-01-big-o", title: "1. Big O Notation", file: "algo-01-big-o.html", tags: ["Big O measures growth, not stopwatch time", "Example: see it happen — O(n) vs. O(n²)", "The classes you'll actually encounter", "Why a new engineer should care about this at all", "FirstOrDefault(predicate)", "O(1)", "O(log n)", "O(n log n)", "O(n)"] },
-      { id: "algo-02-arrays-time", title: "2. Arrays & Time Complexity", file: "algo-02-arrays-time.html", tags: ["Example: index access is O(1) — search is O(n)", "This is exactly what LINQ's FirstOrDefault does", "Array.IndexOf", "FirstOrDefault", "SecretsHelper.SecretsDictionary", "amounts(3)", "lstStocks.FirstOrDefault(...)"] },
-      { id: "algo-03-searching", title: "3. Searching: Linear vs. Binary", file: "algo-03-searching.html", tags: ["Linear search: check everything, in order", "Example: count the actual steps each one takes", "The one non-negotiable requirement", "Array.IndexOf", "FirstOrDefault()"] },
-      { id: "algo-04-sorting", title: "4. Sorting: How & Why", file: "algo-04-sorting.html", tags: ["How a sort actually works: bubble sort, the simplest one", "Watch it happen", "A trap this codebase's languages don't have", "Why you'll never actually use bubble sort in real code", "OrderBy(...)", "sort()", "Array.Sort", "IComparable", "List&lt;T&gt;.Sort"] },
-      { id: "algo-05-recursion", title: "5. Recursion", file: "algo-05-recursion.html", tags: ["Example: every correct recursive function has two parts", "Watch the call stack itself", "What happens without a base case", "The fix: the same function, with a base case", "Don't run this — shown for illustration only", "A practical habit", "Factorial", "Factorial(1)", "Factorial(3)", "Factorial(4)", "Factorial(5)", "StackOverflowException", "catch", "try"] },
-      { id: "algo-06-stacks-queues", title: "6. Stacks, Queues & Dictionaries", file: "algo-06-stacks-queues.html", tags: ["Example: Stack&lt;T&gt; — Last In, First Out (LIFO)", "Example: Queue&lt;T&gt; — First In, First Out (FIFO)", "Why the distinction matters", "This is a real structure in reload, not a toy example", "Two more structures to go", "List&lt;T&gt;", "Queue&lt;T&gt;", "SecretsHelper.SecretsDictionary", "Stack&lt;T&gt;", "System.Collections.Generic"] },
-      { id: "algo-07-trees", title: "7. Trees & Hierarchies", file: "algo-07-trees.html", tags: ["The shape: one root, no cycles, each node has children", "Example: counting terminals with a recursive traversal", "A special case you've already met: the binary search tree", "CEPP", "Queue&lt;T&gt;", "Stack&lt;T&gt;"] },
-      { id: "algo-08-graphs", title: "8. Graphs & Traversal", file: "algo-08-graphs.html", tags: ["The shape: nodes and edges, paths can converge", "Example: Breadth-First Search (BFS)", "BFS vs. DFS", "You've already seen this exact shape", "One more structure to go", "BILL_PAYMENT", "CEPP", "TICKET", "TNG", "TRANSACTION", "visited"] },
-      { id: "algo-09-heaps", title: "9. Heaps & Priority Queues", file: "algo-09-heaps.html", tags: ["The problem a plain queue can't solve", "Example: .NET's real, built-in PriorityQueue", "What's actually inside a priority queue: a heap", "You don't need to hand-write one", "You've completed Algorithms &amp; Data Structures", "&lt;=", "Dequeue()", "IComparer&lt;T&gt;", "List&lt;T&gt;", "PriorityQueue", "Queue&lt;T&gt;", "TXN-1001"] },
-    ],
-  },
-  {
     id: "csharp",
     title: "C# Fundamentals",
     lessons: [
@@ -76,6 +61,21 @@ const SITE_TRACKS = [
       { id: "theory-06-generics-collections", title: "6. Generics & Collections Internals", file: "theory-06-generics-collections.html", tags: ["The problem generics solve", "Example: one generic method, two types, no duplication", "A hash table needs a good, stable key", "&lt;T&gt;", "CompareTo", "Dictionary", "Equals()", "GetHashCode()", "HashSet&lt;T&gt;", "IntList", "List&lt;T&gt;", "Max&lt;T&gt;", "Queue&lt;T&gt;", "Stack&lt;T&gt;", "StringList", "TerminalList", "a.CompareTo(b)", "int"] },
       { id: "theory-07-garbage-collection", title: "7. Garbage Collection & Object Lifetime", file: "theory-07-garbage-collection.html", tags: ["What the GC actually does", "This is exactly what caused a real reload incident", "The real fix: IDisposable and using", "The critical limit: the GC only knows about .NET memory", "Issue #2592, revisited", "pfx", "Dispose()", "IDisposable", "Using", "delete", "free()"] },
       { id: "theory-08-assemblies-dlls", title: "8. Assemblies & DLLs", file: "theory-08-assemblies-dlls.html", tags: ["The vocabulary", "Two ways to consume someone else's code", "reload's class-library does something genuinely unusual here", "You've completed C#/.NET Deep Dives", "&lt;ProjectReference&gt;", "&lt;Reference&gt;", "csproj", "dll", "exe", "Components/Logging", "Fiuu.CEPP", "Fiuu.Logging", "Fiuu.Logging.dll", "Fiuu.Lookup", "Fiuu.MasterFramework", "Fiuu.Provider", "HintPath", "class-library"] },
+    ],
+  },
+  {
+    id: "algo",
+    title: "Algorithms & Data Structures",
+    lessons: [
+      { id: "algo-01-big-o", title: "1. Big O Notation", file: "algo-01-big-o.html", tags: ["Big O measures growth, not stopwatch time", "Example: see it happen — O(n) vs. O(n²)", "The classes you'll actually encounter", "Why a new engineer should care about this at all", "FirstOrDefault(predicate)", "O(1)", "O(log n)", "O(n log n)", "O(n)"] },
+      { id: "algo-02-arrays-time", title: "2. Arrays & Time Complexity", file: "algo-02-arrays-time.html", tags: ["Example: index access is O(1) — search is O(n)", "This is exactly what LINQ's FirstOrDefault does", "Array.IndexOf", "FirstOrDefault", "SecretsHelper.SecretsDictionary", "amounts(3)", "lstStocks.FirstOrDefault(...)"] },
+      { id: "algo-03-searching", title: "3. Searching: Linear vs. Binary", file: "algo-03-searching.html", tags: ["Linear search: check everything, in order", "Example: count the actual steps each one takes", "The one non-negotiable requirement", "Array.IndexOf", "FirstOrDefault()"] },
+      { id: "algo-04-sorting", title: "4. Sorting: How & Why", file: "algo-04-sorting.html", tags: ["How a sort actually works: bubble sort, the simplest one", "Watch it happen", "A trap this codebase's languages don't have", "Why you'll never actually use bubble sort in real code", "OrderBy(...)", "sort()", "Array.Sort", "IComparable", "List&lt;T&gt;.Sort"] },
+      { id: "algo-05-recursion", title: "5. Recursion", file: "algo-05-recursion.html", tags: ["Example: every correct recursive function has two parts", "Watch the call stack itself", "What happens without a base case", "The fix: the same function, with a base case", "Don't run this — shown for illustration only", "A practical habit", "Factorial", "Factorial(1)", "Factorial(3)", "Factorial(4)", "Factorial(5)", "StackOverflowException", "catch", "try"] },
+      { id: "algo-06-stacks-queues", title: "6. Stacks, Queues & Dictionaries", file: "algo-06-stacks-queues.html", tags: ["Example: Stack&lt;T&gt; — Last In, First Out (LIFO)", "Example: Queue&lt;T&gt; — First In, First Out (FIFO)", "Why the distinction matters", "This is a real structure in reload, not a toy example", "Two more structures to go", "List&lt;T&gt;", "Queue&lt;T&gt;", "SecretsHelper.SecretsDictionary", "Stack&lt;T&gt;", "System.Collections.Generic"] },
+      { id: "algo-07-trees", title: "7. Trees & Hierarchies", file: "algo-07-trees.html", tags: ["The shape: one root, no cycles, each node has children", "Example: counting terminals with a recursive traversal", "A special case you've already met: the binary search tree", "CEPP", "Queue&lt;T&gt;", "Stack&lt;T&gt;"] },
+      { id: "algo-08-graphs", title: "8. Graphs & Traversal", file: "algo-08-graphs.html", tags: ["The shape: nodes and edges, paths can converge", "Example: Breadth-First Search (BFS)", "BFS vs. DFS", "You've already seen this exact shape", "One more structure to go", "BILL_PAYMENT", "CEPP", "TICKET", "TNG", "TRANSACTION", "visited"] },
+      { id: "algo-09-heaps", title: "9. Heaps & Priority Queues", file: "algo-09-heaps.html", tags: ["The problem a plain queue can't solve", "Example: .NET's real, built-in PriorityQueue", "What's actually inside a priority queue: a heap", "You don't need to hand-write one", "You've completed Algorithms &amp; Data Structures", "&lt;=", "Dequeue()", "IComparer&lt;T&gt;", "List&lt;T&gt;", "PriorityQueue", "Queue&lt;T&gt;", "TXN-1001"] },
     ],
   },
   {
