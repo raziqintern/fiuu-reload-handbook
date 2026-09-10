@@ -104,7 +104,7 @@
         </div>
         <div class="tryit-output">
           <span class="tryit-output-label">Result</span>
-          <div class="tryit-frame-wrap"><iframe class="tryit-preview" title="preview"></iframe></div>
+          <div class="tryit-frame-wrap"><iframe class="tryit-preview" title="preview" sandbox="allow-scripts"></iframe></div>
         </div>
       </div>
     `;
@@ -131,8 +131,11 @@
     `;
     const input = block.querySelector(".tryit-input");
     const out = block.querySelector(".tryit-console");
+    const runBtn = block.querySelector(".tryit-run");
 
     function run() {
+      if (runBtn.disabled) return; // a previous run is still in flight
+      runBtn.disabled = true;
       out.innerHTML = "";
       const uid = "f" + Math.random().toString(36).slice(2);
       const iframe = document.createElement("iframe");
@@ -150,11 +153,22 @@
         } catch (e) {
           send("error", [e && e.message ? e.message : String(e)]);
         }
+        send("done", []);
       <\/script></body></html>`;
 
       let gotAny = false;
+      let finished = false;
+      function finish() {
+        if (finished) return;
+        finished = true;
+        window.removeEventListener("message", handler);
+        iframe.remove();
+        if (!gotAny) out.innerHTML = '<span class="muted">(no console output)</span>';
+        runBtn.disabled = false;
+      }
       function handler(ev) {
         if (!ev.data || ev.data.uid !== uid) return;
+        if (ev.data.type === "done") { finish(); return; }
         gotAny = true;
         const line = document.createElement("div");
         if (ev.data.type === "error") line.className = "err";
@@ -163,14 +177,12 @@
       }
       window.addEventListener("message", handler);
       document.body.appendChild(iframe);
-      setTimeout(() => {
-        window.removeEventListener("message", handler);
-        iframe.remove();
-        if (!gotAny) out.innerHTML = '<span class="muted">(no console output)</span>';
-      }, 800);
+      // Safety net only — the "done" message above is what normally ends
+      // this, so slow/loaded environments don't need to race a fixed delay.
+      setTimeout(finish, 3000);
     }
 
-    block.querySelector(".tryit-run").addEventListener("click", run);
+    runBtn.addEventListener("click", run);
     block.querySelector(".tryit-reset").addEventListener("click", () => { input.value = code; });
     block.querySelector(".tryit-copy").addEventListener("click", () => navigator.clipboard.writeText(input.value));
   }
