@@ -63,6 +63,14 @@ public class StockAdjustment
 <pre class="tryit-output-src">Unhandled exception. System.NullReferenceException: Object reference not set to an instance of an object.</pre>
 </div>
 
+<h2>Judging whether a fix actually matches the reported bug</h2>
+<p>Reviewing an existing MR against its linked issue is a different skill from spotting a style nit — it's about whether the diff really addresses the <em>exact</em> reported symptom, not a paraphrase of the MR title. Working from MR !1906 against issue #2461 (a search filter throwing <code>Object variable or With block variable not set</code> for every status except "All"/"Approved"): the fix wraps the crashing line in a null guard, which directly neutralizes the exact <code>file:line</code> from the issue's own stack trace — a small diff, and a <strong>complete</strong> fix, not a partial one just because it's short.</p>
+<div class="callout tip">
+<span class="callout-title">Three verdicts, not two</span>
+Grade a fix against its issue as <strong>fixes it completely</strong> (the exact reported symptom and repro steps now behave correctly), <strong>partially fixes it</strong> (say precisely what part of the original symptom still reproduces), or <strong>doesn't address it</strong> (say what the diff does instead). Don't default to "partial" just because the diff is small, or because reading the surrounding code turned up other things worth mentioning — a narrowly-scoped diff that exactly matches the reported symptom is a complete fix; confusing "narrowly scoped" with "incomplete" is the most common way to get this judgment wrong.
+</div>
+<p>Reading the file around the diff (not just the diff hunk) in that same review turned up a second call site with the identical unguarded pattern, reachable only via grid paging/sorting — not the button the issue reported. That's a real finding, but it belongs in its own section, explicitly labelled as <strong>out of scope for this MR</strong> and worth its own ticket — not folded into the verdict on whether this MR fixes issue #2461, and not treated as evidence the MR is deficient.</p>
+
 <h2>Best practice</h2>
 <p>Run through the checklist in §C of the real source doc — datatype prefixes, blank-line discipline, no double-logging, merchant timestamp, keyed log lines, bounded queries, dead-code removal, right-fit models on the human side; type-widening call sites, null checks, stale parameter references, duplicated logic, renamed-variable leftovers, secrets handling on the automated side — as a self-review pass <em>before</em> requesting review, not after receiving comments about them.</p>
 

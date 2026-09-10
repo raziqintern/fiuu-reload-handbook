@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worked Example: Designing Test Cases for a Fix · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="dbg-11-testing-a-fix">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Debugging Reload</span>
+<h1>Worked Example: Designing Test Cases for a Fix</h1>
+<p class="lede">A real merged change, <span class="term" data-term="merge-request">MR</span> !1916, added a new Bill Payment biller category (<code>MBMBKW38</code>) and loosened one validation rule while tightening another. Tracing the actual diff into a test matrix — rather than just clicking the happy path once — is what this lesson walks through.</p>
+
+<h2>Step 1 — read the diff for what it actually changed, not what the title implies</h2>
+<p>The MR's title suggests "add a new biller." The real diff was narrower and more interesting: four files, all validation-only, no new UI. Two independent rule changes, on the same field-length check:</p>
+<pre class="code-block">If String.IsNullOrEmpty(sAccountNo) OrElse ((sBillerCode = "MBMBK" AndAlso (sAccountNo.Length < 6 OrElse sAccountNo.Length > 10)) OrElse
+    (sBillerCode = "MBMBCT" AndAlso (sAccountNo.Length < 12 OrElse sAccountNo.Length > 14)) OrElse
+    (sBillerCode = "MBMBSG" AndAlso (sAccountNo.Length < 11 OrElse sAccountNo.Length > 14)) OrElse
+    (sBillerCode = "MBMBBR" AndAlso Not sAccountNo.Length = 13)) Then</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/Reloads/TerminalServer/Console/MessageHandlers/MessageHandlerBase.vb:205-208</p>
+<p>The <code>MBMBKW38</code> length branch that used to sit in this same <code>OrElse</code> chain (a fixed 12-character check on the payer identifier) is gone — <strong>removed</strong>, not added to. In its place, a new, unrelated rule appeared on a completely different field, in a different handler:</p>
+<pre class="code-block">ElseIf terminalContentProduct.ServiceProviderProductCode = "MBMBKW38" AndAlso Not System.Text.RegularExpressions.Regex.IsMatch(If(sAccountNo2, String.Empty), "^\d{9}$") Then
+    task.Status = TerminalMessageManager.EnumMessageStatus.InvalidReferenceNo</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/Reloads/TerminalServer/Console/MessageHandlers/BillPaymentAccountInquiryHandler.vb:1385-1386</p>
+<p>So the real change is: <strong>PayerIc (<code>account1</code>) is now unrestricted in length/format</strong> for this one biller, and <strong>IncomeCode (<code>account2</code>) must now be exactly 9 digits</strong> — a brand-new constraint that didn't exist before. Two different fields, two opposite directions (one loosened, one tightened). A test plan built from the title alone ("added MBMBKW38") would miss that this is really two separate rule changes layered on one category.</p>
+
+<h2>Step 2 — build a boundary-value matrix, not one happy-path click</h2>
+<p>For the loosened field (PayerIc), the useful test isn't "does a valid value still work" — it's proving the <em>old</em> boundary still works <strong>and</strong> values outside it now also work, without silently breaking the field's other guard (empty-string rejection, untouched by this diff):</p>
+<table>
+<tr><th>#</th><th>account1 (PayerIc)</th><th>Why this value</th><th>Expected</th></tr>
+<tr><td>1a</td><td><code>A1234567</code> (8-char, passport-style)</td><td>The case the MR exists for</td><td>Accepted</td></tr>
+<tr><td>1b</td><td><code>123456789012</code> (12 digits — the old fixed length)</td><td>Confirms the previously-required length <em>still</em> works, not just that other lengths now also do</td><td>Accepted</td></tr>
+<tr><td>1c</td><td><code>1234567</code> (7 digits, below the old boundary)</td><td>Would have failed before; must pass now</td><td>Accepted</td></tr>
+<tr><td>1d</td><td><em>(empty string)</em></td><td>A separate, untouched guard earlier in the same handler — must still reject</td><td><strong>Rejected</strong> (InvalidAccountNo)</td></tr>
+</table>
+<p>Row 1d is the one that isn't in the MR's own checklist, but it's exactly the kind of case worth adding: it proves the fix didn't accidentally widen scope beyond what it intended to change. "Length restriction removed" and "no restriction at all, including on emptiness" are different claims, and only one of them is what the diff actually does.</p>
+
+<div class="callout tip">
+<span class="callout-title">The same discipline for the tightened field</span>
+For IncomeCode (now must be exactly 9 digits), the matrix is the mirror image: 9 digits exactly (accept), 8 and 10 digits (reject, one on each side of the boundary — confirms it's not an off-by-one), and confirm the rejection maps to the right response code (<code>InvalidReferenceNo</code>), not a generic failure that would also fire for an unrelated reason.
+</div>
+
+<h2>Step 3 — a real result that looked like a new bug, but wasn't</h2>
+<p>Running the regression pass across the four <em>existing</em> MBMB categories (MBMBK, MBMBCT, MBMBSG, MBMBBR — all untouched by this diff, but now sitting one line away from the removed branch), one test came back <code>Invalid Amount</code> for MBMBCT. The instinct is to assume the account-number diff broke something nearby. It didn't — checking the biller's own config turned up a completely unrelated, pre-existing constraint:</p>
+<pre class="code-block">"PaymentMaxAmt": 10000.00, "PaymentMinAmt": 1.00</pre>
+<p>The test's <code>amount</code> value happened to sit outside MBMBCT's own configured min/max range — a constraint that has nothing to do with the account-number length logic under test. <strong>Before attributing a failing test to the change you're verifying, confirm the failure is actually reachable from that change</strong> — a different, pre-existing rule triggering on an incidentally-chosen input value is not a regression.</p>
+
+<h2>Step 4 — regression coverage means proving what <em>didn't</em> move, not just what did</h2>
+<p>The MR's own checklist asked for one happy-path Initiate→Confirm per existing biller. Since the actual code edit was a deletion from a shared <code>OrElse</code> chain — the exact kind of edit where an off-by-one can silently shift a neighboring condition — the more complete version adds one boundary-<em>failure</em> case per untouched biller too (one length just past each biller's own valid range), specifically because this fix's edit sat directly inside the chain those checks live in. A checklist written before the diff exists can't know which lines are riskiest to touch; reading the actual diff can.</p>
+
+<h2>Best practice</h2>
+<p>When testing a fix: read the diff first to find every field it actually touches (not just the one the title mentions), build a boundary-value matrix around each one (the old boundary, just inside the new range, just outside it, and any separate untouched guard nearby), and before blaming a failing result on your change, check whether a completely different, pre-existing rule could explain it. Regression tests on sibling code paths should specifically target whatever's structurally closest to the actual edit (a shared conditional chain, a shared helper) — that's where an unintended side effect is most likely to hide.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A test of an untouched, sibling biller category returns "Invalid Amount" during regression testing of an account-number validation fix. What's the right next step?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This was checked in the real incident — the account-number diff never touched amount validation. Assuming a connection first would have wasted time chasing the wrong code." >Assume the account-number fix has a side effect on amount validation and start reading that diff again.</li>
+<li data-correct="true" data-explain="In the real case, MBMBCT had its own configured PaymentMinAmt/PaymentMaxAmt, unrelated to the account-number diff under test — the test's chosen amount value happened to fall outside that unrelated range." >Check whether the failing field (amount) is actually governed by the code you changed, or by a separate, pre-existing rule the test happened to trip.</li>
+<li data-correct="false" data-explain="Silently adjusting the input to avoid a failure without first understanding why it failed risks hiding a real problem — and did happen to be safe here, but only because the cause was checked first, not assumed." >Just change the test's amount value and move on without investigating why it failed.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why does testing the exact old boundary value (12 digits, the previously-required length) still matter, once a length restriction has been removed entirely?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Removing a restriction should mean the old valid values still work, plus new ones that used to be rejected. Testing only new, previously-invalid lengths wouldn't catch a fix that accidentally broke the exact case that used to be the only valid one." >It confirms the fix genuinely widened the accepted range instead of accidentally shifting or breaking the one value that used to be the only valid one.</li>
+<li data-correct="false" data-explain="The old boundary isn't a formatting/display concern here — the check under test is a length validation gate, not output formatting." >It's only relevant for display formatting, not validation logic.</li>
+<li data-correct="false" data-explain="This isn't about performance — length validation of a short string has no meaningful performance profile worth testing this way." >It measures whether the new, unrestricted code path runs faster than the old one.</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You've completed the Debugging Reload track</span>
+That's the full track: reading logs first, recognising known pitfall shapes, knowing what reviewers actually flag, three real WebForms postback/ViewState investigations, a validation gotcha, a swallowed-exception incident, a timeout investigation, and designing real test coverage for a fix. Next: <strong>Dev Tools &amp; Workflow</strong>, for the practical, non-code-review side of getting a change safely from your machine to a shared server.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

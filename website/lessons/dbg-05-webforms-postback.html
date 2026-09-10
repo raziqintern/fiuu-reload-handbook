@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebForms Postback & ViewState Pitfalls · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="dbg-05-webforms-postback">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Debugging Reload</span>
+<h1>WebForms Postback &amp; ViewState Pitfalls</h1>
+<p class="lede">reload's BackOffice web app is ASP.NET WebForms — a model where three mechanisms (ViewState, <code>UpdatePanel</code> async postbacks, and a "magic" global function name) cause bugs that look nothing like their actual cause. All three real examples below come from the same page: <code>TerminalFirmwareVersionList.aspx</code>.</p>
+
+<h2>Pitfall 1 — a control's <code>Visible</code> survives postbacks whether you want it to or not</h2>
+<pre class="code-block">Protected Sub Page_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
+    Try
+        If Not IsPostBack Then
+            ...
+            If (Service.AccessRightControl(ModuleName.TerminalFirmwareVersion, WebEnumAccessRights.Print)) Then
+                btnExcel.Visible = True
+                ScriptManager.GetCurrent(Me).RegisterPostBackControl(upReport.FindControl("btnExcel"))
+            Else
+                btnExcel.Visible = False
+            End If
+            ...
+        End If
+    Catch ex As Exception
+        Logger.WriteErrorToEventLogs(ex)
+    End Try
+End Sub</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:31-58</p>
+<p><code>btnExcel.Visible</code> is decided exactly once, guarded by <code>If Not IsPostBack</code> — the very first time the page loads. Every subsequent postback on this page (clicking Search, clicking Reset) never touches it again. That's not an oversight to "fix" reflexively: in WebForms, a control's server-side properties — <code>Visible</code> included — are persisted in <strong>ViewState</strong> and survive across postbacks automatically. Once set, it stays set until something explicitly changes it, exactly the way a page author would want for a value that only depends on the user's access rights, which don't change mid-session.</p>
+
+<div class="callout warn">
+<span class="callout-title">The trap this pattern sets for the next change</span>
+The moment someone makes <code>btnExcel</code>'s visibility depend on something that <em>can</em> change across postbacks — like whether the last search returned results — ViewState persistence stops being free and becomes a liability. If a results-found search sets <code>btnExcel.Visible = True</code> and a later no-results search doesn't explicitly set it back to <code>False</code>, the button stays visible on an empty grid, because nothing told it otherwise. This exact scenario was the subject of a real review discussion on <span class="term" data-term="merge-request">MR</span> !1906: a reviewer asked "is resetting both controls' visibility at the top of the method necessary?" — and the honest answer was yes, once visibility depends on per-search state rather than a value that's fixed for the whole session.
+</div>
+
+<h2>Best practice for pitfall 1</h2>
+<p>When a control's visibility depends only on something session-wide and unchanging (access rights, a feature flag), set it once and leave it — don't add defensive resets "just in case." When it depends on something that varies per postback (search results, validation state), reset it to a safe default at the <em>top</em> of the handler and only opt it back to visible where the conditions are actually met — don't rely on remembering to add an explicit <code>False</code> to every branch that doesn't grant it, including ones added later.</p>
+
+<h2>Pitfall 2 — a function literally named <code>pageLoad</code> is a framework hook, not just a name you picked</h2>
+<p>ASP.NET AJAX (<code>Sys.Application</code>, the framework behind <code>UpdatePanel</code>) automatically calls a global JavaScript function named exactly <code>pageLoad(sender, args)</code> — if one exists anywhere on the page — after the initial page load, <strong>and again after every single async partial postback completes</strong>. It's not an event you subscribe to; it's a magic name the framework looks for.</p>
+<div class="callout real">
+<span class="callout-title">Why this made a search spinner stick, on a real page in this codebase</span>
+While cleaning up an unrelated jQuery UI autocomplete block that was copy-pasted onto this page from elsewhere, a leftover was left behind:
+<pre class="code-block">function pageLoad(sender, args) {
+    loadUIComponents();   // loadUIComponents was deleted along with the autocomplete cleanup — this now throws ReferenceError
+}</pre>
+Because <code>pageLoad</code> runs after <em>every</em> async postback — including clicking Search, which goes through an <code>UpdatePanel</code> on this page — the resulting uncaught <code>ReferenceError</code> fired inside the same framework completion path responsible for hiding the <code>UpdateProgress</code> spinner. The visible symptom had nothing to do with search logic at all: the loader just never went away.
+</div>
+<p>The fix wasn't in the VB.NET code-behind — it was deleting the now-orphaned <code>pageLoad</code> function once nothing on the page needed it. If you ever add or remove a script block on a WebForms page that uses <code>UpdatePanel</code>, grep the page for a literal function named <code>pageLoad</code> before you assume your change is purely additive — a stray one can silently break every async postback on the page, not just the feature you touched.</p>
+
+<h2>Pitfall 3 — a file download from inside an <code>UpdatePanel</code> needs to opt out of the async pipeline</h2>
+<pre class="code-block">&lt;asp:Button runat="server" ID="btnExcel" OnClick="btnExcel_OnClick" Text="Export to Excel" OnClientClick="ShowProgress()" Visible="False" /&gt;
+&lt;asp:UpdatePanel runat="server" ID="upReport"&gt;
+    ...
+&lt;/asp:UpdatePanel&gt;</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx:102-103</p>
+<p><code>btnExcel</code> triggers <code>btnExcel_OnClick</code>, which writes a raw CSV file straight to <code>Response</code> with a <code>content-disposition: attachment</code> header. That only works correctly as a <strong>full</strong> postback. Since <code>btnExcel</code> sits inside (or near) an <code>UpdatePanel</code>, the framework's default is to route its click through the <strong>async</strong> pipeline instead — which expects a small, specially-formatted partial-page delta back, not a raw file. Get this wrong and the browser throws exactly this client-side error:</p>
+<pre class="code-block">Sys.WebForms.PageRequestManagerParserErrorException:
+The message received from the server could not be parsed.</pre>
+<p>That's the textbook signature of a full-postback-shaped response (your CSV) arriving through a client that's expecting an async-postback-shaped one. The line that prevents it is easy to miss precisely because it's a one-line opt-out, not a visible structural difference in the markup:</p>
+<pre class="code-block">If (Service.AccessRightControl(ModuleName.TerminalFirmwareVersion, WebEnumAccessRights.Print)) Then
+    btnExcel.Visible = True
+    ScriptManager.GetCurrent(Me).RegisterPostBackControl(upReport.FindControl("btnExcel"))
+End If</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:44-46</p>
+<p><code>RegisterPostBackControl</code> tells the framework "treat clicks on this specific control as a full postback, regardless of what panel it's sitting in" — required for any file download triggered from inside an <code>UpdatePanel</code>-heavy page. If you add a new export/download button to a page like this one and copy the surrounding panel structure but miss this line, the button will look identical in the markup and still throw this exact parser exception the first time someone clicks it.</p>
+
+<h2>A smaller trap hiding in the same button: two statements, one <code>onclick</code></h2>
+<p><code>OnClientClick="ShowProgress()"</code> on a WebForms button gets rendered client-side as roughly <code>onclick="ShowProgress(); __doPostBack(...)"</code> — two JavaScript statements, in sequence. If <code>ShowProgress()</code> throws an uncaught exception (for example, because a dependency it calls — like jQuery itself — was never loaded on this page), the browser aborts the rest of that inline handler right there. <code>__doPostBack(...)</code>, the part that actually submits the postback and runs your server-side click handler, **never runs at all** — no request goes out, nothing happens, and it looks exactly like "the button stopped working," when the server-side code was never reached in the first place.</p>
+
+<div class="callout tip">
+<span class="callout-title">The general lesson across all three pitfalls</span>
+WebForms hides a lot of client/server plumbing behind a small surface area — a property that "just persists," a function name that "just happens" to get called, an attribute that "just" runs some script before a postback. When a bug's symptom doesn't match the code you're staring at, ask whether you're looking at the framework's plumbing instead of your own logic: stale ViewState, a magic-named global function, or a postback silently never reaching the server at all.
+</div>
+
+<h2>Best practice</h2>
+<p>Before adding a script block to a WebForms page that already uses <code>UpdatePanel</code>: check for an existing global <code>pageLoad</code> function (don't silently shadow or half-delete one), confirm any new file-download button calls <code>RegisterPostBackControl</code>, and verify any script referenced by <code>OnClientClick</code> has its dependencies (jQuery, etc.) actually loaded on that specific page — copying a script block from a sibling page doesn't copy the <code>&lt;script src&gt;</code> tags it silently depends on.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A WebForms page's search spinner (<code>UpdateProgress</code>) gets stuck showing after every search, but only after a recent, seemingly-unrelated cleanup of some old autocomplete script. What should you check first?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The search server-side code wasn't touched by the cleanup in this real incident — the actual cause was client-side." >Re-read the VB.NET search handler for a newly introduced logic bug.</li>
+<li data-correct="true" data-explain="This is exactly what happened on TerminalFirmwareVersionList.aspx: a leftover global pageLoad() function called a helper that had been deleted along with the autocomplete cleanup, throwing a ReferenceError on every async postback — including Search — which broke the framework's own completion handling that hides UpdateProgress." >Grep the page for a global function literally named pageLoad — ASP.NET AJAX calls it automatically after every async postback, and a leftover reference to deleted code there can break the framework's own UI cleanup.</li>
+<li data-correct="false" data-explain="A cache issue wouldn't correlate specifically with an autocomplete-script cleanup, and wouldn't explain a stuck spinner specifically after every search.">Clear the browser cache — this is almost always a stale-asset problem.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A new "Export to PDF" button is added inside an existing UpdatePanel-heavy WebForms page, copying the structure of a working "Export to Excel" button on a sibling page — except <code>ScriptManager.GetCurrent(Me).RegisterPostBackControl(...)</code> for the new button. What happens when a user clicks it?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Without RegisterPostBackControl, the click is routed through the async UpdatePanel pipeline, which expects a small partial-page delta back — not a raw file with a content-disposition header. The client throws Sys.WebForms.PageRequestManagerParserErrorException and no file is saved." >The click goes through the async postback pipeline instead of a full postback, the browser can't parse the raw file response as a partial-page update, and the download silently fails with a client-side parser exception.</li>
+<li data-correct="false" data-explain="RegisterPostBackControl affects how the postback itself is routed, not server-side authorization or exception handling — a missing call here doesn't raise a server-side exception at all." >The server throws an unhandled exception because the button isn't registered.</li>
+<li data-correct="false" data-explain="A missing RegisterPostBackControl call causes a real, user-visible failure — it doesn't degrade gracefully to a full postback on its own.">Nothing — RegisterPostBackControl is a performance optimization only, the download still works either way.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

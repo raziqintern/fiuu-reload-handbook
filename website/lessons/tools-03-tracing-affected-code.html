@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finding Every Affected Function Before You Change Anything · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="tools-03-tracing-affected-code">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Dev Tools &amp; Workflow</span>
+<h1>Finding Every Affected Function Before You Change Anything</h1>
+<p class="lede">Before touching a shared method, table, or control's behavior: who else calls it? In most codebases that's a quick "find usages" in the IDE. In this one, the architecture itself makes that question harder than it looks — and getting it wrong is how a one-line fix breaks a page nobody was testing.</p>
+
+<h2>Why "find usages" alone isn't enough here</h2>
+<div class="callout warn">
+<span class="callout-title">This codebase has a three-tier shared-library situation, verified in the Architecture Map track</span>
+Shared code lives in three different places that overlap incompletely: <code>reload/web/DEV/NET/Components/*</code> (source, inside the reload repo), <code>reload/class-library</code> (a separate submodule — plus prebuilt <code>.dll</code> files committed at its own root), and <code>reload/web/Libraries/NET/*</code> (an older, per-version vendored DLL drop, still referenced by some apps in parallel). An IDE's "find usages" only sees source it can index — a consumer that references a prebuilt <code>.dll</code> from tier 3 instead of the tier-2 source won't show up in a source-level search at all. "App X depends on module Y" needs a specific <code>ProjectReference</code>/<code>HintPath</code> citation, not a guess by module name.
+</div>
+
+<h2>Technique 1 — grep the exact symbol, then grep its neighbors</h2>
+<p>Start with the literal name (a method, a class, a stored procedure, a table), but don't stop at the first hit. Real example: fixing the CSV-escaping anti-pattern (see <a href="conv-08-csv-export-escaping.html">Fiuu Code Conventions &rarr; CSV Export Escaping</a>) meant finding every caller of the existing <code>ToCSVDisplayString</code> helper before deciding whether it was safe to change its behavior. Grepping the exact name across the whole repo — not just the one file the bug report pointed at — surfaced four separate BackOffice report pages already calling it, each one a page that would be affected by any change to what the helper does, not just the page the original ticket was about.</p>
+<div class="callout tip">
+<span class="callout-title">Grep wider than the symbol name itself</span>
+For a shared helper, also grep for the class/namespace it lives in — a caller might use an alias, a `using`/`Imports` that makes the call look different at the call site than the definition does. For a database object, grep both the raw table/column name <em>and</em> the fully-qualified <code>[Schema].[Table]</code> form used in cross-database queries — this codebase's shared reference data (CEPP) gets referenced that way from other databases constantly.
+</div>
+
+<h2>Technique 2 — for a database object, check the schema vault's own known gaps first</h2>
+<p>Before concluding "nothing else touches this table," check <a href="../../architecture/reload_db/vault-drift-notes.md">architecture/reload_db/vault-drift-notes.md</a> — the team's own schema vault was found to be missing two entire live databases (<code>EINVOICE</code>, <code>SAP</code>) and six <code>TRANSACTION</code> provider schemas entirely. A tool or doc that's silent about a table doesn't mean nothing references it; it can mean the tool never saw it. For anything touching those specific areas, go straight to the live <code>MAINT/&lt;Module&gt;/</code> scripts instead of trusting the vault's silence.</p>
+
+<h2>Technique 3 — indirect call sites: config-driven dispatch and postback wiring</h2>
+<p>A direct grep misses anything reached through a layer of indirection. Two patterns specific to this codebase are worth checking explicitly:</p>
+<ul>
+<li><strong>The <code>EventAppName</code> switch pattern</strong> (see <a href="conv-06-config-secrets.html">Configuration &amp; Secrets</a>) — a large switch statement decides which AWS Secrets Manager labels apply based on which app is running. Changing behavior gated by one label can silently affect every app whose <code>EventAppName</code> resolves to that branch, not just the one you're testing against.</li>
+<li><strong>Shared controls inside an <code>UpdatePanel</code></strong> — per the WebForms Postback &amp; ViewState Pitfalls lesson, a control's visible behavior can differ depending on whether it sits inside or outside an async-postback boundary on a <em>given page</em>. The same shared control embedded on two different pages can behave differently under this codebase's postback wiring even though the control's own code never changed — check the postback structure of every page a shared control appears on, not just its own definition.</li>
+</ul>
+
+<h2>Technique 4 — before resetting or aligning a shared reference, check ancestry, not dates</h2>
+<p>This applies to more than code: a shared submodule commit, a deployment tag, any pointer more than one team's work flows through. See <a href="tools-02-git-archaeology.html">Git Archaeology</a> for the full worked example — "looks newer" and "is actually a descendant of what's currently live" are different claims, and confusing them is how a well-intentioned reset quietly reverts someone else's already-shipped fix.</p>
+
+<h2>Best practice</h2>
+<ul>
+<li>For a shared method: grep the exact name across the <em>whole</em> repo (not just the app you're changing), then check each caller's own project file for how it actually references the module (source vs. prebuilt DLL) before assuming a source-level search caught everyone.</li>
+<li>For a database object: check the handbook's known vault gaps before trusting a schema tool's silence, and grep both the bare name and the fully-qualified cross-database form.</li>
+<li>For a shared UI control or config-gated behavior: check every page/app it appears on individually — this codebase has enough small-per-page differences (postback wiring, which <code>EventAppName</code> branch applies) that "it's the same control everywhere" is not a safe assumption.</li>
+<li>Write down what you checked and what you found nothing in, not just what you found — "grepped X, no other callers" is useful information for the next person (including future you), even when the answer is "nothing else uses this."</li>
+</ul>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">An IDE's "find usages" on a class-library method shows zero callers. What should you check before concluding it's safe to change its behavior?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Zero callers found by an IDE search is exactly the situation that needs more checking here, not less — this codebase's three-tier shared-library structure means a real consumer can be invisible to a source-level search." >Trust it — an IDE search covers every possible caller in any .NET codebase.</li>
+<li data-correct="true" data-explain="A consumer referencing a prebuilt .dll (tier 3, or class-library's own committed DLLs) instead of the tier-2 source won't show up in a source-level 'find usages' at all. A raw grep for the method name across the whole repo, plus checking consuming apps' actual ProjectReference/HintPath entries, can surface callers the IDE search missed." >Whether any consuming app references this module via a prebuilt DLL rather than the source project — that consumer wouldn't appear in a source-level search at all.</li>
+<li data-correct="false" data-explain="A missing XML doc comment has no effect on whether 'find usages' can locate callers — that's a documentation completeness issue, unrelated to this codebase's actual reason a caller can be invisible to search." >Whether the method has an XML documentation comment, since undocumented methods don't show up in searches.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You're about to change a table that the schema vault shows no other references to. What's the right next step, specifically in this codebase?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The vault is a useful lookup tool but has confirmed, specific gaps (two entire missing databases, six missing provider schemas) — treating its silence as proof of anything is exactly the trap this lesson warns about." >Proceed — if the vault shows nothing, nothing else references it.</li>
+<li data-correct="true" data-explain="The team's own schema vault was found to be missing EINVOICE and SAP entirely, plus six TRANSACTION provider schemas — real, live, actively-patched databases with zero mentions in the vault. Its silence on a table means 'not in the original sweep,' not 'nothing references this.'" >Check vault-drift-notes.md for known gaps, and if the table falls in or near an already-flagged gap, verify directly against the live MAINT/ scripts instead of trusting the vault's silence.</li>
+<li data-correct="false" data-explain="Rebuilding the entire vault is a large, separate undertaking — not a proportionate response to checking whether one specific table has other references." >Regenerate the entire schema vault from scratch before making any change.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

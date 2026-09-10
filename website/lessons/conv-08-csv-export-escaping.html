@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSV Export Escaping · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="conv-08-csv-export-escaping">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Fiuu Code Conventions</span>
+<h1>CSV Export Escaping</h1>
+<p class="lede">Issue #2467 reported "Top Up Information List" CSV exports with rows visibly drifting out of alignment with their headers. The investigation found not one but <strong>two different wrong ways</strong> to build a CSV row already shipped in this codebase — neither of them real CSV escaping.</p>
+
+<h2>Anti-pattern 1: the Excel "force-text" trick isn't CSV escaping</h2>
+<p><code>TopUpList.aspx.vb</code>'s CSV export handler builds each row with a formula-looking wrapper instead of real quoting:</p>
+<pre class="code-block">Response.Write(String.Format("{0},=""{1}"",=""{2}"",=""{3}"",=""{4}"",=""{5}"",=""{6}"",=""{7}"",=""{8}"",=""{9}"",{10}",
+    CInt(i + 1), topUpList(i).RequestId, topUpList(i).DealerName, topUpList(i).StoreName,
+    topUpList(i).EmailAddress, ...))</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/CEPP/BackOffice/Web/WebForms/TopUpList.aspx.vb:451-507 (btnCSV_OnClick)</p>
+<p><code>="value"</code> is an Excel formula that forces a cell to display as literal text (useful for preventing Excel from mangling things like leading zeros) — it is not RFC4180 CSV quoting, and it doesn't behave like it. The header row and the data row both have exactly 11 columns, so this isn't an off-by-one column bug; the header/data column counts genuinely match.</p>
+
+<div class="callout warn">
+<span class="callout-title">Why this shows up as rows "pushed a little bit upwards"</span>
+The <code>="…"</code> pattern does nothing to protect against a comma, a double quote, or an embedded newline inside a free-text field — <code>DealerName</code>, <code>StoreName</code>, and <code>EmailAddress</code> here. A dealer name like <code>Acme, Inc.</code> splits into an extra field mid-row the instant a comma appears in the raw value. Because the export streams row-by-row via <code>Response.Write</code> with no validation, one corrupted row shifts every column of every row after it — which is exactly what "pushed a little bit upwards relative to the header" looks like when the file is opened in Excel.
+</div>
+
+<h2>Anti-pattern 2: silently stripping characters is worse, not better</h2>
+<p>Tracing for an existing helper turned up a second, already-shipped attempt at the same problem — this one in the Web project's own helpers, actively used across several other BackOffice reports:</p>
+<pre class="code-block">&lt;Extension()&gt;
+Public Function ToCSVDisplayString(ByVal text As String) As String
+    Return text.Replace(",", " ").Replace("""", " ")
+End Function</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/CEPP/BackOffice/Web/Helpers/BackofficeExtension.vb</p>
+<p>This is called on <code>DealerName</code>/<code>Dealer.Name</code> and similar free-text fields in <code>ReportVoucherRedemption.aspx.vb</code>, <code>RestorifyCarbonCalculatorList.aspx.vb</code>, <code>RestorifyCarbonCalculatorPaymentList.aspx.vb</code>, and more. It avoids the alignment problem — but only by permanently replacing every comma and every double quote in the source value with a space, silently and unrecoverably, on every single export.</p>
+
+<div class="callout real">
+<span class="callout-title">Two wrong fixes for the same real problem, in the same codebase</span>
+Both anti-patterns exist because proper CSV escaping was never implemented — one dodges it by hoping Excel's text-force syntax is enough (it isn't, and it corrupts alignment when it fails), the other dodges it by destroying the offending characters before they can cause trouble (which corrupts the data itself, silently, every time, without ever looking broken to whoever opens the file). Neither is a substitute for actually quoting the field.
+</div>
+
+<h2>The correct fix: real RFC4180 escaping</h2>
+<p>Wrap every field in real double quotes, and double any double quote that appears inside the value. Once done correctly, commas and embedded newlines inside a quoted field need no special handling at all — this is the one mechanism a proper CSV writer (or a small shared helper) needs to implement exactly once for the whole codebase to stop reinventing it two different broken ways:</p>
+<pre class="code-block">Private Function CsvEscape(ByVal value As String) As String
+    If value Is Nothing Then Return """"""
+    Return """" & value.Replace("""", """""") & """"
+End Function</pre>
+<p>Applied to <code>DealerName</code>, <code>StoreName</code>, and <code>EmailAddress</code> in <code>TopUpList.aspx.vb</code>, this fixes the alignment bug directly at its source, without needing the Excel force-text formula at all — and the same helper is the right fix for <code>ToCSVDisplayString</code>'s call sites too, once that cleanup is scoped as its own piece of work.</p>
+
+<h2>Best practice</h2>
+<ul>
+<li>Never hand-roll CSV output with ad-hoc string concatenation, an Excel formula trick, or character stripping — all three are workarounds for not having a real escaping function, and each fails in its own way the moment a free-text field contains a comma, a quote, or a newline.</li>
+<li>Any field sourced from user-entered text (a dealer name, a store name, a remark) is exactly the kind of value that needs escaping — numeric IDs, enum names, and fixed-format dates don't, which is why bugs like this one hide for so long: most columns in most exports never happen to contain the character that breaks them.</li>
+</ul>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A CSV export uses <code>="value"</code> around each field instead of real double-quote escaping. A user reports rows drifting out of alignment with the header. What's the most likely cause?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The header and data row column counts were confirmed to match exactly (11 and 11) in the real incident this lesson is based on — an off-by-one column bug was ruled out early, not assumed." >The header row and data row have a different number of columns.</li>
+<li data-correct="true" data-explain="This is the real #2467 root cause: the =\"value\" trick doesn't escape embedded commas, quotes, or newlines in free-text fields, so one such value splits its row into extra fields, shifting every subsequent row." >A free-text field (like a dealer or store name) contains a comma, quote, or newline that the <code>="value"</code> pattern doesn't actually escape.</li>
+<li data-correct="false" data-explain="The Excel export counterpart in this real incident used EPPlus cell values directly, which don't need manual CSV escaping — the bug was specific to the CSV code path.">The Excel library being used has a rendering bug unrelated to the export code.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A helper function "fixes" CSV export corruption by replacing every comma and double quote in a value with a space before writing it out. What's the real problem with this approach?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="This is the ToCSVDisplayString anti-pattern found in this exact codebase — it avoids visible misalignment, but at the cost of silently, permanently corrupting the actual data (a dealer name containing a comma or quote is altered on every export, with no way to recover the original value from the file)." >It silently and permanently destroys real data (the actual comma or quote in the source value) instead of preserving it — the export will never look broken, but the data in it is wrong.</li>
+<li data-correct="false" data-explain="This isn't primarily a performance concern — string replacement is cheap. The real problem is data correctness, not speed." >It's too slow to run on every row of a large export.</li>
+<li data-correct="false" data-explain="It's a real, already-shipped function used on several BackOffice reports — the problem isn't that it's untested, it's that its underlying approach is the wrong one.">It doesn't compile, since VB.NET extension methods can't return strings.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

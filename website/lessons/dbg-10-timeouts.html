@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timeouts: Whose Problem Is It · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="dbg-10-timeouts">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Debugging Reload</span>
+<h1>Timeouts: Whose Problem Is It</h1>
+<p class="lede">A real ticket investigation: a payment flow was timing out against a slow stored procedure, and the proposed fix was <code>sqlCommand.CommandTimeout = 0</code>. That number deserves more scrutiny than it usually gets — walked through here with the actual test technique used to prove it.</p>
+
+<h2>The fact that changes how you think about this: <code>CommandTimeout</code> is enforced by the client, not the server</h2>
+<div class="callout real">
+<span class="callout-title">SQL Server has no idea your <code>SqlCommand</code> gave up</span>
+When <code>SqlCommand.CommandTimeout</code> elapses, ADO.NET on the .NET side gives up waiting and throws a <code>SqlException</code> (<code>Number == -2</code>, "Execution Timeout Expired"). The query itself keeps running on SQL Server, completely unaware the caller walked away. This is why "did SQL run past the timeout" isn't something you can check <em>in</em> SQL Server or SSMS — there's no <code>CommandTimeout</code> concept there at all. It's purely a fact about how long the calling .NET code was willing to wait.
+</div>
+
+<h2>Why <code>CommandTimeout = 0</code> is not "a generous timeout"</h2>
+<p><code>0</code> doesn't mean "wait a long time." It means <strong>no timeout — wait as long as the server takes, with no upper bound at all.</strong> For a call sitting in the synchronous path of a live payment request (a real customer's HTTP call blocked on it), that's a specific, considered trade-off, not a safe default:</p>
+<ul>
+<li>A genuinely bounded slow query (the kind the ticket was actually about) now succeeds instead of timing out — which is the intended fix.</li>
+<li>But a <em>different</em> failure mode — a real deadlock, a blocking chain, a connection that never resolves — now has <strong>no way to fail</strong>. The request just holds its thread and connection open indefinitely, and so does every other request queued behind it if this happens repeatedly.</li>
+</ul>
+<p>The ticket's own suggested fix was a bounded increase (40 seconds, against an SP that normally finishes well under 30). Reaching for <code>0</code> instead trades a slow-but-recoverable failure for a scenario with no recovery path at all.</p>
+
+<h2>The testing technique: isolate the mechanism before testing through the full stack</h2>
+<p>Rather than proving this by driving the whole flow through Postman against a live SIT database and waiting out a real 30-second stored procedure, the mechanism was proven in a throwaway console harness first:</p>
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">// Minimal, isolated: no business logic, no real stored procedure — just the mechanism.
+var cmd = new SqlCommand("WAITFOR DELAY '00:00:05'", connection);
+cmd.CommandTimeout = 2;   // shorter than the delay — should time out
+
+try
+{
+    cmd.ExecuteNonQuery();
+    Console.WriteLine("No timeout — unexpected");
+}
+catch (SqlException ex) when (ex.Number == -2)
+{
+    Console.WriteLine("Confirmed: timed out as expected");
+}</pre>
+<pre class="tryit-output-src">Confirmed: timed out as expected</pre>
+</div>
+<p>Three cases prove the whole mechanism cheaply: <code>CommandTimeout</code> shorter than the delay (throws, <code>Number == -2</code>), longer than the delay (succeeds, takes exactly as long as the delay), and <code>CommandTimeout = 0</code> against the same delay (succeeds, waits the full delay, no exception regardless of how long it took). None of this needs the real stored procedure, the real database, or the real payment flow — proving the mechanism in isolation first, then trusting it applies to the real call site, is faster and removes noise (auth, business logic branches, real network latency) that has nothing to do with the question being tested.</p>
+
+<div class="callout warn">
+<span class="callout-title">A test scaffold left behind can look like the real bug</span>
+During this investigation, the stored procedure under test was found to contain a hardcoded <code>WAITFOR DELAY '00:00:01:01'</code> with a malformed time literal (a colon instead of a period before the milliseconds segment) — not present in the procedure's own change history. Before treating a slow query as "the bug," check whether you're actually looking at test scaffolding someone left in a shared script, not the procedure's real, deployed behavior. Confirm who added it and why before drawing conclusions from it.
+</div>
+
+<h2>A related trap: don't let a green HTTP response stand in for a correct one</h2>
+<p>While validating this fix through Postman, an early test "went through" — HTTP <code>200</code> — and was treated as confirmation the fix worked. It wasn't: with <code>CommandTimeout = 0</code>, the call was <em>never going to time out no matter what</em>, so a <code>200</code> proved nothing about whether the changed code path had even executed. Worse, this codebase's own response contract makes HTTP status doubly unreliable as a signal on its own — a <code>respCode</code> field inside a <code>200</code> body still distinguishes success (<code>"00"</code>) from a specific failure reason (every other value). A request can complete, return <code>200</code>, and still represent a failed transaction. <strong>Never treat "the HTTP call went through" as equivalent to "the operation succeeded" — check the actual assertion the test needs, not just that a response arrived.</strong></p>
+
+<h2>Best practice</h2>
+<p>When a synchronous, request-blocking database call needs a longer timeout: pick a bounded number justified by the query's normal running time plus margin, not <code>0</code>. Prove the timeout mechanism itself in an isolated harness (a bare <code>SqlCommand</code> and <code>WAITFOR DELAY</code>) before wiring the real fix into business logic — it's faster to test and it separates "does the timeout mechanism work at all" from "does this specific call site use it correctly." And before calling any test a pass, confirm it actually exercised the failing condition — a request that "went through" isn't confirmation of anything if the change you made couldn't possibly have caused it to fail either way.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why can't you check "did the SQL query exceed its CommandTimeout" from inside SQL Server Management Studio?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="CommandTimeout is a property of the .NET SqlCommand object — it controls how long the ADO.NET client is willing to wait for a response. SQL Server itself keeps executing the query regardless of whether the client gave up; there's no server-side concept of a specific client's timeout." >CommandTimeout is enforced entirely on the .NET client side — SQL Server has no awareness of it and keeps running the query regardless.</li>
+<li data-correct="false" data-explain="SSMS absolutely shows query duration — that's not the limitation here. The issue is that CommandTimeout itself isn't a server-side concept at all." >SSMS doesn't display query execution duration.</li>
+<li data-correct="false" data-explain="OPTION (RECOMPILE) affects query plan caching, not timeout enforcement — it's unrelated to this question.">CommandTimeout only applies when a stored procedure uses OPTION (RECOMPILE).</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A colleague proposes fixing a payment-flow SQL timeout by setting <code>CommandTimeout = 0</code>. What's the strongest objection?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="0 is a valid, well-defined value in ADO.NET (it means no timeout) — it won't throw at assignment or at call time for that reason." >It will throw an exception immediately since 0 isn't a valid CommandTimeout value.</li>
+<li data-correct="true" data-explain="0 removes the upper bound entirely — a genuine deadlock or blocking chain (not just a predictably slow query) now has no way to ever fail that request. It holds the thread and connection open indefinitely, and so does every request queued behind it if it recurs." >It removes any upper bound at all, so a genuine hang (deadlock, blocking chain) — not just a predictably slow query — can never fail gracefully; the request and its connection are held open indefinitely.</li>
+<li data-correct="false" data-explain="This is about failure handling under load and hangs, not raw throughput on the happy path — a bounded, sufficiently generous timeout does not meaningfully slow down normal calls that complete quickly regardless of the number configured.">It makes every call to the database slower, even when nothing is wrong.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

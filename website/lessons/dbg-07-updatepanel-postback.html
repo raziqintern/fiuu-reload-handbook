@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worked Example: The Dropdown That Looked Enabled · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="dbg-07-updatepanel-postback">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Debugging Reload</span>
+<h1>Worked Example: The Dropdown That Looked Enabled</h1>
+<p class="lede">A real BackOffice WebForms bug, walked through the way it was actually diagnosed — a control's server-side state changed on every request, but the screen never showed it, until one very specific button made it visible.</p>
+
+<h2>The symptom, as it was reported</h2>
+<div class="callout warn">
+<span class="callout-title">"The Stock Type dropdown locks, but only sometimes"</span>
+On a Stock Allocation search page, running a search was supposed to disable the <strong>Stock Type</strong> dropdown for the rest of that workflow. Testing found the dropdown stayed responsive after an ordinary search — but then showed up visibly disabled after clicking <strong>Export to Excel</strong> on a search with <em>zero</em> results. Same page, same dropdown, two different postbacks, two different outcomes.
+</div>
+
+<h2>Step 1 — resist "it must be conditional on the result count"</h2>
+<p>The obvious first theory: maybe the dropdown is only supposed to lock when a search finds nothing. It's tempting because that's exactly when the behavior was first noticed. But the code told a different story immediately: the line that disables it, <code>ddlStockType.Enabled = False</code>, sits inside the search method with no condition around it at all — it runs whether the search finds rows or not. If the code doesn't branch on result count, the visible behavior shouldn't either. Something else was making the same server-side change look different on screen.</p>
+
+<h2>Step 2 — separate "did the state change" from "did the screen change"</h2>
+<p>This page uses ASP.NET WebForms <code>UpdatePanel</code>s for partial-page updates. The Search button is wired as an <code>AsyncPostBackTrigger</code> — clicking it only refreshes the DOM <em>inside</em> the specific <code>UpdatePanel</code>s it targets. <code>ddlStockType</code> itself sits outside every one of them.</p>
+<div class="callout real">
+<span class="callout-title">The dropdown was disabled the entire time</span>
+<code>SearchStock()</code> set <code>ddlStockType.Enabled = False</code> on the server on every single search, from the very first one. The browser was simply never told, because the part of the page containing the dropdown was never part of what an async postback re-renders. Server-side truth and on-screen truth had already diverged — the bug wasn't in <em>when</em> the state changed, it was in <em>whether the change was ever communicated</em>.
+</div>
+
+<h2>Step 3 — find the one button that isn't async</h2>
+<p>The Export button is declared outside every <code>UpdatePanel</code> on the page and isn't registered as an <code>AsyncPostBackTrigger</code> anywhere — clicking it triggers a genuine <strong>full</strong> postback, the kind that re-renders the entire page from current server state. That's the first opportunity for the browser to ever receive HTML reflecting <code>Enabled = False</code>. But it only sometimes worked, because of what the handler does next:</p>
+<pre class="code-block">If lstStock.Count = 0 AndAlso lstAllocation.Count = 0 Then
+    MessageBox.ShowInfoMessage(Helpers.Message.NoResultFound)
+Else
+    Response.Clear()
+    Response.Write(csvContent)
+    Response.Flush()
+    Response.SuppressContent = True   ' discards the rest of Render() for this response
+End If</pre>
+<p class="code-cite">Reconstructed from StockAllocationEdit.aspx.vb's btnExcel_OnClick</p>
+<p>When there's data to export, <code>SuppressContent = True</code> tells ASP.NET to discard everything the rest of the page's <code>Render</code> phase would have produced — the browser gets a file download, and the on-screen page never changes at all. The true, already-disabled dropdown state stays invisible again. Only the <strong>no-results</strong> branch skips suppression entirely: no <code>Response.Clear()</code>, no <code>SuppressContent</code>, just a normal full-page render — which is the one and only path on this page that ever shows the dropdown's real state.</p>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Based on the mechanism above, would clicking Export on a search that <em>does</em> return results ever visibly lock the dropdown?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="A full postback does happen, but Response.SuppressContent discards the rest of that response's Render output before it reaches the browser — the file downloads, but the on-screen page is never replaced with anything." >Yes — Export is always a full postback, so the fresh HTML always reflects the disabled state.</li>
+<li data-correct="true" data-explain="Correct. The has-data branch calls Response.SuppressContent = True, which discards the rest of that response's render output. The browser receives a file download, not a new page — so even though this is a genuine full postback and the dropdown is genuinely disabled server-side, the on-screen DOM is never told." >No — the has-data branch suppresses the rest of the response, so the browser never receives updated HTML to render, even though a full postback did occur.</li>
+<li data-correct="false" data-explain="Async vs. full postback is entirely determined by which trigger/button fired it, not by how many rows a search returned." >No — Export is only ever an async postback, same as Search.</li>
+</ul>
+</div>
+
+<h2>Step 4 — the trap in the obvious fix</h2>
+<p>The instinct, once this was understood, was to "restore the old behavior" by always suppressing content — since that's what made the locked dropdown invisible before. Before doing that: trace what else lives inside the <code>Else</code>/no-suppression branch. <code>MessageBox.ShowInfoMessage(...)</code> doesn't write to <code>Response</code> directly — it's a UserControl that just sets <code>ViewState</code>-backed <code>Mode</code>/<code>Text</code> properties, and only actually renders its <code>&lt;div&gt;</code> during the page's normal <code>Render()</code> pass.</p>
+<div class="callout warn">
+<span class="callout-title">Suppressing content doesn't just hide the dropdown — it hides everything</span>
+Make <code>Response.SuppressContent = True</code> run unconditionally, and the "no results found" message stops reaching the browser too, for the exact same reason the dropdown state does: both only ever get materialized into the response during the normal <code>Render</code> phase, which suppression skips wholesale. The result of "fixing" it that way was a genuinely blank page on a no-results export — worse than the original symptom, not better.
+</div>
+<p>The actual fix left the suppression logic alone and instead moved <code>ddlStockType.Enabled = True</code> into <code>Page_Load</code>'s existing unconditional reset block — the same block that already resets several other controls on every postback, before any button's own event handler runs. Because <code>Page_Load</code> always executes before that postback's control event handler in the WebForms lifecycle, this reset-then-redisable ordering (reset in <code>Page_Load</code>, redisable in <code>SearchStock()</code> if a search actually ran) reliably reproduces "enabled by default, disabled only right after a real search" without adding a new mechanism or touching the suppression logic at all.</p>
+
+<h2>Best practice</h2>
+<p>When a control's server-side state seems to change unpredictably on screen, don't assume the state itself is wrong — check the postback boundary first. Is the triggering control inside an <code>UpdatePanel</code> that's actually targeted by an async postback, or does it live outside every one of them? And separately: does the response ever call <code>Response.SuppressContent</code> or otherwise short-circuit the normal <code>Render</code> phase? Either one can make a perfectly correct server-side change invisible, and the two combine in exactly the confusing way this page did — invisible on the common path, then visible only on one narrow, easy-to-miss path.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A different WebForms page has a similar setup: a control's <code>.Enabled</code> flips server-side inside an async-postback handler, but the control itself sits inside one of that trigger's own <code>UpdatePanel</code>s (unlike the case above). Would you expect the same "invisible until a full postback" symptom here?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This is the opposite of the bug's actual cause — the dropdown above was invisible specifically because it sat outside every UpdatePanel the async trigger targets." >Yes — any control changed during an async postback is invisible until a full postback happens, regardless of where it sits.</li>
+<li data-correct="true" data-explain="The root cause was specifically that the control lived outside the UpdatePanel(s) the async trigger refreshes. A control inside the targeted UpdatePanel gets re-rendered as part of that same async postback's partial DOM update — the browser is told immediately, no full postback required." >No — a control inside the UpdatePanel that the async trigger actually refreshes gets its new state rendered immediately, as part of that same partial postback.</li>
+<li data-correct="false" data-explain="Response.SuppressContent is unrelated to where a control sits relative to an UpdatePanel — it's a separate mechanism for discarding an entire response's render output, typically paired with a file download." >Yes — SuppressContent always blocks UpdatePanel refreshes regardless of which controls they contain.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

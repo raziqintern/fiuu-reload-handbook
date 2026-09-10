@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worked Example: Hiding a Field Isn't Gating It · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="dbg-08-hidden-fields-still-validate">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Debugging Reload</span>
+<h1>Worked Example: Hiding a Field Isn't Gating It</h1>
+<p class="lede">Two related BackOffice bugs on the Dealer pages (issues #2168 and #2454) share one root cause: code that decides what a user <em>sees</em> and code that decides what gets <em>validated or saved</em> are two separate, easily-desynced things in this codebase.</p>
+
+<h2>Case 1: a validator that's only disabled sometimes</h2>
+<p><code>DealerCreate.aspx</code> has a Payment Type radio group that should hide the Wallet Type field (and its required-field validator) when "Consignment" is selected. The same toggle logic existed <strong>three separate times</strong>:</p>
+<ul>
+<li>An inline <code>.change()</code> handler (lines 16-31) — toggles CSS visibility, fires on every radio change.</li>
+<li><code>onChangePaymentType()</code> (lines 42-60) — an exact duplicate of the CSS logic above, called once on page load.</li>
+<li><code>checkPaymentType()</code> (lines 62-78) — the <strong>only</strong> one of the three that also touches <code>ValidatorEnable</code>, and it only runs at the moment <strong>Save</strong> is clicked.</li>
+</ul>
+
+<div class="callout warn">
+<span class="callout-title">The trap: three copies of "the same" logic, only one complete</span>
+Selecting "Consignment", then changing the radio back to a placeholder and saving, could leave <code>RFVWalletType</code>'s enabled state out of sync with what's actually visible — because the only function that ever corrects it runs once, right before Save, instead of continuously alongside the CSS toggle. If anything else ever submits the form (the Enter key, a future second button), the validator's state is wrong again, because nothing keeps it tied to the actual selection outside that one click handler.
+</div>
+
+<p>The fix consolidates all three into one function that updates CSS visibility <em>and</em> <code>ValidatorEnable</code> together, called from both the radio's change handler and once on page load — so there is exactly one place that can ever get this wrong, not three that have to be kept manually in sync:</p>
+<pre class="code-block">function syncWalletTypeRequirement(radionValue) {
+    if (radionValue == "Consignment") {
+        document.getElementById("trprepaidtransfer").style.display = "none";
+        document.getElementById("trwallettype").style.display = "none";
+        $(".offline-sales").hide();
+        ValidatorEnable(document.getElementById("RFVWalletType"), false);
+    } else if (radionValue == "Prepaid") {
+        document.getElementById("trprepaidtransfer").style.display = "";
+        document.getElementById("trwallettype").style.display = "";
+        $(".offline-sales").show();
+        ValidatorEnable(document.getElementById("RFVWalletType"), true);
+    }
+}</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/CEPP/BackOffice/Web/WebForms/DealerCreate.aspx</p>
+
+<h2>Case 2: a hidden tab doesn't stop the code behind it from running</h2>
+<p>Issue #2454 reported Finance-only users unable to save changes to the SAP tab on <code>DealerEdit.aspx</code> — a genuine save-blocker, not cosmetic. <code>RestrictedPage.CheckTabAccess</code> (lines 165-182) already does this correctly on the surface: it sets <code>tab.Visible = False</code> server-side (not just CSS) for tabs a Finance-only user shouldn't see. But visibility and validation turned out to be two separate, disconnected mechanisms:</p>
+
+<div class="callout warn">
+<span class="callout-title">Validation runs unconditionally, regardless of tab visibility</span>
+<code>btnSave_Click</code> calls <code>ValidateEditDealer()</code> (lines 317-419) for every user, with no check of which tabs are actually visible to them. That method validates name, payment/wallet type, dates, operation hours, currency, and address — none of it SAP-related, all of it on tabs a Finance-only user's session had already hidden. The hidden tab stopped the user from seeing those fields; it did nothing to stop the server from demanding they be valid anyway.
+</div>
+
+<p>Tracing further into <code>SaveDealer()</code> (line 1050) surfaced a second, previously-unreported instance of the exact same gap: an unconditional Platform Indicator checkbox check (lines 1128-1133) that also lives on the general Dealer tab, not SAP — the same category of bug, just not the one the issue reported. And <code>SaveDealer()</code> builds one monolithic object from <em>every</em> control on the page (lines 1285-1337) — general fields and SAP fields together — then persists it in a single call, meaning a Finance-only save overwrites the whole record, not just the SAP fields that user is actually allowed to touch.</p>
+
+<div class="callout tip">
+<span class="callout-title">What was confirmed vs. what stayed open</span>
+Whether that wholesale overwrite is actually <em>safe</em> depends on whether ASP.NET correctly round-trips a hidden tab's control values through ViewState across a postback when the tab's <code>Visible</code> is <code>False</code> — a real ambiguity with <code>TabPanel</code>/AjaxControlToolkit that static reading of the code alone can't settle. That's the honest, disciplined way to report a finding like this: state exactly what the code confirms (the two unconditional validation/checkbox gaps) separately from what still needs live verification (whether the overwrite is harmless or a data-corruption risk) — rather than guessing at an answer either way.
+</div>
+
+<h2>The generalizable lesson</h2>
+<div class="callout real">
+<span class="callout-title">A visibility check and a logic guard are not the same line of code</span>
+Hiding a field or tab — with CSS, or with a server-side <code>Visible = False</code> — only changes what the user sees. It does nothing on its own to whatever validation, save, or business logic runs afterward, unless that code <em>explicitly</em> checks the same condition used to hide the UI. Whenever a field or tab is gated by a role or permission, search for every validator, every save-path field read, and every downstream write that touches it — each one needs its own copy of that same guard, not just the markup.
+</div>
+
+<h2>Best practice</h2>
+<p>When a page conditionally hides fields based on role or state, treat "is this visible" and "is this validated/saved" as two separate questions that both need an answer — don't assume one implies the other. If you find a duplicated toggle function like Case 1's three copies, that's a signal worth investigating on its own: duplicated logic is exactly where one copy quietly ends up incomplete relative to the others.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A tab is hidden server-side with <code>tab.Visible = False</code> for users without a certain permission. What does this worked example say you still need to check?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Server-side Visible = False is a real, correct way to hide a tab — the gap in this worked example isn't that the hiding mechanism was wrong, it's that nothing else respected it." >Nothing — server-side <code>Visible = False</code> is sufficient on its own to protect that tab's fields.</li>
+<li data-correct="true" data-explain="This is exactly the #2454 finding: DealerEdit.aspx hid the SAP tab correctly, but ValidateEditDealer() and SaveDealer() still read, validated, and persisted those fields unconditionally for every user." >Whether every validator and save-path read of that tab's fields also checks the same permission — hiding it doesn't stop other code from processing it.</li>
+<li data-correct="false" data-explain="This isn't primarily a client-side JavaScript concern — the actual gap was in server-side VB.NET validation and save logic running unconditionally.">Whether the browser's JavaScript console shows any errors when the tab is hidden.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You find the same toggle logic duplicated across three event handlers on a page, and only one of them updates a validator's enabled state. What should you be suspicious of?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="This is exactly Case 1: the one handler that correctly disables the validator only runs at Save-click time, not continuously — so any other way of submitting the form skips it entirely." >That the one correct copy might only run under a narrower set of conditions than the other two, leaving a gap on any path that skips it.</li>
+<li data-correct="false" data-explain="Duplication across handlers isn't primarily a performance concern here — the real risk is behavioral drift between the copies.">That the page will run slower because the same logic executes multiple times.</li>
+<li data-correct="false" data-explain="This isn't about ASP.NET's own compiler — duplicated hand-written JavaScript/VB logic is a maintenance and correctness risk, not a build-time issue.">Nothing — as long as all three produce the same visual result, they're equivalent.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

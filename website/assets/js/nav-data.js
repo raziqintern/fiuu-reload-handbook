@@ -101,7 +101,7 @@ const SITE_TRACKS = [
   },
   {
     id: "conventions",
-    title: "Fiuu C# Conventions",
+    title: "Fiuu Code Conventions",
     lessons: [
       { id: "conv-01-naming", title: "1. Naming", file: "conv-01-naming.html" },
       { id: "conv-02-layering", title: "2. Layering: Provider/Service/Model", file: "conv-02-layering.html" },
@@ -110,6 +110,7 @@ const SITE_TRACKS = [
       { id: "conv-05-data-access", title: "5. Data Access", file: "conv-05-data-access.html" },
       { id: "conv-06-config-secrets", title: "6. Configuration & Secrets", file: "conv-06-config-secrets.html" },
       { id: "conv-07-comments", title: "7. Comment Style", file: "conv-07-comments.html" },
+      { id: "conv-08-csv-export-escaping", title: "8. CSV Export Escaping (VB.NET)", file: "conv-08-csv-export-escaping.html" },
     ],
   },
   {
@@ -120,6 +121,23 @@ const SITE_TRACKS = [
       { id: "dbg-02-pitfalls", title: "2. Known Patterns & Pitfalls", file: "dbg-02-pitfalls.html" },
       { id: "dbg-03-review-checklist", title: "3. What Reviewers Actually Flag", file: "dbg-03-review-checklist.html" },
       { id: "dbg-04-trace-a-bug", title: "4. Worked Example: Tracing a Bug", file: "dbg-04-trace-a-bug.html" },
+      { id: "dbg-05-webforms-postback", title: "5. WebForms Postback & ViewState Pitfalls", file: "dbg-05-webforms-postback.html" },
+      { id: "dbg-06-postback-state-trap", title: "6. Worked Example: The Postback State Trap", file: "dbg-06-postback-state-trap.html" },
+      { id: "dbg-07-updatepanel-postback", title: "7. Worked Example: The Dropdown That Looked Enabled", file: "dbg-07-updatepanel-postback.html" },
+      { id: "dbg-08-hidden-fields-still-validate", title: "8. Worked Example: Hiding a Field Isn't Gating It", file: "dbg-08-hidden-fields-still-validate.html" },
+      { id: "dbg-09-swallowed-response", title: "9. Worked Example: The Response That Was Never Real", file: "dbg-09-swallowed-response.html" },
+      { id: "dbg-10-timeouts", title: "10. Timeouts: Whose Problem Is It", file: "dbg-10-timeouts.html" },
+      { id: "dbg-11-testing-a-fix", title: "11. Worked Example: Designing Test Cases for a Fix", file: "dbg-11-testing-a-fix.html" },
+    ],
+  },
+  {
+    id: "tools",
+    title: "Dev Tools & Workflow",
+    lessons: [
+      { id: "tools-01-dev-machine-diagnostics", title: "1. Diagnosing Your Own Dev Machine", file: "tools-01-dev-machine-diagnostics.html" },
+      { id: "tools-02-git-archaeology", title: "2. Git Archaeology: What Blame Can't Tell You", file: "tools-02-git-archaeology.html" },
+      { id: "tools-03-tracing-affected-code", title: "3. Finding Every Affected Function First", file: "tools-03-tracing-affected-code.html" },
+      { id: "tools-04-deployment-safety", title: "4. Deploying Safely to a Shared Server", file: "tools-04-deployment-safety.html" },
     ],
   },
   {

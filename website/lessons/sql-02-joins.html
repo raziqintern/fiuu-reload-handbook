@@ -41,6 +41,12 @@ WHERE t.TerminalId = 3;</pre>
 
 <p>Terminal 3 ("Old Kiosk") has no activity rows. An <code>INNER JOIN</code> would have dropped it from the results entirely; <code>LEFT JOIN</code> keeps it and fills the missing activity columns with <code>NULL</code>. Use <code>LEFT JOIN</code> whenever "no matching rows" is itself a meaningful answer, not an error.</p>
 
+<div class="callout real">
+<span class="callout-title">A real incident: data existed, but an INNER JOIN two layers deep was silently dropping it</span>
+A BackOffice list page showed "No result found" for every status filter, even though the underlying table clearly had matching rows. The trail went two layers deep: the stored procedure itself already filtered by country (correctly), and then a second, page-level LINQ query re-filtered the results with its own <code>Join</code> against a <code>GetUsers()</code> call — which turned out to run <code>INNER JOIN Departments ON Departments.Id = Users.DepartmentId</code> internally. Any user with a <code>NULL</code> or orphaned <code>DepartmentId</code> silently disappeared from that "all users" list — and every record they had ever created vanished from the page along with them, regardless of what status filter was applied. Nothing in the page's own filters was wrong; an unrelated <code>INNER JOIN</code> three calls away was the actual cause.
+</div>
+<p>The lesson generalises beyond this one page: when a query or a page shows fewer rows than the data supports, don't stop at the first <code>WHERE</code> clause you find — a chain of joins across a service layer can each independently be "correct" in isolation and still silently exclude real rows in combination. An <code>INNER JOIN</code> anywhere in that chain is a candidate for accidental data loss, not just the one in the query you're currently looking at.</p>
+
 <h2>Filtering and ordering</h2>
 <div class="tryit" data-lang="sql">
 <pre class="tryit-src">SELECT TransNo, Amount

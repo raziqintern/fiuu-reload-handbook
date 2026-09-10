@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git Archaeology: What Blame Can't Tell You · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="tools-02-git-archaeology">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Dev Tools &amp; Workflow</span>
+<h1>Git Archaeology: What Blame Can't Tell You</h1>
+<p class="lede">Two real investigations into "why does this line exist" and "is it safe to reset this pointer" — and where each one ran into a limit that isn't about knowing the right git command, but about knowing when a command's answer isn't the real answer.</p>
+
+<h2>The question: why does this line exist?</h2>
+<p>A page disabled a dropdown after a search ran, with no comment explaining why. Before assuming it was a bug worth removing, the reasonable move is to find out whether it was ever a deliberate requirement — and <code>git log -S"the exact line"</code> (or <code>git blame</code>) is the standard way to find the commit that introduced a specific piece of code.</p>
+<pre class="code-block">git log -S"ddlStockType.Enabled = False" -- path/to/StockAllocationEdit.aspx.vb</pre>
+
+<div class="callout warn">
+<span class="callout-title">The trail led to a bulk rename, not the real origin</span>
+The commit that came back had the message <code>"[SIT] {Reload} GIT#1770"</code> — but reading that ticket showed it was a project-wide <strong>namespace consolidation</strong> ("rename <code>MOL.App.CEPP.BackOffice.Web</code> to <code>Fiuu.App.BackOffice.Web</code>"), not a change to this page's search behavior at all. The whole file had been reintroduced wholesale as part of that rename/move — which is exactly the kind of commit <code>git log -S</code> and <code>blame</code> will surface as "the" origin, because as far as git's line history is concerned, that's the most recent commit that touched this exact line at this exact path. The actual original authorship, from whenever the file lived under its old namespace, doesn't reliably carry across a wholesale move like that.
+</div>
+
+<p>This is a known, structural limit of line-level history, not a mistake in how the command was used: a rename/move (especially one bundled into a large, unrelated commit) can sever the trail a tool like <code>blame</code> or <code>log -S</code> walks, even when <code>--follow</code>/rename-detection is in play. The tool isn't wrong — it's answering "what commit last touched this line at this path," which isn't always the same question as "who decided this behavior should exist, and why."</p>
+
+<div class="callout tip">
+<span class="callout-title">Knowing when to stop guessing and ask a person</span>
+Once the trail dead-ends at a commit that's provably about something else (a rename, a bulk formatting pass, a dependency bump), further git archaeology on the same line is unlikely to produce a real answer. That's the point to say so plainly — "I can't find a documented reason this exists; it's worth asking someone who's worked on this page before" — rather than presenting a guess with the same confidence as a verified fact.
+</div>
+
+<h2>The question: is it safe to reset this pointer?</h2>
+<p>A second, unrelated situation: a working branch carried a <code>class-library</code> submodule reference pointing at commit <code>0bbe934f</code>. The target environment's current reference pointed at a different commit, <code>60e7c19</code>, dated four days later. The tempting move — since the environment's commit looked newer — was to leave it alone; a more dangerous one would have been to "fix" a perceived mismatch by resetting the environment's pointer back to the branch's own value.</p>
+
+<pre class="code-block">git merge-base --is-ancestor 0bbe934f 60e7c19 && echo "ancestor" || echo "diverged"</pre>
+
+<div class="callout real">
+<span class="callout-title">Newer isn't the same as "descended from"</span>
+Checking ancestry directly showed the two commits had <strong>diverged</strong> from a common point — neither was an ancestor of the other. The branch's own reference wasn't even about the same change: it turned out to be a different ticket's class-library revision, carried along incidentally from an earlier merge, not anything the branch's own work had introduced. Resetting the environment's pointer to that value would have moved it <em>backward</em> relative to unrelated fixes that had landed there in the meantime — a real regression a passing build would never catch, since a successful build only proves the referenced API surface still compiles, not that other tickets' changes are still present.
+</div>
+
+<p>The generalizable move: before resetting or aligning any shared reference — a submodule commit, a deployment tag, any pointer more than one team's changes flow through — check ancestry (<code>git merge-base</code>, or <code>git log --graph</code> across both refs) rather than comparing dates or assuming "the one my change needs" is safe to force onto a shared target. Two histories that look related can have quietly diverged, and a confident-looking reset can be the more dangerous action, not the safe default.</p>
+
+<h2>Best practice</h2>
+<ul>
+<li><code>git log -S</code>/<code>blame</code> answer "what commit last touched this exact line at this exact path" — not "who decided this behavior, and why." When the answer is a rename, reorg, or other bulk commit, treat that as a dead end, not a citation, and say so rather than guessing further.</li>
+<li>Before resetting any shared pointer (a submodule reference, a promoted branch, a deploy tag) to match what your own change needs, confirm the two values are actually ancestor/descendant of each other with <code>git merge-base --is-ancestor</code> — "looks newer" and "is a descendant" are not the same claim, and only one of them is safe to act on.</li>
+</ul>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>git log -S"some line"</code> on a suspicious piece of code returns a commit whose message is a large, unrelated refactor ("standardize project namespaces across the solution"). What should you conclude?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="A commit that reintroduces a file wholesale (a rename, move, or bulk refactor) will show up as the 'origin' of every line in that file as far as line-history tools are concerned, regardless of when the behavior was actually decided. Treat this as a dead end for this specific question, not as the real answer." >The commit is very likely just where the file got relocated/rewritten wholesale — it's probably not when this specific behavior was actually decided, and the trail likely can't be followed further back reliably.</li>
+<li data-correct="false" data-explain="Line-history tools attribute lines to whatever commit last touched that exact line at that exact path — a bulk move or rewrite resets that trail, so the timing here says more about the refactor than about the specific logic." >The behavior was definitely introduced specifically for that refactor ticket, since that's what git says.</li>
+<li data-correct="false" data-explain="git log -S and blame are working exactly as designed here — they're just answering a narrower question than 'why does this behavior exist,' not malfunctioning." >This means git blame/log -S is broken and shouldn't be trusted for this file going forward.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

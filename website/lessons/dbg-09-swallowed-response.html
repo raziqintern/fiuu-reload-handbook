@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worked Example: The Response That Was Never Real · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="dbg-09-swallowed-response">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Debugging Reload</span>
+<h1>Worked Example: The Response That Was Never Real</h1>
+<p class="lede">A real production incident from reload's offline-payment integration (issue #2546): a <code>NullReferenceException</code> whose stack trace pointed at the wrong method entirely — because the real point of failure had already caught and hidden its own exception before the crash ever happened.</p>
+
+<h2>The symptom, as it was reported</h2>
+<div class="callout warn">
+<span class="callout-title">A NullReferenceException with a suspiciously short stack trace</span>
+Production logs showed a crash inside <code>MolPayOfflinePaymentService.ApiCall_PaymentPreCreate()</code>, with <code>OfflineService.PreCreatePayment</code> as its only caller above it. The method that actually makes the outbound HTTP call — <code>RequestWebApi()</code> — never appears in the trace at all, even though it's the method sitting directly between them in the source.
+</div>
+
+<h2>Step 1 — a method missing from its own crash is a clue, not a mystery</h2>
+<p>The instinct is to assume the stack trace is incomplete or that the file has drifted since the crash. Both are worth a five-second check (<code>git log --since=&lt;date&gt; -- &lt;file&gt;</code> — in this case, no commits since the incident, so the code hadn't moved). But there's a more common explanation, and it's the right one here: <strong>a method can be the true site of failure and still never appear in the trace, if it catches its own exception and never rethrows.</strong> From the caller's point of view, a swallowed exception looks exactly like a normal return — just possibly with a broken result inside it.</p>
+
+<h2>Step 2 — the actual code, and the gap between two <code>try</code> scopes</h2>
+<pre class="code-block">protected HttpResponseMessage RequestWebApi(string method, string url, Dictionary&lt;string, string&gt; param)
+{
+    HttpResponseMessage responseMessage = new HttpResponseMessage();   // line 70 — default StatusCode is 200 OK, Content is null
+    ...
+    try
+    {
+        ...
+        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+        request.ContentLength = byteArray.Length;
+        Stream stm = request.GetRequestStream();                       // line 89 — OUTSIDE the inner try below
+        stm.Write(byteArray, 0, byteArray.Length);
+
+        HttpWebResponse response;
+        try
+        {
+            response = (HttpWebResponse)request.GetResponse();          // line 97 — the ONLY call wrapped by the safety net
+        }
+        catch (WebException e)
+        {
+            response = (HttpWebResponse)e.Response;                     // builds a graceful "M1" stub response below
+        }
+
+        if (response == null)
+        {
+            responseMessage.Content = new StringContent("{\"statusCode\": \"M1\"}", ...);
+            throw new Exception("Failed to get response from HttpRequest.");
+        }
+        responseMessage = new HttpResponseMessage(response.StatusCode); // real success path
+        responseMessage.Content = new StringContent(...);
+    }
+    catch (Exception ex)                                                // line 115 — logs, does NOT rethrow
+    {
+        LogHelper.Write(string.Format("... [System Error: {0}]", ex.Message), userId);
+    }
+
+    return responseMessage;   // whatever it was left as when the try block gave up
+}</pre>
+<p class="code-cite">reload/web/DEV/NET/Components/CEPP/Payment/OfflinePayment/Fiuu.Reloads.OfflinePayment/Services/MolPayOfflinePaymentService.cs:68-121</p>
+
+<p>The method has exactly one safety net — the inner <code>try/catch (WebException e)</code> around <code>GetResponse()</code> — and it exists specifically to hand back a usable stub response (<code>{"statusCode": "M1"}</code>) if the HTTP call itself fails. But <code>request.ContentLength = byteArray.Length</code> is set before this, and for a POST with a real body, <code>HttpWebRequest</code> actually opens the TCP connection at <strong><code>GetRequestStream()</code></strong> — line 89 — not later at <code>GetResponse()</code>. That line sits <em>outside</em> the inner try. A connection failure there (exactly what production hit: "Unable to connect to the remote server") skips the safety net entirely, falls straight into the broad outer <code>catch (Exception ex)</code>, gets logged, and is never rethrown.</p>
+
+<div class="callout real">
+<span class="callout-title">What that means for <code>responseMessage</code></span>
+Nothing between line 89 and the outer catch ever ran. <code>responseMessage</code> is returned exactly as constructed at line 70: a brand-new <code>HttpResponseMessage()</code> whose default <code>StatusCode</code> is <code>200 OK</code> and whose <code>Content</code> was never assigned — <code>null</code>. Not the "M1" stub. Not a real response. A blank object that looks, from the outside, like a legitimate empty success.
+</div>
+
+<h2>Step 3 — the caller has no way to tell the difference</h2>
+<pre class="code-block">HttpResponseMessage responseMessage = RequestWebApi("POST", ApiUrl, reqParam);
+
+if (responseMessage != null)                                    // true — it's a real object, just an empty one
+{
+    if (responseMessage.StatusCode != HttpStatusCode.OK)         // false — default StatusCode IS OK
+        throw new OfflinePaymentApiHttpException(...);
+    else
+    {
+        string sResponseMessageContent = responseMessage.Content.ReadAsStringAsync().Result;   // line 54 — Content is null → NullReferenceException
+        ...
+    }
+}</pre>
+<p class="code-cite">reload/web/DEV/NET/Components/CEPP/Payment/OfflinePayment/Fiuu.Reloads.OfflinePayment/Services/MolPayOfflinePaymentService.cs:46-54</p>
+<p><code>ApiCall_PaymentPreCreate</code> checks <code>StatusCode != OK</code> to detect failure — a completely reasonable check, except the untouched default object is <em>also</em> <code>OK</code>. So it falls into the success branch and dereferences <code>.Content</code>, which is null. That's line 54, exactly where the exception log points — and it's a perfectly true report. It's just not where the actual bug lives.</p>
+
+<h2>The generalizable pattern</h2>
+<div class="callout tip">
+<span class="callout-title">A broad catch-and-swallow is dangerous specifically when its method returns a value the caller treats as authoritative</span>
+<code>catch (Exception ex) { Log(...); }</code> with no rethrow doesn't just hide an error — it lets execution continue as if nothing happened, handing the caller whatever partial state existed at the moment of failure. If that return value is later checked with an incomplete signal (here, "is <code>StatusCode</code> not <code>OK</code>?" — but a never-set default is <em>also</em> "OK"), the caller can't distinguish <strong>real success</strong> from <strong>silently absorbed failure</strong>. When a stack trace's crash point sits right after a call to a method with this shape, treat the returned object as suspect before trusting the line the trace points to.
+</div>
+
+<h2>Debugging technique worth stealing</h2>
+<p>Reproducing this required getting a real TCP connection failure to happen specifically during <code>GetRequestStream()</code> rather than <code>GetResponse()</code> — timing-dependent and awkward to force live (hosts-file redirects, firewall rules, a real unreachable host). The actual, faster path: <strong>force the exact object state directly in the debugger</strong> — set a breakpoint where <code>RequestWebApi()</code> returns, and override <code>responseMessage</code> in the Immediate window to a brand-new, completely untouched <code>HttpResponseMessage()</code>. That's a faithful stand-in for the real failure, not a shortcut around it, because it reproduces the exact object state the real code path produces — and it's available without touching a shared dev box's network config at all.</p>
+<p>One more discipline this incident surfaced: when testing a hypothesis, change <strong>one variable at a time</strong> and confirm the other precondition is still true. A test that set <code>ContentLength = 0</code> and got "no exception, request went through" proved nothing about the <code>ContentLength &gt; 0</code> theory — the connection wasn't actually broken during that particular run, so of course it succeeded. Two changed conditions, one observed result, is not a test of either one alone.</p>
+
+<h2>Best practice</h2>
+<p>Whenever you write a method with an outer catch-and-log-and-swallow around a whole method body, ask: does this method's return value get checked for success by the caller? If so, make sure every exit path — including the one your outer catch falls through to — leaves that return value in a state the caller's check can correctly classify as failure. A default-constructed object is rarely a safe stand-in for "this failed."</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why does the exception in this incident get logged at line 54 of <code>ApiCall_PaymentPreCreate</code>, instead of inside <code>RequestWebApi</code> where the real connection failure happened?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The file hadn't changed since the incident (confirmed via git log) — line drift isn't what's happening here." >The file changed after the incident, so the line numbers no longer match.</li>
+<li data-correct="true" data-explain="RequestWebApi's outer catch logs the real failure and swallows it without rethrowing — so from the stack trace's point of view, RequestWebApi returned normally. The exception that actually terminates the request is a completely separate NullReferenceException, thrown later, in the caller, when it dereferences the untouched object's null Content." >RequestWebApi already caught and swallowed the real exception without rethrowing — the NullReferenceException at line 54 is a second, separate exception, caused by the caller trusting the untouched object it got back.</li>
+<li data-correct="false" data-explain="responseMessage is never null in this scenario — RequestWebApi always returns the object it constructed at the top of the method, real or default. The bug is that its Content property is null, not the object itself.">responseMessage itself is null, and the null-check on line 48 has a bug.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">What made the debugger-forced repro ("manually set responseMessage to a fresh HttpResponseMessage()") a faithful reproduction of the bug rather than a cheat?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="The forced state exactly matches what a real connection failure at GetRequestStream() produces: the untouched line-70 object, StatusCode defaulting to OK, Content never assigned. It's the same object shape a genuine production failure creates — just reached without needing a live, flaky network condition." >It reproduces the exact object state that a real connection failure at GetRequestStream() would leave behind — same shape, same missing Content, same default StatusCode.</li>
+<li data-correct="false" data-explain="The debugger override doesn't touch or need the network at all — that's precisely why it's a useful technique." >It works because it actually breaks the real network connection to the sandbox host.</li>
+<li data-correct="false" data-explain="The fix (closing the gap between the two try scopes, or guarding the dereference) is exactly what this reproduction validates — it's not orthogonal to it.">It's unrelated to the actual fix, just a way to trigger some exception for the log.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

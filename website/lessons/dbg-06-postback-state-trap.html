@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Worked Example: The Postback State Trap · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="dbg-06-postback-state-trap">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Debugging Reload</span>
+<h1>Worked Example: The Postback State Trap</h1>
+<p class="lede">A real BackOffice bug on <code>StockAllocationEdit.aspx</code>: clicking a page number on a grid silently snapped the whole page back to the wrong tab. The investigation chased a plausible, well-documented framework quirk for most of a session — the actual cause was one line sitting in the wrong place.</p>
+
+<div class="callout tip">
+<span class="callout-title">Refresher: postback, IsPostBack, ViewState</span>
+A Web Forms page submits back to <em>itself</em> on almost every user action (a button click, a dropdown change, a grid pager link) — this is a <strong>postback</strong>. <code>IsPostBack</code> tells you whether the current request is the very first load (<code>False</code>) or one of these round-trips (<code>True</code>), which is why setup code almost always sits inside <code>If Not IsPostBack Then ... End If</code> — so it only runs once. Between postbacks, ASP.NET has no memory of anything by itself; <strong>ViewState</strong> is what makes control properties (a selected tab, a grid's current page) survive anyway — it serializes them into a hidden field and restores them automatically, before your own code in <code>Page_Load</code> even runs.
+</div>
+
+<h2>The symptom, as it was reported</h2>
+<div class="callout warn">
+<span class="callout-title">"When I page through the grid on the 'Allocating Stocks' tab, it jumps back to 'Search Result'"</span>
+<code>StockAllocationEdit.aspx</code> has a two-tab <code>TabContainer</code> (AjaxControlToolkit) sitting inside an <code>UpdatePanel</code>. Clicking a page-number link on either grid — a completely unrelated action to tab selection — reset the active tab back to index 0 every time.
+</div>
+
+<h2>Step 1 — a plausible hypothesis, chased hard</h2>
+<p><code>TabContainer</code> tracks its active tab with a client-side JavaScript behavior object. There's a real, well-known compatibility problem between AjaxControlToolkit's <code>TabContainer</code> and being placed inside an <code>UpdatePanel</code>: when the panel does its async refresh, the control's client-side state gets re-initialized from the newly-swapped-in HTML — and in many toolkit versions, that re-init doesn't correctly read back which tab the server actually rendered as active, silently falling back to the default (tab 0). This is a real bug class, not a fabricated theory, and it matched the symptom well enough to justify designing a fix around it: a hidden field, a client-side <code>OnClientActiveTabChanged</code> hook to capture every tab click, and a ViewState-backed property to re-assert the correct tab on every subsequent postback.</p>
+
+<h2>Step 2 — before writing the fix, enumerate every code path</h2>
+<p>The relevant part of <code>Page_Load</code> only ever touches <code>ActiveTabIndex</code> in two places: once inside <code>If Not IsPostBack Then</code> (sets it to 0), and once inside an unconditional <code>If lblAllocationAction.Text = "Void" Then</code> block (sets it to 1). Instead of guessing, the two booleans that matter — <code>IsPostBack</code> and "is this a Void-type order" — were crossed into a full truth table:</p>
+
+<table>
+<tr><th>Path</th><th>IsPostBack</th><th>Text = "Void"</th><th>What sets ActiveTabIndex</th><th>Result</th></tr>
+<tr><td>A</td><td>False</td><td>Yes</td><td>= 0, then = 1 (Void block runs too)</td><td>1 — correct</td></tr>
+<tr><td>B</td><td>False</td><td>No</td><td>= 0</td><td>0 — correct</td></tr>
+<tr><td>C</td><td>True</td><td>Yes</td><td>Void block still runs unconditionally → = 1</td><td>1 — correct</td></tr>
+<tr><td><strong>D</strong></td><td><strong>True</strong></td><td><strong>No</strong></td><td><strong>Nothing touches it at all</strong></td><td><strong>Whatever survives — unreliable</strong></td></tr>
+</table>
+
+<div class="callout tip">
+<span class="callout-title">The technique, not just this bug</span>
+Crossing every boolean condition that guards a piece of state into an explicit table — instead of reasoning about "the happy path" and one or two edge cases from memory — is what actually found the gap. Path D (a normal postback, non-Void) is exactly a page-number click on a non-Void order: the everyday case, not an edge case, which is why the bug was so visible and so confusing.
+</div>
+
+<h2>Step 3 — the twist: the real cause was far simpler</h2>
+<p>Before the client-state-tracking fix was implemented, the actual position of the line that seeds Path D's fate turned out to matter more than any framework quirk. The original code had <code>tcStockAllocation.ActiveTabIndex = 0</code> sitting inside a block of control setup that ran <strong>unconditionally on every single <code>Page_Load</code></strong> — postback or not — starting around line 82. Moving that one line into the <code>If Not IsPostBack Then</code> guard (where it now sits, around line 60) closed Path D completely: on every subsequent postback, nothing resets the tab anymore, so ViewState is left to do the one thing it's actually reliable at — carrying forward whatever tab the user last had selected.</p>
+
+<div class="callout real">
+<span class="callout-title">No client-side workaround was needed</span>
+The hidden-field / <code>OnClientActiveTabChanged</code> / ViewState-tracking mechanism designed in Step 2 wasn't wrong in principle — that pattern is the correct fix <em>if</em> the client-side re-init theory had been the real cause. It wasn't. The bug was a plain server-side line running more often than it should, something a full path audit surfaces directly without needing to touch the browser at all.
+</div>
+
+<h2>The generalizable lesson</h2>
+<p>When a value that ViewState should be preserving keeps resetting across postbacks in this codebase, check first whether something in <code>Page_Load</code> is <strong>unconditionally re-assigning it outside the <code>Not IsPostBack</code> guard</strong> — that's a one-line, code-only check. Only reach for a heavier client-state-tracking fix (hidden fields, client-side event hooks, a ViewState-backed shadow property) once a full path audit has actually ruled out a simpler, purely server-side explanation. The more "interesting" framework-quirk explanation is not automatically the right one just because it's real and well-documented elsewhere.</p>
+
+<h2>Best practice</h2>
+<p>Before proposing a fix for state that "resets unexpectedly" on a Web Forms page, list every boolean condition that guards the property in question and cross them into a table, the way Step 2 did. The gap — a path nothing touches — is usually obvious once it's written down, and it tells you exactly where to look before you reach for a more elaborate mechanism.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A control's property is set inside <code>If Not IsPostBack Then</code> in one place, and inside an unconditional <code>If someCondition Then</code> block elsewhere in the same <code>Page_Load</code>. On a postback where <code>someCondition</code> is false, what determines the property's final value?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="That block is skipped entirely on any postback, since IsPostBack is True — it contributes nothing on this path." >Whatever the <code>Not IsPostBack</code> block set it to.</li>
+<li data-correct="true" data-explain="This is exactly Path D from the worked example — neither guarded block runs, so nothing in the method touches the property, and it's left entirely to ViewState (or, in a control with its own client-side state, whatever that control's re-init logic decides)." >Whatever ViewState (or the control's own persisted state) already restored, since nothing in this method touches it on that path.</li>
+<li data-correct="false" data-explain="The unconditional block is unconditional only with respect to IsPostBack — it still requires someCondition to be true, which it isn't here." >The unconditional block, since it always runs regardless of IsPostBack.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A symptom matches a real, well-documented framework quirk almost perfectly. What does this worked example say you should do before building a fix around that quirk?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="A plausible, well-documented explanation still needs to be checked against this specific codebase's actual code before a fix is designed around it — matching the symptom isn't the same as being the cause here." >Trust it and build the fix, since a documented quirk matching the symptom is strong enough evidence on its own.</li>
+<li data-correct="true" data-explain="The StockAllocationEdit.aspx investigation chased a real AjaxControlToolkit/UpdatePanel quirk for most of a session before a full path audit revealed the actual cause was a misplaced line of server-side code — no framework quirk involved at all." >Audit every code path that could explain the symptom with a simpler, local cause first — the plausible framework explanation may not be what's actually happening in this instance.</li>
+<li data-correct="false" data-explain="Ignoring a real, relevant framework quirk isn't the lesson either — it's a legitimate hypothesis worth knowing about, just not one to commit to without first ruling out simpler causes.">Ignore the quirk entirely, since framework-level explanations are never the real cause.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

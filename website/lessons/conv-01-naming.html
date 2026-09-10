@@ -13,9 +13,14 @@
 <nav id="site-sidebar" aria-label="Lesson navigation"></nav>
 <main id="site-main">
 
-<span class="track-label">Fiuu C# Conventions</span>
+<span class="track-label">Fiuu Code Conventions</span>
 <h1>Naming</h1>
 <p class="lede">Fiuu has no documented coding standard for this codebase. Everything in this track is reverse-engineered straight from real code — with file:line citations — not idealized guidelines. Full source: <a href="../../conventions/naming.md">conventions/naming.md</a>.</p>
+
+<div class="callout tip">
+<span class="callout-title">This track covers both languages reload is actually written in</span>
+The shared <code>class-library</code> and most newer components are C#. The BackOffice WebForms UI — where most of the worked bugs in the Debugging Reload track happen — is VB.NET (<code>.aspx.vb</code> code-behind). Most lessons here use C# examples since that's the shared-library convention source; <a href="conv-08-csv-export-escaping.html">CSV Export Escaping</a> is VB.NET specifically, pulled straight from BackOffice code. If you're heading into WebForms work, also see the <a href="vb-01-syntax.html">VB.NET Fundamentals</a> track.
+</div>
 
 <h2>What's rock-solid: PascalCase types, I-prefixed interfaces, layer suffixes</h2>
 <pre class="code-block">public class TerminalService : ITerminalService

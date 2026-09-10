@@ -76,6 +76,81 @@ Console.WriteLine("MYR " + amountInCents.ToString("N2"));</pre>
 Whenever a value crosses a partner boundary (amount, date, timestamp), check the unit/format <em>the partner</em> expects or sends — not what's convenient internally. Cents-vs-ringgit and date-only-vs-datetime are both real, previously-shipped bugs in this exact codebase, not hypothetical warnings.
 </div>
 
+<h2>Spot the bug: a swallowed exception hides a resource leak</h2>
+<p>A "Resend Email" action was silently failing to record its audit entry, every single time, in a way that looked at first like a stale one-off lock. The real cause was structural, in the email-sending code itself:</p>
+<pre class="code-block">try
+{
+    var mail = new Mail();
+    ...
+    mail.AttachmentPath = AttachmentPath;   // opens a file handle on the zip attachment
+    ...
+    mail.Send();      // if this throws (e.g. no reachable SMTP server)...
+    mail.Dispose();   // ...this NEVER runs — no try/finally, no using
+}
+catch (Exception ex)
+{
+    Logger.WriteErrorToEventLogs(ex);   // swallows the exception, hides the real failure
+}</pre>
+<p class="code-cite">reload/web/DEV/NET/Components/CEPP/Services/ReportService.cs — SendEmailReportWithCC</p>
+<div class="callout warn">
+<span class="callout-title">Why the failure shows up somewhere else entirely</span>
+When <code>mail.Send()</code> throws, <code>mail.Dispose()</code> is skipped, so the file handle on the zip attachment leaks. The exception itself is swallowed and logged — so nothing appears to fail at the point of the actual bug. But a later, unrelated-looking line — <code>File.Delete(sZipFilename)</code>, cleaning up the same zip — then fails because the file is still locked, and <em>that</em> exception propagates and aborts the calling method before it ever reaches the audit-log write. The visible symptom (a missing audit row) is two method calls and one swallowed exception away from its actual cause.
+</div>
+<p>The general shape to recognise: a <code>try/catch</code> with no matching <code>finally</code>/<code>using</code> around something that opens a resource, combined with a <code>catch</code> that logs and swallows rather than re-throwing. Either half alone is often fine; together, they let a leak in one method surface as a mysterious failure in a completely different one.</p>
+
+<h2>Spot the bug: an implicitly-<code>Nothing</code> function crashes every caller</h2>
+<p>Issue #2461: searching a BackOffice list with any status other than "All"/"Approved" threw <code>Object variable or With block variable not set</code>. The cause was a filter function, typed to return <code>Object</code>, that fell off the end of its own method on the empty-result path instead of explicitly returning an empty collection:</p>
+<pre class="code-block">If lstTerminalFirmwareVersion.Count <= iMaxRow Then   ' crashes here — .Count on Nothing</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/CEPP/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb — fixed in MR !1906</p>
+<p>Any status filter that legitimately matched zero rows left the underlying function implicitly returning <code>Nothing</code> — never explicitly, never documented, just a fall-through. Every caller that assumed a real (if empty) collection came back crashed instead.</p>
+<div class="callout real">
+<span class="callout-title">This isn't a one-off — it's the single largest cluster of open crash tickets</span>
+A pass across this project's open "[Issue] Exception N" crash-report series found 18 tickets from the same automated crash-reporting mechanism. <strong>8 of the 18</strong> shared this exact shape: <code>Object reference not set</code>/<code>Object variable or With block variable not set</code>, traced back to a method that returns <code>Nothing</code> instead of an empty collection on some path. That's nearly half of all open crash reports in this one recognisable pattern — worth actively searching for (any <code>Object</code>- or interface-typed method with a return path that isn't an explicit <code>Return New List(Of ...)</code>/empty result), not just fixing reactively one ticket at a time.
+</div>
+
+<h2>Spot the bug: two enums, one shared name</h2>
+<p>A BackOffice payment-enquiry feature reads a "service type" value on both a list page and its detail page, using what looks like the same identifier passed straight through a query string.</p>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Investigation turned up two separate enums in the codebase, both representing "which service type is this," both fed by variables named almost identically (<code>iServiceTypeId</code>). <code>EnumPOSAPIServiceType</code> defines <code>GiftCard = 3</code>; a second, unrelated enum, <code>ServiceProviderType</code>, defines <code>TopUp = 3</code> — same numeric value, different meaning. The two enums aren't mixed together anywhere today. What's the actual risk?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Today, a local variable happens to shadow the class-level property in the one method that uses the colliding enum, so the two never actually mix at runtime yet. But that's incidental, not a safeguard — refactor away the local shadowing variable, extend the code to cover more cases, or copy the pattern elsewhere assuming the property name always means one specific enum, and a GiftCard record can silently get treated as a TopUp record, or vice versa.">Nothing breaks yet only by accident — a local variable currently shadows the class-level property that would otherwise mix the two enums, but that's fragile, not a real safeguard, against a future refactor.</li>
+<li data-correct="false" data-explain="C# and VB.NET don't warn about two unrelated enums sharing a numeric value for different members — there's no compiler-level protection against this at all.">The compiler already prevents this from ever causing a bug, since the two enum types are distinct.</li>
+<li data-correct="false" data-explain="This isn't a naming-convention nitpick — it's a live landmine because the values genuinely collide in meaning, not just in spelling.">It's purely a style issue — since the enum names are different, there's no functional risk.</li>
+</ul>
+</div>
+<div class="callout warn">
+<span class="callout-title">Why this kind of collision hides for years</span>
+Several values happened to match in both enums (<code>BillPayment</code>, <code>Razer_Cash</code>, <code>Ticket</code>, <code>CarbonOffset</code> all share the same number in both) — which is almost certainly why nobody noticed the other three that don't. When two enums represent "the same kind of thing" from two different eras of the codebase, check whether their values actually agree member-by-member before assuming a property or variable name that matches one also safely matches the other.
+</div>
+
+<h2>Known pattern: the record exists, but the UI shows nothing</h2>
+<p>A real, repeated investigation shape: a product/record is confirmed present and correct in the database, yet a BackOffice search page returns nothing for it — no error, just an empty result.</p>
+<div class="callout real">
+<span class="callout-title">Two confirmed causes, same symptom</span>
+In one investigation, a product's <code>ProductGroup</code> had gone <code>InActive</code> — and the search page's own dropdown only ever loads <em>Active</em> groups (<code>Where productGroup.Status = EnumStatus.Active</code>), so the group itself was never selectable, regardless of what products sat under it. In another, a product's linked <code>ServiceProvider</code> had a <code>CountryId</code> that didn't match the logged-in user's own country — a stored procedure filter (<code>WHERE @iCountryId = 0 OR SP.CountryId = @iCountryId</code>) silently excluded it before the C# code ever saw it. Neither case was a data bug; both were a silent scoping filter applied one layer above the record you're looking at.
+</div>
+<p>The lesson generalizes: before concluding "the record is missing or corrupted," check every dropdown and filter <em>between</em> the record and the search results for a silent <code>Status</code>/<code>Active</code>/<code>CountryId</code> condition — this codebase applies that kind of scoping constantly, and it produces exactly the same "empty result" symptom as genuinely missing or bad data.</p>
+
+<h2>Spot the bug: a validation that fires almost every time, including on valid input</h2>
+<p>Submitted for review on <span class="term" data-term="merge-request">MR</span> !1910, meant to reject a blank or non-numeric quantity field:</p>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">If Not String.IsNullOrWhiteSpace(txtQuantity.Text.Trim()) Or Not IsNumeric(txtQuantity.Text.Trim()) Then
+    MessageBox.ShowErrorMessage("Quantity must be a numeric")
+    Return False
+End If
+
+' Trace it by hand for txtQuantity.Text = "5" — a perfectly valid quantity:</pre>
+<pre class="tryit-output-src">IsNullOrWhiteSpace("5")  = False  -->  Not False           = True
+IsNumeric("5")           = True   -->  Not True            = False
+                                        True Or False       = True   <- condition fires!
+"Quantity must be a numeric" shown, even though 5 is a valid number.</pre>
+</div>
+<p>Apply De Morgan's law to see why this was never going to work as written: <code>Not A Or Not B</code> is logically identical to <code>Not (A And B)</code>. Since a blank string and a valid number can never both be true of the same input at once, <code>A And B</code> (blank <em>and</em> numeric, simultaneously) is essentially never true — which means <code>Not (A And B)</code> is essentially <em>always</em> true, and the error fires almost unconditionally, valid input included. The author needed the fields combined with <code>And</code>, not <code>Or</code>: reject only when the text is blank <strong>or</strong> non-numeric, i.e. <code>String.IsNullOrWhiteSpace(...) OrElse Not IsNumeric(...)</code> — no <code>Not</code> in front of the whitespace check at all.</p>
+<div class="callout warn">
+<span class="callout-title">The general lesson</span>
+Whenever a boolean condition mixes <code>Not</code> with <code>Or</code>/<code>And</code> across more than one variable, don't eyeball it — trace it by hand for at least one case each of "should pass" and "should fail," the same way you'd trace any other suspicious conditional. This exact shape of mistake is easy to get wrong by inspection alone, which is exactly why it reached a merge request instead of being caught while writing it.
+</div>
+
 <h2>Best practice</h2>
 <p>Treat every pattern on this page as a checklist item when reviewing a diff in an unfamiliar part of this codebase, not just trivia — a dropdown reset to its placeholder, a value crossing a partner boundary, an unused function about to be deleted. Recognising the shape is what turns "this looks fine to me" into "wait, isn't this the same thing that broke in #2190?"</p>
 

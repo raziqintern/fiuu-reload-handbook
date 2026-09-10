@@ -82,6 +82,15 @@ console.log(terminal.merchantName); // this line throws</pre>
 </ul>
 </div>
 
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A jQuery <code>$(document).ready(...)</code> block calls a helper function on its very first line, then binds three more event handlers afterward in that same block. The helper function was never actually defined anywhere in the file — a paste error dropped it. What happens to the three event handlers?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="A ReferenceError thrown by calling an undefined function stops execution of that script block right there — every statement after it, including the three .change()/.click() bindings later in the same ready() callback, never runs. The page loads with no visible error to the user, just handlers that silently never attached." >None of them get bound — the ReferenceError from the missing function halts the rest of that script block, so every line after it, including the later bindings, never executes.</li>
+<li data-correct="false" data-explain="JavaScript doesn't skip just the failing line and continue — a thrown, uncaught error unwinds the rest of the current call, taking every subsequent statement in that same block down with it.">Only the call to the missing function fails; the other three bindings still run normally.</li>
+<li data-correct="false" data-explain="jQuery doesn't retry or defer a failed call — a ReferenceError is a normal JavaScript exception, not something jQuery intercepts and reschedules.">jQuery queues the failed call and retries it after the other handlers bind.</li>
+</ul>
+</div>
+
 <div class="callout tip">
 <span class="callout-title">You now know enough JavaScript</span>
 That's the JS track. Next: Algorithms &amp; Data Structures — language-agnostic thinking tools that apply to everything after this — before C#, the language reload's actual class-library is written in.

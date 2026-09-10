@@ -23,7 +23,7 @@
 
   <div class="callout tip">
     <span class="callout-title">Recommended path</span>
-    If you're new to programming, start at <strong>HTML Basics</strong> and go in order down the sidebar. If you already know C#, jump straight to <strong>Fiuu C# Conventions</strong> — that's the track that actually onboards you onto this codebase.
+    If you're new to programming, start at <strong>HTML Basics</strong> and go in order down the sidebar. If you already know C#, jump straight to <strong>Fiuu Code Conventions</strong> — that's the track that actually onboards you onto this codebase.
   </div>
 
   <h2>Tracks</h2>
@@ -40,7 +40,7 @@
   <p>From <strong>Algorithms &amp; Data Structures</strong> onward, most examples carry a <strong>C# / VB.NET tab switcher</strong> right on the box — the same logic, shown in both of reload's real languages, so you can compare them side by side instead of guessing at the translation.</p>
 
   <h2>Source material</h2>
-  <p>Everything in the <strong>Fiuu C# Conventions</strong>, <strong>Debugging Reload</strong>, and <strong>Architecture Map</strong> tracks is drawn from this repo's own <a href="../conventions/README.md">conventions/</a>, <a href="../gitlab-analysis/README.md">gitlab-analysis/</a>, and <a href="../architecture/README.md">architecture/</a> folders — reverse-engineered from the actual <code>reload</code>/<code>reload_db</code> code, not idealized guidelines. Read those source docs for the full depth; this site is the guided on-ramp into them.</p>
+  <p>Everything in the <strong>Fiuu Code Conventions</strong>, <strong>Debugging Reload</strong>, and <strong>Architecture Map</strong> tracks is drawn from this repo's own <a href="../conventions/README.md">conventions/</a>, <a href="../gitlab-analysis/README.md">gitlab-analysis/</a>, and <a href="../architecture/README.md">architecture/</a> folders — reverse-engineered from the actual <code>reload</code>/<code>reload_db</code> code, not idealized guidelines. Read those source docs for the full depth; this site is the guided on-ramp into them.</p>
 
 </main>
 <script src="assets/js/nav-data.js"></script>
@@ -53,12 +53,13 @@
       js: "Variables, control flow, functions, and how to actually debug it.",
       algo: "Big O, searching, sorting, recursion, stacks/queues/dictionaries, trees, graphs, and heaps — shown in C# and VB.NET, with animated visualizers.",
       csharp: "The language reload's class-library is written in.",
-      vbnet: "Good to know — not currently used in reload, but common in the .NET world.",
+      vbnet: "The language reload's BackOffice WebForms UI is actually written in — where most of the real bugs in the Debugging Reload track happen.",
       theory: "Boxing, nullable types, async/await, threading, generics, garbage collection, and DLLs — the theory behind a real reload incident.",
       sql: "Real, runnable SQL against a reload_db-shaped practice schema.",
       design: "OOP, SOLID, the design patterns already hiding in reload's real code, Git, code review, testing, and security basics.",
-      conventions: "The naming, layering, and error-handling patterns reload actually uses — reverse-engineered with file:line evidence.",
-      debugging: "How logging works, the recurring bug classes, and what reviewers actually flag.",
+      conventions: "The naming, layering, and error-handling patterns reload actually uses (C# and VB.NET) — reverse-engineered with file:line evidence.",
+      debugging: "How logging works, the recurring bug classes (including a lot of WebForms postback/ViewState traps), and what reviewers actually flag.",
+      tools: "Diagnosing your own dev machine, git archaeology, tracing affected code, and deploying safely to a shared server — the practical side of shipping a change.",
       architecture: "The topology and module map of reload and reload_db.",
       glossary: "CEPP, TNG, INCOMM and the rest — fast lookup.",
     };

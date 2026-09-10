@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnosing Your Own Dev Machine · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="tools-01-dev-machine-diagnostics">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Dev Tools &amp; Workflow</span>
+<h1>Diagnosing Your Own Dev Machine</h1>
+<p class="lede">Not every blocker is a bug in reload's code. Some of the most time-consuming problems a new engineer hits are entirely local: a machine that isn't set up to log correctly, a deploy failure that looks like a build failure, or a hostname that simply won't resolve. Three real examples, all with a five-minute fix once you know where to look.</p>
+
+<h2>1. Your machine needs to be told about reload's Windows Event Log sources</h2>
+<p>reload's Windows-hosted services and applications write to a custom Windows Event Log rather than (or alongside) file-based logs, under source names following the pattern <code>Fiuu.App.*</code>. On a machine that has never had these sources registered, writes to them fail or silently go nowhere — which looks exactly like "logging isn't working" when actually the log source itself doesn't exist yet on that machine.</p>
+<div class="callout tip">
+<span class="callout-title">Registering it</span>
+A setup script (<code>Register-EventLogSources.ps1</code>) registers every <code>Fiuu.App.*</code> source under the app's event log. It needs administrator rights to create event log sources, and it's written to self-elevate — running it as a normal user triggers a UAC prompt rather than failing outright:
+<pre class="code-block">powershell -ExecutionPolicy Bypass -File "path\to\Register-EventLogSources.ps1"</pre>
+Accept the UAC prompt; a second, elevated window opens and reports the registration result for each source. This is a one-time, per-machine setup step — worth running early when setting up a new dev machine, before you spend time debugging what looks like a missing-log mystery that's actually a missing-registration one.
+</div>
+
+<h2>2. "Publish failed" is not the same failure as "build failed" — read past the dialog</h2>
+<p>Visual Studio's generic error dialog ("Publish has encountered an error. Build failed.") conflates two entirely different failure domains into one unhelpful sentence. The actual answer is always further down in the Output window (View → Output, "Show output from: Build"), and the two summary lines at the bottom tell two different stories:</p>
+<pre class="code-block">========== Build: 1 succeeded, 0 failed, 15 up-to-date, 0 skipped ==========
+========== Publish: 0 succeeded, 1 failed, 0 skipped ==========</pre>
+<p>Compilation can succeed completely while <strong>deployment</strong> — a separate stage, Web Deploy pushing the compiled output to a remote server — fails for a completely unrelated reason. A real example from this exact dialog:</p>
+<pre class="code-block">Error ERROR_DESTINATION_INVALID: Web deployment task failed.
+( Could not connect to the remote computer ("ec2amaz-e2hp5a7").
+Make sure that the remote computer name is correct and that you are able to connect to that computer. )</pre>
+<div class="callout warn">
+<span class="callout-title">The trap</span>
+Trusting the dialog's "Build failed" framing sends you looking for a syntax error or a broken reference that doesn't exist. The real problem is network reachability to a Web Deploy endpoint (port 8172) — nothing about the C#/VB.NET code is at fault. Always check which of the two summary lines (Build vs. Publish) actually says "failed" before deciding what kind of problem you're chasing.
+</div>
+
+<h2>3. A hostname that "should" resolve, and doesn't</h2>
+<p>The fix for the deploy failure above is often "use the IP address instead of the hostname" — and that fix works, but it's worth understanding <em>why</em>, not just applying it. A hostname like <code>ec2amaz-e2hp5a7</code> is the auto-generated Windows computer name AWS EC2 assigns a new instance by default. That name typically isn't registered in any real DNS server — it only resolves via NetBIOS name broadcast on the same local network segment. If your machine is on a different subnet, behind a VPN split that doesn't relay that broadcast, or otherwise not on the same local segment as the target box, the name lookup fails silently — even though the machine itself is perfectly reachable by IP.</p>
+<div class="callout tip">
+<span class="callout-title">Confirm it's a resolution problem before reaching for an IP</span>
+<pre class="code-block">nslookup ec2amaz-e2hp5a7
+Test-NetConnection -ComputerName ec2amaz-e2hp5a7 -Port 8172</pre>
+If <code>nslookup</code> fails to resolve the name at all, that confirms the problem is name resolution, not reachability — and explains why swapping in the IP address fixes it. If you're editing a shared publish profile (checked into a repo, not just your own machine's local copy), think twice before hardcoding an IP: EC2 private IPs can change, and a teammate on a different subnet or VPN path may not reach that same IP the same way you do. A local-only profile is a safer place for that workaround than a shared one.
+</div>
+
+<h2>Best practice</h2>
+<p>When a tool's own error dialog gives you a vague, high-level summary ("build failed", "an error occurred"), find the actual underlying log or output window before acting on the summary's framing — the summary is often written to cover multiple failure domains at once, and acting on the wrong one wastes time investigating code that was never the problem. And when you fix something by replacing a symbolic reference (a hostname, a config key) with a literal value (an IP, a hardcoded path), understand why the symbolic version failed before deciding whether your fix belongs in a shared file or should stay local to your machine.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Visual Studio's publish dialog says "Build failed", but the Output window's summary line reads <code>Build: 1 succeeded, 0 failed</code> and <code>Publish: 0 succeeded, 1 failed</code>. What should you actually investigate?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The Output window explicitly shows the build succeeded — spending time here contradicts the actual evidence in front of you." >Recently changed C#/VB.NET code for a syntax or reference error.</li>
+<li data-correct="true" data-explain="The build succeeded; only the publish/deploy stage failed. That's a separate failure domain — typically network reachability to the deploy target, authentication, or a misconfigured publish profile — not a code problem." >The deployment target and connection (Web Deploy endpoint, hostname resolution, network reachability) — the actual failure is in the publish/deploy stage, not compilation.</li>
+<li data-correct="false" data-explain="Project references affect the build stage, which the log confirms succeeded — this isn't where the actual failure is.">Whether a NuGet package reference is missing.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why does an EC2 instance's auto-generated hostname (like <code>ec2amaz-e2hp5a7</code>) often fail to resolve from a machine on a different subnet or VPN segment, while its IP address always works?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="This class of Windows computer name typically isn't registered in real DNS — it only resolves via NetBIOS broadcast on the same local network segment. An IP address needs no name-resolution step at all, so it works regardless of subnet/VPN topology." >That hostname usually isn't a real DNS record — it only resolves via local-segment NetBIOS broadcast, which doesn't cross subnets or most VPN splits. An IP skips name resolution entirely.</li>
+<li data-correct="false" data-explain="Firewalls block specific ports/protocols, not name resolution specifically — and this behavior is consistent even with identical firewall rules, since it's about how the name gets translated to an address in the first place." >The firewall blocks hostnames but allows raw IP traffic.</li>
+<li data-correct="false" data-explain="DNS server load has nothing to do with this — the hostname was never registered in DNS in the first place, so no amount of retrying changes the outcome.">DNS servers are just slow to respond and eventually time out.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

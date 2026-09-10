@@ -74,6 +74,52 @@ dbo.ApiStockOrders_Add_Column_RMSO-219.sql
 dbo.ReconMOLPayDetails_Temp_Alter_Column_GIT#1114.sql</pre>
 <p>At least four ticket-tag spellings are in simultaneous use (<code>RMSO-nnn</code>, <code>GIT-nnn</code>, <code>GIT_nnn</code>, <code>GITnnnn</code>), with no single "correct" format ever unified. If you're searching for every script touching a given ticket, you cannot rely on one consistent grep pattern.</p>
 
+<h2>A reserved word among the database names</h2>
+<p>One of the databases in this estate is literally named <code>TRANSACTION</code> — a reserved T-SQL keyword. Querying it unbracketed doesn't fail with one clear message; it breaks the parser and produces a wall of unrelated-looking errors instead:</p>
+<pre class="code-block">-- Fails: "Incorrect syntax near 'TRANSACTION'", plus a cascade of
+-- "The multi-part identifier '...' could not be bound" on every column
+SELECT * FROM TRANSACTION.dbo.OfflineSalesOrders;
+
+-- Works: bracket the database name specifically
+SELECT * FROM [TRANSACTION].dbo.OfflineSalesOrders;</pre>
+<div class="callout tip">
+<span class="callout-title">Only the database name needs the brackets</span>
+Once you're inside the query, the columns themselves (<code>o.Id</code>, <code>o.InvoiceNo</code>) don't need bracketing — only <code>[TRANSACTION]</code> does, since that's the one identifier colliding with a T-SQL keyword. If your SSMS session is already connected directly to the <code>TRANSACTION</code> database, you can drop the prefix entirely and just write <code>dbo.OfflineSalesOrders</code>.
+</div>
+
+<h2>A real optimization: making an expensive join conditional</h2>
+<p>A stored procedure searching <code>INVENTORY.dbo.Stocks</code> unconditionally joined out to <code>VoidTransactions</code> on <em>every</em> call, purely to support one optional void-date filter — meaning every search paid that join's cost even when nobody asked for it. The fix is a pattern worth recognising whenever a search procedure has several optional filter parameters:</p>
+<pre class="code-block">-- Before: VoidTransactions joined on every call, filter used or not
+SELECT ...
+FROM [INVENTORY].[dbo].[Stocks] WITH (NOLOCK)
+LEFT OUTER JOIN [TRANSACTION].[dbo].[VoidTransactions] VT WITH (NOLOCK)
+    ON Stocks.SerialNo1 = VT.SerialNo AND Stocks.ProductId = VT.ProductId
+WHERE (@VoidedStartDate IS NULL OR VT.VoidedDate BETWEEN @VoidedStartDate AND @VoidedEndDate)
+  -- ...other filters...
+
+-- After: base filters run first into a #temp table; the optional
+-- join only runs at all when the caller actually supplied that filter
+SELECT ... INTO #StocksFiltered
+FROM [INVENTORY].[dbo].[Stocks] WITH (NOLOCK)
+WHERE -- ...other filters, unrelated to VoidTransactions...
+
+IF @VoidedStartDate IS NOT NULL
+BEGIN
+    SELECT main.* FROM #StocksFiltered main
+    INNER JOIN [TRANSACTION].[dbo].[VoidTransactions] VT WITH (NOLOCK)
+        ON main.SerialNo1 = VT.SerialNo AND main.ProductId = VT.ProductId
+        AND VT.VoidedDate BETWEEN @VoidedStartDate AND @VoidedEndDate
+END
+ELSE
+BEGIN
+    SELECT * FROM #StocksFiltered
+END</pre>
+<p class="code-cite">reload_db/MAINT/INVENTORY/StoredProcedure/dbo.Stocks_Sel_By_Search.sql</p>
+<div class="callout tip">
+<span class="callout-title">The general shape</span>
+When a search procedure has an optional filter that needs its own join, don't join unconditionally and gate only the <em>result</em> with a <code>WHERE @param IS NULL OR ...</code> clause — the join still runs on every call either way. Land the base result in a <code>#temp</code> table first, then branch (<code>IF @param IS NOT NULL</code>) into whichever version of the final <code>SELECT</code> actually needs the extra join. It's the same underlying instinct as this track's <code>OPTION (RECOMPILE)</code> convention: don't make every call pay for a filter almost nobody uses on any given search.
+</div>
+
 <h2>Best practice</h2>
 <ul>
 <li>Follow the <code>&lt;Schema&gt;.&lt;Table&gt;_&lt;Verb&gt;</code> naming exactly when adding a new stored procedure to an existing module — inconsistent naming here breaks the informal but load-bearing convention linking it to its C# constant.</li>

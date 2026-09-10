@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploying Safely to a Shared Server · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="tools-04-deployment-safety">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">Dev Tools &amp; Workflow</span>
+<h1>Deploying Safely to a Shared Server</h1>
+<p class="lede">A real BackOffice release walkthrough — checking out a release branch, deploying to UAT, and the runbook steps a manual deploy to a shared Windows server actually involves. Every one of these is a real, easy-to-make mistake, not a hypothetical one.</p>
+
+<h2>The task, as it was actually given</h2>
+<p>A typical instruction for this kind of release looks like: check out the release branch, deploy BackOffice to the UAT server, zip the release with a dated name, and add a tester to the UAT merge request. Each of those is a separate tool/step — GitHub Desktop only covers the branch checkout; the rest is manual server work, file zipping, and GitLab, done outside any single tool.</p>
+
+<h2>Step 1 — strip build-time config before copying anything</h2>
+<div class="callout warn">
+<span class="callout-title">Your build's config is not the server's config</span>
+Publishing/building the app locally produces an output folder whose config files (<code>Web.config</code>, and <code>appsettings.json</code> for newer .NET apps) contain whatever settings your <em>build environment</em> resolved — a different database, different endpoints, a different mail server than the live target. The live server already has its own correct config for that specific environment. Removing <code>.config</code> files (and <code>appsettings.json</code>, where applicable) from the release output <em>before</em> copying it anywhere means the deploy physically cannot clobber the server's real settings, even by accident.
+</div>
+
+<h2>Step 2 — confirm which server, every time</h2>
+<p>Different apps in this system live on different servers (BackOffice, Terminal API, API Portal, Terminal Server, Scheduler each have their own instance) — there's no single box a deploy always targets. Before touching anything, confirm which server this specific app/environment combination actually maps to, rather than assuming it's the same one as last time.</p>
+
+<div class="callout real">
+<span class="callout-title">A real near-miss: a connection literally named "-prod"</span>
+Mid-deploy, the active RDP connection in use was named <code>rmsq-sg-backoffice-ec2-prod</code> — while the task was to deploy to <strong>UAT</strong>, and a separately-named <code>RMSQ-pipeline-uat</code> connection existed right next to it in the same connection list. Two explanations were both plausible: either the wrong connection had genuinely been grabbed, or the team's internal naming just labels the QA group's primary node with "-prod" for unrelated reasons. Either way, the right move is the same — <strong>stop and confirm which server this actually is before backing up, uploading, or overwriting anything on it</strong>, rather than trusting that a connection's position in a list or its similarity to a past deploy means it's the right target.
+</div>
+
+<h2>Step 3 — back up before you touch anything</h2>
+<p>Copy the <em>current live</em> files into a dated backup folder (e.g. <code>C:\00-Backup\&lt;date&gt;\</code>) before any new files are written. This is the rollback point — if the new release breaks something, you restore from here instead of trying to reconstruct what was previously live from memory or source control alone (a manually-deployed server's exact live state isn't guaranteed to match any single commit).</p>
+
+<h2>Step 4 — stage before you promote</h2>
+<p>Upload the new release into a separate, dated staging folder (e.g. <code>C:\00-Updates\&lt;date&gt;\</code>) — not the live application path directly. This lets you confirm the files actually transferred correctly (right contents, no partial copy) before they touch anything a real user or terminal is currently hitting. Only once that's confirmed do you copy from staging into the live path, overwriting the previous version.</p>
+
+<h2>The generalizable lesson</h2>
+<p>The whole sequence is one repeatable shape: <strong>strip anything environment-specific from your release → confirm the target → back up current → stage the new version → promote staging to live.</strong> Every step exists to make a mistake at that step non-destructive — a wrong config gets stripped before it can be copied, a wrong server gets caught before it's touched, a bad release gets caught in staging before it's live, and a live break is recoverable from the backup. None of these steps are unique to this codebase; they apply to any manual deploy onto a shared, stateful server.</p>
+
+<h2>Best practice</h2>
+<ul>
+<li>Never assume a remote connection or environment name matches the task just because it's the one you were already using, or the one that looks similar to what you used last time — read the actual label before you act on a shared server.</li>
+<li>If a deploy runbook doesn't already separate "stage" from "promote to live" as two distinct steps, treat that as a gap worth raising, not something to work around by being extra careful during a single combined step.</li>
+</ul>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You're about to RDP into a server to deploy a UAT release, and the connection you have open is named <code>rmsq-sg-backoffice-ec2-prod</code>. What should you do?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="A name containing \"-prod\" while your task is a UAT deploy is exactly the kind of mismatch worth pausing on — proceeding without checking is how a UAT deploy accidentally lands on production." >Proceed — connection names are just labels and don't necessarily reflect the actual environment.</li>
+<li data-correct="true" data-explain="This is the real near-miss from this lesson: stopping to confirm which server a confusingly-named connection actually is, before backing up or overwriting anything, is what prevents a UAT deploy from accidentally hitting production." >Stop and confirm with whoever assigned the task (or the app-to-server reference) which server this actually is before doing anything else.</li>
+<li data-correct="false" data-explain="Deleting the connection doesn't resolve the actual question of which server needs the UAT deploy, and removes a connection that may still be legitimately needed." >Delete the connection and create a new one to avoid confusion.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why remove <code>.config</code>/<code>appsettings.json</code> files from a release build before copying it to a live server, rather than just being careful not to overwrite the wrong values?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Removing the files entirely makes the mistake physically impossible, rather than relying on careful manual attention every single deploy — the live server's own existing config is left completely untouched by the copy." >It makes it structurally impossible for the copy to overwrite the server's real settings, instead of depending on the deployer not making a manual mistake every time.</li>
+<li data-correct="false" data-explain="The files are removed from the release output before copying — the app on the live server still has its own config in place and continues running normally." >It's required for the application to run at all after deployment.</li>
+<li data-correct="false" data-explain="This step has nothing to do with file size or transfer speed — it's specifically about not overwriting environment-specific settings.">It reduces the size of the release zip for faster upload.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>
