@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Events: WithEvents, Handles & AddHandler · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="vb-05-events-webforms">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">VB.NET Fundamentals</span>
+<h1>Events: WithEvents, Handles &amp; AddHandler</h1>
+<p class="lede">Every <code>Handles Me.Load</code> and <code>Handles btnExcel.Click</code> in every BackOffice page relies on a mechanism this lesson makes explicit — and knowing the alternative (<code>AddHandler</code>) matters the moment you need to wire up something the designer didn't generate for you.</p>
+
+<h2>WithEvents is what makes Handles possible</h2>
+<p><code>Handles</code> only works on a variable declared <code>WithEvents</code> — this isn't automatic for every object, it's a specific declaration that tells the compiler "this variable can raise events I might want to handle." Every WebForms control on a page gets exactly this treatment, generated for you:</p>
+<pre class="code-block">Protected WithEvents form1 As Global.System.Web.UI.HtmlControls.HtmlForm
+Protected WithEvents ScriptManager1 As Global.System.Web.UI.ScriptManager
+Protected WithEvents applicationTitle As Global.System.Web.UI.HtmlControls.HtmlGenericControl</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/BackOffice.Master.designer.vb:41,50,59</p>
+<p>That's why a code-behind file can just write <code>Handles btnExcel.Click</code> without ever seeing an explicit "subscribe to this event" statement anywhere — the <code>.designer.vb</code> partner file (auto-generated, regenerated whenever the designer view changes) already declared every markup control <code>WithEvents</code>, and <code>Handles</code> does the actual wiring at compile time:</p>
+<pre class="code-block">Protected Sub Page_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
+Protected Sub btnExcel_OnClick(ByVal sender As Object, ByVal e As EventArgs) Handles btnExcel.Click</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:31,321</p>
+<div class="callout tip">
+<span class="callout-title">The method name doesn't matter — the Handles clause does</span>
+<code>btnExcel_OnClick</code> could be renamed to anything at all without breaking the wiring, because <code>Handles btnExcel.Click</code> — not the method's name — is what tells the compiler this method runs when <code>btnExcel</code> raises <code>Click</code>. The <code>_OnClick</code> naming is a strong, near-universal convention in this codebase, purely for human readability; the compiler doesn't need it to work.
+</div>
+
+<h2>AddHandler / RemoveHandler — for everything Handles can't reach</h2>
+<p><code>Handles</code> needs a <code>WithEvents</code> variable known at compile time — a control declared in markup and generated into the designer file qualifies. It can't handle events on <strong>shared (static) members</strong>, events on a <strong>Structure</strong>, or anything created <strong>dynamically at runtime</strong> (a control built in code, not markup). For those, <code>AddHandler</code>/<code>RemoveHandler</code> are the only option — a real, verified example from this exact codebase:</p>
+<pre class="code-block">AddHandler My.Application.Shutdown, AddressOf AutoSaveSettings</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/My Project/Settings.Designer.vb:47</p>
+<p><code>My.Application.Shutdown</code> is a shared application-lifecycle event — there's no per-instance <code>WithEvents</code> variable to attach <code>Handles</code> to, so <code>AddHandler</code> (paired with <code>AddressOf</code> to point at the handler method) is the only mechanism that reaches it.</p>
+
+<div class="callout warn">
+<span class="callout-title">When you'd actually need AddHandler in a WebForms page: dynamically created controls</span>
+If a page builds controls in code — a row added to a panel in a loop, a button created at runtime rather than declared in markup — that control was never processed by the designer, so no <code>WithEvents</code> field exists for it and <code>Handles</code> has nothing to attach to. Wiring its click event requires <code>AddHandler dynamicButton.Click, AddressOf HandleDynamicClick</code> at the point the control is created. This is also the one case where you're responsible for cleanup: a handler added with <code>AddHandler</code> keeps the target object alive as long as the event source is alive, so a long-lived event source (not a per-request WebForms control, which dies with the page anyway, but a longer-lived singleton or shared object) needs a matching <code>RemoveHandler</code> to avoid leaking the handler's target — the same shape of leak-by-omission this codebase has seen elsewhere with unreleased resources (see <a href="dbg-04-trace-a-bug.html">Debugging Reload → Worked Example: Tracing a Bug</a>).
+</div>
+
+<h2>Best practice</h2>
+<ul>
+<li>For any control that exists in the page's markup, use <code>Handles</code> — it's what the whole codebase already does, it's compiler-checked (a typo'd control name is a compile error, not a silent no-op), and it needs no manual cleanup.</li>
+<li>Reach for <code>AddHandler</code> only when <code>Handles</code> genuinely can't reach the event — a dynamically created control, a shared/static event, or an event on a type that isn't <code>WithEvents</code>-declared. When you do, track whether the event source outlives the request; if it does, pair every <code>AddHandler</code> with a <code>RemoveHandler</code> at the appropriate cleanup point.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>If you find yourself wanting to attach the same handler to many controls at once (e.g. every button in a toolbar should trigger the same "mark dirty" logic), a loop with <code>AddHandler</code> at page-build time is more maintainable than repeating the same method name across a dozen <code>Handles</code> clauses — but only reach for it once <code>Handles</code> has genuinely become repetitive, not as a default style choice.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A WebForms code-behind file has <code>Protected Sub SomeMethod(sender As Object, e As EventArgs) Handles btnSave.Click</code>. What declaration does this rely on existing somewhere for <code>btnSave</code>?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Handles only works on a variable declared WithEvents — for a WebForms control, that declaration lives in the auto-generated .designer.vb partner file, generated from the control's declaration in the .aspx markup." >A <code>Protected WithEvents btnSave As ...</code> declaration, typically in the page's auto-generated <code>.designer.vb</code> file.</li>
+<li data-correct="false" data-explain="Handles is resolved at compile time against a WithEvents declaration — it doesn't work by matching method names to control names at runtime." >Nothing specific — Handles works by matching the method name to the control name automatically.</li>
+<li data-correct="false" data-explain="AddHandler is the alternative mechanism, not a prerequisite for Handles — a control wired via Handles doesn't need a separate AddHandler call anywhere.">An <code>AddHandler</code> call somewhere else in the same file.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A page builds a new <code>Button</code> control in code inside <code>Page_Load</code> (not declared anywhere in the <code>.aspx</code> markup) and needs to run code when it's clicked. Why won't a <code>Handles</code> clause work here?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Handles requires a WithEvents variable known at compile time. A control created dynamically in code was never processed by the designer, so no WithEvents field for it exists — AddHandler, wired at the point the control is created, is the only option." >The control was never declared as a <code>WithEvents</code> field by the designer — <code>Handles</code> needs one to attach to, and dynamically created controls don't have one.</li>
+<li data-correct="false" data-explain="Handles works on any WebForms control event, including Click — the limitation here is specifically about compile-time-known WithEvents declarations, not which event type is involved.">Handles only works for Page-level events like Load, never control events like Click.</li>
+<li data-correct="false" data-explain="Access level (Public/Protected/Private) has no bearing on whether Handles can attach to a control's event — the actual requirement is a WithEvents declaration.">The button needs to be declared Public instead of Private for Handles to see it.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/search.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Control Flow & Loops · Fiuu Reload Academy</title>
+<title>Control Flow, Loops & Select Case · Fiuu Reload Academy</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
 <script src="../assets/js/theme-init.js"></script>
 <link rel="stylesheet" href="../assets/css/style.css">
@@ -14,8 +14,8 @@
 <main id="site-main">
 
 <span class="track-label">VB.NET Fundamentals</span>
-<h1>Control Flow &amp; Loops</h1>
-<p class="lede">Same logic as the C# track's control flow lesson, VB.NET's keyword-based syntax.</p>
+<h1>Control Flow, Loops &amp; Select Case</h1>
+<p class="lede">Same underlying logic as the C# track's control flow lesson, but with real VB.NET-specific traps worth knowing on their own terms: <code>And</code>/<code>Or</code> don't short-circuit the way <code>&amp;&amp;</code>/<code>||</code> do, and the early-exit keyword changes depending on what block you're in.</p>
 
 <h2>If / ElseIf / Else</h2>
 <div class="tryit" data-lang="vbnet">
@@ -32,6 +32,46 @@ End If</pre>
 </div>
 
 <p>Notice <code>ElseIf</code> is one word (unlike C#'s <code>else if</code>, two words), and the whole block closes with <code>End If</code> instead of a closing brace.</p>
+
+<h2>Comparison and logical operators — and the short-circuit distinction that actually matters</h2>
+<table>
+<tr><th>C#</th><th>VB.NET</th><th>Notes</th></tr>
+<tr><td><code>==</code></td><td><code>=</code></td><td>Same symbol VB uses for assignment — context (an <code>If</code> condition vs. a <code>Dim</code>/plain statement) tells the compiler which one you mean.</td></tr>
+<tr><td><code>!=</code></td><td><code>&lt;&gt;</code></td><td>Real, verified usage: <code>txtTIN.Text.Trim() &lt;&gt; ""</code> — <code>DealerCreate.aspx.vb:143</code></td></tr>
+<tr><td><code>!x</code></td><td><code>Not x</code></td><td>Real: <code>Not Regex.IsMatch(...)</code> — a word, not a symbol.</td></tr>
+<tr><td><code>&amp;&amp;</code></td><td><code>AndAlso</code></td><td>Short-circuit AND — stops evaluating as soon as the left side is <code>False</code>.</td></tr>
+<tr><td><code>||</code></td><td><code>OrElse</code></td><td>Short-circuit OR — stops evaluating as soon as the left side is <code>True</code>.</td></tr>
+<tr><td><em>(no equivalent)</em></td><td><code>And</code> / <code>Or</code></td><td>Non-short-circuit — <strong>always</strong> evaluates both sides, even when the first side already determined the answer.</td></tr>
+</table>
+<p>Real, verified example combining several of these — three conditions chained with <code>AndAlso</code>, each short-circuiting the next if it fails:</p>
+<pre class="code-block">If (txtTIN.Text.Trim() <> "" AndAlso txtTIN.Text.Trim().ToUpper() <> "N/A" AndAlso Not Regex.IsMatch(txtTIN.Text.Trim(), "^([A-Za-z0-9]+([,;][A-Za-z0-9]+)*)?$")) Then</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/DealerCreate.aspx.vb:143</p>
+<div class="callout warn">
+<span class="callout-title">Why And/Or being non-short-circuit is a real correctness risk, not just a style choice</span>
+<code>If obj IsNot Nothing And obj.IsValid Then</code> looks reasonable but is dangerous: <code>And</code> evaluates <em>both</em> sides regardless of the first result, so if <code>obj</code> actually is <code>Nothing</code>, <code>obj.IsValid</code> still runs and throws a <code>NullReferenceException</code> — the <code>IsNot Nothing</code> check accomplished nothing. <code>AndAlso</code> would short-circuit and never evaluate the right side once the left side is <code>False</code>. <strong>Default to <code>AndAlso</code>/<code>OrElse</code> in new code</strong>; reach for plain <code>And</code>/<code>Or</code> only in the rare case where you specifically need both sides evaluated regardless (e.g. two independent method calls with side effects, where you genuinely want both to run).
+</div>
+
+<h2>Exit — leaving early, and which keyword matches which block</h2>
+<p>VB.NET's early-exit keyword changes depending on what you're inside — there's no single <code>break</code>/<code>return</code> pair covering every case:</p>
+<table>
+<tr><th>Keyword</th><th>Leaves</th><th>C# equivalent</th></tr>
+<tr><td><code>Exit Sub</code></td><td>The current <code>Sub</code>, immediately</td><td><code>return;</code> in a <code>void</code> method</td></tr>
+<tr><td><code>Exit Function</code></td><td>The current <code>Function</code> — whatever was last assigned to the function's implicit return value (or an explicit <code>Return</code> just before it) is what gets returned</td><td><code>return value;</code></td></tr>
+<tr><td><code>Exit For</code></td><td>The nearest enclosing <code>For</code>/<code>For Each</code> loop only</td><td><code>break;</code></td></tr>
+<tr><td><code>Exit Do</code></td><td>The nearest enclosing <code>Do...Loop</code> only</td><td><code>break;</code></td></tr>
+<tr><td><code>Exit Select</code></td><td>The current <code>Select Case</code> block</td><td>(implicit — C# <code>switch</code> cases don't fall through either)</td></tr>
+<tr><td><code>Continue For</code> / <code>Continue Do</code></td><td>Skips to the next iteration without leaving the loop</td><td><code>continue;</code></td></tr>
+</table>
+<p>Real, verified guard-clause usage — six separate validation checks in one method, each bailing out immediately on failure rather than nesting deeper:</p>
+<pre class="code-block">If String.IsNullOrWhiteSpace(txtDealerCode.Text) Then
+    MessageBox1.ShowInfoMessage("Dealer code is required")
+    Exit Sub
+End If</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/DealerCreate.aspx.vb:66 (one of six similar guard clauses in the same method)</p>
+<div class="callout tip">
+<span class="callout-title">Guard clauses are the main real use of Exit Sub/Function</span>
+Validate-and-bail-early at the top of a method (as in the real example above) keeps validation flat and readable — six independent <code>If invalid Then ... Exit Sub</code> checks in sequence, rather than six levels of nested <code>If</code>/<code>Else</code>. This is the same "fail fast, avoid deep nesting" idea C# guard clauses use with an early <code>return;</code> — VB.NET just spells it with the keyword matching the block you're actually in.
+</div>
 
 <h2>For loops are inclusive on both ends</h2>
 <div class="tryit" data-lang="vbnet">
@@ -66,6 +106,31 @@ Console.WriteLine("Batch valid? " & allValid)</pre>
 Batch valid? False</pre>
 </div>
 
+<h2>Select Case — VB's switch, with real differences worth knowing</h2>
+<p>Real code from <code>TerminalFirmwareVersionList.aspx.vb</code>'s grid command handler:</p>
+<pre class="code-block">Select Case e.CommandName
+    Case "Action", "Detail"
+        ResetRedirect(String.Format("TerminalFirmwareVersion.aspx?id={0}&amp;Command={1}", e.CommandArgument, e.CommandName))
+    Case "EditRow"
+        ResetRedirect(String.Format("TerminalFirmwareVersionEdit.aspx?id={0}", e.CommandArgument))
+    Case Else
+        ' no matching command — nothing to do
+End Select</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:309-313</p>
+<p>Three real differences from a C-style <code>switch</code>: a single <code>Case</code> can list several values comma-separated (<code>Case "Action", "Detail"</code> matches either, no separate case label needed); there's no fall-through at all, ever — each <code>Case</code> implicitly breaks, so there's no VB equivalent of a missing <code>break;</code> bug; and a <code>Case</code> can be a range or comparison, not just an exact match:</p>
+<pre class="code-block">Select Case amount
+    Case Is <= 0
+        Console.WriteLine("Invalid amount")
+    Case 1 To 500
+        Console.WriteLine("Amount OK: " &amp; amount)
+    Case Else
+        Console.WriteLine("Exceeds max reload limit")
+End Select</pre>
+<div class="callout tip">
+<span class="callout-title">When to reach for Select Case over If/ElseIf</span>
+Once you're comparing the <em>same</em> single value against three or more possibilities, <code>Select Case</code> reads more clearly than a chain of <code>ElseIf</code>s and makes it visually obvious every branch is testing the same thing — the grid-command example above would be far less scannable as five separate <code>If e.CommandName = "..." Then</code> checks. Stick with <code>If</code>/<code>ElseIf</code> when the branches test genuinely different, unrelated conditions rather than one value against several possibilities.
+</div>
+
 <h2>Best practice</h2>
 <p>When translating a loop bound between C# and VB.NET (or reading one written by someone translating the other way), explicitly write out the first and last value each loop actually touches before trusting it — <code>For i = 0 To n - 1</code> is the correct VB.NET translation of C#'s <code>for (int i = 0; i &lt; n; i++)</code>, and it's easy to get subtly wrong under time pressure.</p>
 
@@ -73,15 +138,43 @@ Batch valid? False</pre>
 <p><code>For Each</code> sidesteps the inclusive/exclusive bound question entirely, since there's no index to get wrong — prefer it over an indexed <code>For</code> loop whenever you don't actually need the index itself, exactly as in C#'s <code>foreach</code>.</p>
 
 <h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>If obj IsNot Nothing And obj.IsValid Then</code> — <code>obj</code> turns out to be <code>Nothing</code>. What happens?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This is exactly the trap: And does not short-circuit. Both sides are evaluated regardless of the first result." >The condition is safely False, since IsNot Nothing already failed.</li>
+<li data-correct="true" data-explain="And evaluates both operands unconditionally — unlike AndAlso, it does not stop after the left side is False. obj.IsValid still runs even though obj is Nothing, throwing a NullReferenceException. AndAlso would have short-circuited and avoided this entirely." >It throws a NullReferenceException, because And evaluates <code>obj.IsValid</code> regardless of whether the left side already failed.</li>
+<li data-correct="false" data-explain="VB.NET does not evaluate If conditions right-to-left — and even if it did, the destructive issue here is that both sides are evaluated at all, not the order.">It evaluates right-to-left, so <code>obj.IsValid</code> runs first and the whole thing is safe.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A method needs to bail out immediately — with no more processing — the moment it discovers a required text field is empty. Which keyword actually belongs there?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Exit For only makes sense inside a For/For Each loop — this guard clause is a plain validation check inside a Sub, not inside a loop." >Exit For</li>
+<li data-correct="true" data-explain="This is the real, verified pattern from DealerCreate.aspx.vb: a guard clause inside a Sub uses Exit Sub to bail out immediately, keeping validation flat instead of nested." >Exit Sub</li>
+<li data-correct="false" data-explain="Exit Select only applies inside a Select Case block — there's no Select Case involved in a plain field-validation guard clause." >Exit Select</li>
+</ul>
+</div>
+
 <div class="quiz" data-type="predict" data-answer="3">
 <p class="quiz-q">How many times does the loop body run for <code>For i As Integer = 1 To 3</code>? (just the number)</p>
 <textarea class="quiz-blank" rows="1"></textarea>
 <button type="button" class="quiz-submit">Check answer</button>
 </div>
 
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A C-style <code>switch</code> statement needs an explicit <code>break;</code> in every case to avoid falling through to the next one. What's the VB.NET <code>Select Case</code> equivalent behavior?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="VB.NET's Select Case has no fall-through concept at all — there's no keyword to opt into it, unlike C-style switch where fall-through is the default you opt out of." >You need <code>Continue Case</code> to fall through, and no keyword to stop it.</li>
+<li data-correct="true" data-explain="Select Case never falls through, in any version — each Case implicitly stops at its own End, with no equivalent of a missing break; bug ever being possible." >Nothing — <code>Select Case</code> never falls through; each <code>Case</code> always stops on its own.</li>
+<li data-correct="false" data-explain="Exit Select exits the whole Select Case block early from inside a Case (rarely needed) — it's not what prevents fall-through, since there's nothing to fall through to in the first place.">You need <code>Exit Select</code> at the end of every <code>Case</code> to prevent fall-through.</li>
+</ul>
+</div>
+
 <div id="lesson-footer"></div>
 </main>
 <script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/search.js"></script>
 <script src="../assets/js/site.js"></script>
 <script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>

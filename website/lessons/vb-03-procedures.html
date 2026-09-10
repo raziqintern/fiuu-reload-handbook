@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sub, Function & Classes · Fiuu Reload Academy</title>
+<title>Procedures: Sub, Function, Optional & ByRef · Fiuu Reload Academy</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
 <script src="../assets/js/theme-init.js"></script>
 <link rel="stylesheet" href="../assets/css/style.css">
@@ -14,8 +14,8 @@
 <main id="site-main">
 
 <span class="track-label">VB.NET Fundamentals</span>
-<h1>Sub, Function &amp; Classes</h1>
-<p class="lede">VB.NET splits what C# calls a "method" into two explicit keywords, based on whether it returns a value.</p>
+<h1>Procedures: Sub, Function, Optional &amp; ByRef</h1>
+<p class="lede">VB.NET splits what C# calls a "method" into two explicit keywords based on whether it returns a value, and has its own real parameter-passing idioms — <code>Optional</code> defaults and explicit <code>Overloads</code> — that don't map onto a single C# keyword.</p>
 
 <h2>Sub vs. Function</h2>
 <table>
@@ -36,36 +36,51 @@ End Sub</pre>
 <pre class="tryit-output-src">2</pre>
 </div>
 
-<h2>Classes: Property instead of get/set, New instead of a matching-name constructor</h2>
-<div class="tryit" data-lang="vbnet">
-<pre class="tryit-src">Public Class Terminal
-    Public Property TerminalId As String
-    Public Property MerchantName As String
-    Public Property IsOnline As Boolean
-
-    Public Sub New(terminalId As String, merchantName As String)
-        Me.TerminalId = terminalId
-        Me.MerchantName = merchantName
-        Me.IsOnline = True
-    End Sub
-End Class
-
-Module Program
-    Sub Main()
-        Dim t As New Terminal("TNG-0042", "7-Eleven KL")
-        Console.WriteLine(t.TerminalId & " - " & t.MerchantName & " - " & t.IsOnline)
-    End Sub
-End Module</pre>
-<pre class="tryit-output-src">TNG-0042 - 7-Eleven KL - True</pre>
+<h2>Optional parameters — a default value, right in the signature</h2>
+<p>Real, verified examples from BackOffice — this pattern is common here, not a rarity:</p>
+<pre class="code-block">Public Sub ShowConfirmMessage(ByVal message As String, Optional id As String = "", Optional extField As String = "")
+Private Sub LoadWalletType(Optional dealer As IDealer = Nothing)
+Private Function GetCSVContents(stockReinstateList As List(Of Reinstate), stockProvisionList As List(Of IStockProvision), Optional iStartIndex As Integer = 0, Optional iEndIndex As Integer = 0) As String</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/UserControls/MessageBox.vb:273; .../WebForms/DealerEdit.aspx.vb:1902; .../WebForms/ReportStockAllocation.aspx.vb:277</p>
+<p><code>Optional</code> parameters must come after every required parameter, and every <code>Optional</code> parameter must specify a default value (<code>= ""</code>, <code>= Nothing</code>, <code>= 0</code>) — there's no way to mark a parameter optional without also giving it a fallback. A caller can omit any trailing optional argument and the default fills in automatically.</p>
+<div class="callout tip">
+<span class="callout-title">When to reach for Optional vs. a genuine method overload</span>
+<code>Optional</code> parameters are the right tool when omitting an argument means "use this one sensible default" — <code>id</code> defaulting to an empty string, a start index defaulting to <code>0</code>. Reach for <code>Overloads</code> instead (below) when the different call shapes represent genuinely different <em>behavior</em>, not just a default value for the same behavior — e.g. one overload that looks up a record by ID vs. one that takes the record object directly, rather than the same lookup with a parameter defaulted.
 </div>
 
-<p>Compare this to the C# version in <a href="cs-04-classes.html">C# Fundamentals → Classes</a> — same three properties, same constructor logic. <code>Public Property X As T</code> is VB's equivalent of C#'s <code>public T X { get; set; }</code>; the constructor is always named <code>New</code> instead of repeating the class name; <code>Me</code> is VB's <code>this</code>.</p>
+<h2>ByRef — the same keyword you'd ask about in code review</h2>
+<p><code>ByRef</code> passes a variable by reference instead of by value — the callee can reassign it and the caller sees the new value after the call returns. It's VB's version of C#'s <code>ref</code>/<code>out</code>, and it's the historical VB default before VB.NET made <code>ByVal</code> the default (unlike VB6, where <code>ByRef</code> was implicit if you wrote nothing):</p>
+<pre class="code-block">Sub Increment(ByRef x As Integer)
+    x = x + 1
+End Sub
+
+Dim n As Integer = 5
+Increment(n)
+Console.WriteLine(n)   ' 6 — the caller's variable was mutated</pre>
+<p>The main real use is a "hand back more than one value" pattern — a <code>Function</code> returns one value directly, but a <code>Sub</code> (or a <code>Function</code> that also needs a second output) can use one or more <code>ByRef</code> parameters to hand back additional results. Prefer a genuine <code>Function</code> return value when there's only one thing to hand back — a <code>ByRef</code> parameter existing purely to fake a return value on a <code>Sub</code> is a sign it should be a <code>Function</code> instead.</p>
+
+<h2>Overloads — VB requires the keyword; C# doesn't</h2>
+<p>A real, easy-to-miss difference: C# lets you overload a method just by giving it a different parameter list, no keyword needed. VB.NET requires every overloaded version to explicitly say <code>Overloads</code>:</p>
+<pre class="code-block">Public Overloads Function FindDealer(dealerId As String) As IDealer
+    ' look up by ID
+End Function
+
+Public Overloads Function FindDealer(dealer As IDealer) As IDealer
+    ' already have the object — just validate/refresh it
+End Function</pre>
+<div class="callout warn">
+<span class="callout-title">Miss the keyword and VB doesn't overload — it errors</span>
+If one procedure with a given name specifies <code>Overloads</code>, every other procedure sharing that name in the same class must specify it too — VB won't silently treat a same-named, different-signature method as a normal overload the way C# does. Forgetting <code>Overloads</code> on a second same-named method (instead of on purpose using <code>Shadows</code> to hide the base one entirely) is a real compile-time error waiting to happen when porting overloaded C# methods into VB.NET by hand.
+</div>
 
 <h2>Best practice</h2>
-<p>If a <code>Sub</code> starts needing to hand information back to its caller (beyond a <code>ByRef</code> parameter), that's a sign it should probably be a <code>Function</code> instead — trying to bolt a return value onto a <code>Sub</code> after the fact usually means reworking every call site anyway.</p>
+<ul>
+<li>If a <code>Sub</code> starts needing to hand information back to its caller (beyond a <code>ByRef</code> parameter), that's a sign it should probably be a <code>Function</code> instead — trying to bolt a return value onto a <code>Sub</code> after the fact usually means reworking every call site anyway.</li>
+<li>Reach for <code>Optional</code> when a missing argument means "use this sensible default"; reach for <code>Overloads</code> when different call shapes mean genuinely different behavior, not just a different default.</li>
+</ul>
 
 <h2>Better ways</h2>
-<p><code>Public Property X As T</code> auto-properties are convenient, exactly like C#'s <code>{ get; set; }</code> — but the same caution applies: if setting the property is really a meaningful action with rules attached (not just a raw field write), a real method (<code>Sub Deactivate()</code>) communicates that intent better than a property anyone can silently overwrite.</p>
+<p>A long run of <code>Optional</code> parameters with defaults (four or more) is usually a sign the method is doing several configurable things at once — consider whether a small options object, or splitting into two more specifically-named methods, would communicate the caller's intent more clearly than a long positional parameter list where it's easy to lose track of which optional argument is which.</p>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -77,9 +92,19 @@ End Module</pre>
 </ul>
 </div>
 
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A VB.NET class already has one <code>Public Function FindDealer(dealerId As String) As IDealer</code>. A second method with the same name but a different parameter list is added, without the <code>Overloads</code> keyword on either one. What happens?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Unlike C#, VB.NET does not treat two same-named, different-signature procedures as automatic overloads just because the signatures differ — the Overloads keyword is how you opt into that." >It compiles fine — VB.NET infers they're overloads from the different parameter lists, same as C#.</li>
+<li data-correct="true" data-explain="If any procedure with a shared name specifies Overloads, every procedure sharing that name in the class must specify it too. Without the keyword on either one, VB.NET does not treat this as a normal overload — it's a compile error, not silent, incorrect behavior." >It's a compile error — VB.NET requires every procedure sharing a name to declare <code>Overloads</code> explicitly if any of them do.</li>
+<li data-correct="false" data-explain="Shadows is for a derived class hiding a base class member of the same name — it's unrelated to two methods in the same class sharing a name, and isn't what's needed here." >It compiles, but the second method silently shadows the first using an implicit <code>Shadows</code>.</li>
+</ul>
+</div>
+
 <div id="lesson-footer"></div>
 </main>
 <script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/search.js"></script>
 <script src="../assets/js/site.js"></script>
 <script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>

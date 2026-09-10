@@ -51,6 +51,7 @@
     host.innerHTML = `
       <button id="menu-toggle" aria-label="Toggle navigation">☰</button>
       <a class="brand" href="${ROOT}index.html"><span class="bolt">⚡</span> Fiuu Reload Academy</a>
+      <div id="site-search"></div>
       <div class="header-right">
         <span>${done}/${total} lessons complete</span>
         <a href="${IS_LESSON_DIR ? "glossary.html" : "lessons/glossary.html"}" style="color:#cfd4d2;">Glossary</a>
@@ -65,6 +66,10 @@
       setTheme(isDarkNow() ? "light" : "dark");
       themeBtn.textContent = isDarkNow() ? "☀" : "☾";
     });
+
+    // #site-search was just recreated above (renderHeader replaces the
+    // whole header's innerHTML) — (re)wire the search box every time.
+    if (window.initSiteSearch) window.initSiteSearch();
   }
 
   function renderSidebar() {

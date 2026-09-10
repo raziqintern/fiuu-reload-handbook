@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error Handling: Try/Catch, When & Is Nothing · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="vb-06-error-handling">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">VB.NET Fundamentals</span>
+<h1>Error Handling: Try/Catch, When &amp; Is Nothing</h1>
+<p class="lede">The core Try/Catch/Finally structure is identical to C#'s — same .NET exception types underneath, VB.NET's block-keyword syntax on top. Two real VB-specific tools sit on top of that: a <code>When</code> filter on a <code>Catch</code>, and the <code>Is</code>/<code>IsNot</code> operators every null check in this codebase actually uses.</p>
+
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Function Divide(a As Double, b As Double) As Double
+    If b = 0 Then
+        Throw New DivideByZeroException("Cannot divide by zero")
+    End If
+    Return a / b
+End Function
+
+Sub Main()
+    Try
+        Dim result As Double = Divide(10, 0)
+        Console.WriteLine(result)
+    Catch ex As DivideByZeroException
+        Console.WriteLine("Error: " & ex.Message)
+    End Try
+    Console.WriteLine("Program continues")
+End Sub</pre>
+<pre class="tryit-output-src">Error: Cannot divide by zero
+Program continues</pre>
+</div>
+
+<h2>Finally still always runs</h2>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Try
+    Console.WriteLine("Attempting reload...")
+    Throw New Exception("Gateway timeout")
+Catch ex As Exception
+    Console.WriteLine("Caught: " & ex.Message)
+Finally
+    Console.WriteLine("Cleanup: closing connection")
+End Try</pre>
+<pre class="tryit-output-src">Attempting reload...
+Caught: Gateway timeout
+Cleanup: closing connection</pre>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">Because it's the same .NET runtime</span>
+<code>DivideByZeroException</code>, <code>Exception</code>, and every other exception type here are the exact same .NET Base Class Library types C# uses — VB.NET and C# share one runtime and one set of framework types. This is the whole reason the two languages are basically a syntax skin over the same underlying platform.
+</div>
+
+<h2>Catch ... When — a filter, not just a type match</h2>
+<p><code>Catch</code> can add a <code>When</code> condition, so the catch block only runs if both the exception type <em>and</em> the condition match — otherwise VB.NET keeps looking for a different matching <code>Catch</code>, or the exception propagates up if none matches:</p>
+<pre class="code-block">Try
+    CallExternalApi()
+Catch ex As WebException When TypeOf ex.Response Is HttpWebResponse AndAlso CType(ex.Response, HttpWebResponse).StatusCode = HttpStatusCode.NotFound
+    Console.WriteLine("Endpoint not found — check the URL")
+Catch ex As WebException
+    Console.WriteLine("Some other network failure: " & ex.Message)
+End Try</pre>
+<div class="callout tip">
+<span class="callout-title">When to reach for a When filter vs. checking inside the Catch</span>
+A <code>When</code> filter is worth it specifically when you have <strong>multiple <code>Catch</code> blocks for the same exception type</strong>, each wanting different handling depending on some detail of the exception (a status code, an error number). If there's only one <code>Catch</code> for that type, an <code>If</code> inside the block is equally clear and doesn't need the extra syntax — reach for <code>When</code> once you'd otherwise need nested <code>If</code>s inside a single catch block just to re-dispatch on the same condition a <code>When</code> filter could express in the <code>Catch</code> line itself.
+</div>
+
+<h2>Is Nothing / IsNot Nothing — not just style, a real distinction</h2>
+<p>Real, verified code from this exact codebase, showing both the recommended form and the older, more awkward one still present in production:</p>
+<pre class="code-block">If lstTerminalModel Is Nothing Then ...
+If lstTerminalModel IsNot Nothing And lstTerminalModel.Count > 0 Then ...</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:156,161</p>
+<pre class="code-block">If Not countries Is Nothing Then ...</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/DealerCreate.aspx.vb:368</p>
+<p><code>IsNot</code> exists specifically so you don't have to write the second, more awkward form — <code>Not x Is Nothing</code> and <code>x IsNot Nothing</code> mean exactly the same thing, but <code>IsNot</code> reads directly instead of needing a mental double-negative. Both forms are real, currently-shipping code in this codebase — a reminder that "the codebase does X" isn't always uniform, and reading the older form correctly matters as much as writing the newer one.</p>
+<div class="callout warn">
+<span class="callout-title">Why Is/IsNot exist at all instead of just using = and &lt;&gt;</span>
+<code>Is</code> and <code>IsNot</code> are specifically for reference comparison — "do these two variables point at the same object" — and only work on reference types. Using <code>=</code> for this can give incorrect or unintended results because <code>=</code> can be intercepted by an overloaded equality operator that compares by <em>value</em> instead of by reference identity; <code>Is</code>/<code>IsNot</code> always compare identity, with no possibility of being overridden to mean something else. This is exactly why checking for <code>Nothing</code> specifically should always be <code>Is Nothing</code>/<code>IsNot Nothing</code>, never <code>= Nothing</code>.
+</div>
+
+<h2>Best practice</h2>
+<ul>
+<li>Modern VB.NET's <code>Try</code>/<code>Catch</code>/<code>Finally</code> is the one to use in new code — but if you ever encounter VB6-era <code>On Error Goto</code> style error handling in genuinely old code, know that it's a different, older model entirely (a jump target, not structured exception handling) and don't try to mix the two styles in the same procedure.</li>
+<li>Always use <code>Is Nothing</code>/<code>IsNot Nothing</code> for null checks, never <code>= Nothing</code> — treat any <code>= Nothing</code> you find in existing code as worth a second look, not necessarily as broken, but as a pattern not to copy forward.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p>Just as in C#, catch the most specific exception type you actually expect (<code>DivideByZeroException</code> above), not a blanket <code>Catch ex As Exception</code> that would also hide a genuine bug you'd rather see fail loudly and get fixed. See <a href="dbg-09-swallowed-response.html">Debugging Reload → The Response That Was Never Real</a> for a real production incident caused by exactly this — a broad catch swallowed the real failure and let the caller trust an object that was never actually valid.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why do VB.NET and C# use the exact same exception types (Exception, DivideByZeroException, etc.)?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="It's not a coincidence or convention both teams happened to follow — it's structural." >It's a naming convention both language communities happened to agree on.</li>
+<li data-correct="true" data-explain="VB.NET and C# both compile down to the same .NET Common Language Runtime and share the same Base Class Library — exceptions, collections, and most framework types are literally the same underlying types regardless of which language wrote the code." >Both languages compile to the same .NET runtime and share the same underlying framework class library.</li>
+<li data-correct="false" data-explain="VB.NET is a full, independently-compiled .NET language — it isn't translated through C#.">VB.NET code gets translated into C# before compiling.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why prefer <code>x IsNot Nothing</code> over <code>x = Nothing</code> to check whether an object reference is null?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="= can be intercepted by an overloaded equality operator and compare by value instead of reference identity. Is/IsNot always compare reference identity with no possibility of being overridden — exactly why a Nothing check should always use Is/IsNot, not =." >Is/IsNot always compare reference identity directly, while = can be overloaded to compare by value instead, giving incorrect results for a null check.</li>
+<li data-correct="false" data-explain="Both compile without error for reference types in VB.NET — the issue with = isn't a compile failure, it's a correctness risk from possible operator overloading." >x = Nothing doesn't compile for reference types in VB.NET.</li>
+<li data-correct="false" data-explain="This isn't a performance distinction — both forms are cheap. The real reason is correctness (reference identity vs. possible value comparison), not speed.">IsNot runs faster at runtime than the equivalent = comparison.</li>
+</ul>
+</div>
+
+<div class="callout tip">
+<span class="callout-title">You've completed VB.NET Fundamentals</span>
+That covers real VB.NET as it's actually used in BackOffice: syntax and Option Strict/Explicit/Infer, control flow including Select Case, procedures with Optional parameters and Overloads, MustInherit/MustOverride and Implements, event wiring with Handles/WithEvents and AddHandler, and structured error handling including When filters and Is/IsNot. Next: <strong>C#/.NET Deep Dives</strong> — theory (boxing, nullable types, async/await, GC) that applies to both languages equally, since they share one runtime.
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/search.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>

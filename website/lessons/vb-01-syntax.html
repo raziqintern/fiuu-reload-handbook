@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Syntax vs. C# · Fiuu Reload Academy</title>
+<title>Syntax, Types & Option Strict · Fiuu Reload Academy</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
 <script src="../assets/js/theme-init.js"></script>
 <link rel="stylesheet" href="../assets/css/style.css">
@@ -14,14 +14,87 @@
 <main id="site-main">
 
 <span class="track-label">VB.NET Fundamentals</span>
-<h1>Syntax vs. C#</h1>
+<h1>Syntax, Types & Option Strict</h1>
 
-<div class="callout warn">
-<span class="callout-title">Where this fits</span>
-This search of the actual <code>reload</code> codebase found <strong>zero VB.NET</strong> — the whole class-library is C#. This track exists because VB.NET is still common across the wider .NET/enterprise world (older internal tools, some legacy line-of-business apps), so it's worth being able to read even if you'll likely never write it here. Everything past this track (Conventions, Debugging, Architecture) is C#-only, because that's what reload actually is.
+<div class="callout real">
+<span class="callout-title">Where this fits — corrected</span>
+An earlier version of this track claimed reload has "zero VB.NET" because <code>class-library</code> is C#. That was true of <code>class-library</code> alone and false about reload as a whole: the entire <strong>BackOffice WebForms UI</strong> — the app most of the real bugs in the Debugging Reload track happen on — is written in VB.NET (<code>.aspx.vb</code> code-behind, 1,000+ files). If your work touches BackOffice at all, this track is not optional background reading — it's what the code in front of you is written in.
 </div>
 
-<p class="lede">VB.NET and C# compile to the same underlying .NET runtime and can do the same things — the difference is entirely surface syntax. If you know the C# track, this whole track is mostly a translation exercise.</p>
+<p class="lede">VB.NET and C# compile to the same underlying .NET runtime and can do almost everything the same way — but VB.NET has its own real idioms (explicit <code>MustOverride</code>/<code>Overloads</code> keywords, a <code>Handles</code> clause for event wiring, per-project type-safety switches) that don't map onto a single C# keyword, and this specific codebase leans on several of them. This track covers those on their own terms, not just as a C# translation exercise.</p>
+
+<h2>Option Strict, Option Explicit, Option Infer — three independent switches, and this codebase runs with one of them off</h2>
+<p>These three compiler options control how forgiving VB.NET is about types, and each is set independently — knowing all three exist, and which combination a given project actually uses, matters more than memorizing what each one does in isolation:</p>
+<table>
+<tr><th>Option</th><th>When <code>On</code></th><th>When <code>Off</code></th></tr>
+<tr><td><code>Option Explicit</code></td><td>Every variable must be declared before use (a typo'd variable name is a compile error)</td><td>An undeclared variable is silently created on first use — <code>On</code> is the VB.NET default project-wide</td></tr>
+<tr><td><code>Option Strict</code></td><td>Narrowing/implicit type conversions (e.g. <code>Object</code> to <code>String</code>, <code>Double</code> to <code>Integer</code>) must be written explicitly, and late binding (calling a member on an <code>Object</code>-typed variable without knowing at compile time whether it exists) is a compile error</td><td>The compiler silently inserts narrowing conversions and allows late binding — errors that would be compile-time with <code>Strict On</code> instead surface as a runtime exception, or don't surface at all</td></tr>
+<tr><td><code>Option Infer</code></td><td><code>Dim x = 5</code> infers <code>x As Integer</code> without needing <code>As Integer</code> written out</td><td>A variable declared without <code>As Type</code> is typed <code>Object</code> instead of inferred</td></tr>
+</table>
+
+<div class="callout real">
+<span class="callout-title">Real, verified: BackOffice's own project file runs with Option Strict Off</span>
+<code>Fiuu.App.BackOffice.Web.vbproj</code> sets <code>&lt;OptionExplicit&gt;On&lt;/OptionExplicit&gt;</code>, <code>&lt;OptionStrict&gt;Off&lt;/OptionStrict&gt;</code>, and <code>&lt;OptionInfer&gt;On&lt;/OptionInfer&gt;</code> at the project level — this is the default every hand-written <code>.aspx.vb</code> file in BackOffice inherits unless it declares its own <code>Option Strict On</code> at the top (most don't). The auto-generated <code>*.designer.vb</code> files are the exception: they each explicitly declare <code>Option Strict On</code> + <code>Option Explicit On</code> locally, overriding the project default just for that one generated file.
+</div>
+<p>Practically: in most BackOffice hand-written code, a narrowing conversion that would be a compile error in a stricter project instead either converts silently (sometimes losing data, e.g. a <code>Double</code> truncated into an <code>Integer</code>) or throws an <code>InvalidCastException</code> at runtime — the compiler won't catch it for you ahead of time. This is a real, structural reason bugs here can surface as a runtime type error instead of a build failure; treat any type conversion in this codebase as unverified by the compiler unless you've confirmed the specific file opts into <code>Option Strict On</code>.</p>
+
+<h2>Declaring several variables in one Dim — and the VB6 trap this fixed</h2>
+<p>VB.NET lets one <code>Dim</code> declare several variables of the <em>same</em> type, comma-separated, with the type named once at the end. Real, verified examples:</p>
+<pre class="code-block">Dim iQty, iMaxQty As Integer
+Dim dtStartDate, dtEndDate As DateTime
+Dim sM2MServiceProviderColumnName, sM2MSIMCardSerialNoColumnName As String</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/OfflineSalesCreate.aspx.vb:147; ReportStockMovementSummary.aspx.vb:193; M2MSIMCardSerialNoBulkCreate.aspx.vb:67</p>
+<p>In <code>Dim iQty, iMaxQty As Integer</code>, <strong>both</strong> <code>iQty</code> and <code>iMaxQty</code> are <code>Integer</code> — the type after the last name in the list applies to every name before it that doesn't have its own <code>As</code> clause. You can also mix explicit types in one statement: <code>Dim x As Long, i, j, k As Integer, s As String</code> declares <code>x</code> as <code>Long</code>, <code>i</code>/<code>j</code>/<code>k</code> as <code>Integer</code>, and <code>s</code> as <code>String</code> — each name takes the type from the next <code>As</code> clause that actually follows it.</p>
+<div class="callout warn">
+<span class="callout-title">Why this is worth knowing explicitly: VB6 did something dangerously different</span>
+In classic VB6, <code>Dim x, y As Integer</code> only gave <code>Integer</code> to <code>y</code> — <code>x</code> silently became a <code>Variant</code> (VB6's untyped catch-all), with no error and no warning. VB.NET fixed this specific footgun: every name in a comma-separated <code>Dim</code> gets a real, specific type, never an untyped fallback. If you ever read genuinely old VB6 code (not VB.NET) side-by-side with this codebase, don't assume the same line means the same thing in both — this is one of the sharpest behavioral differences between the two, not just a syntax tweak.
+</div>
+
+<h2>String vs. String() — a single value vs. an array of them</h2>
+<p><code>String</code> and <code>String()</code> are as different as <code>int</code> and <code>int[]</code> in C# — one is a single value, the other is a collection of them — but VB.NET's syntax makes the two easy to visually confuse, especially since the array parentheses can legally go on <em>either</em> the type or the variable name. Real, verified examples, both forms:</p>
+<pre class="code-block">Dim names As String() = [Enum].GetNames(GetType(Fiuu.CEPP.Models.Interfaces.EnumVoidSupportType))
+Dim arrEmail As String() = Split(sEmailAddress, ";")</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/DealerCreate.aspx.vb:512,553</p>
+<p><code>Dim names As String()</code> and the equivalent-but-less-common <code>Dim names() As String</code> declare exactly the same thing: a variable holding a <em>reference to an array of strings</em>, not a string itself. <code>Split(...)</code> and <code>[Enum].GetNames(...)</code> both return <code>String()</code>, never a plain <code>String</code> — this is precisely why splitting a semicolon-delimited email list needs an array-typed variable to catch the result.</p>
+<div class="callout tip">
+<span class="callout-title">What actually goes wrong when this gets confused</span>
+Passing a <code>String()</code> where a method expects a plain <code>String</code> (or vice versa) is a real, catchable type mismatch — with <code>Option Strict On</code>, it's a compile error. With <code>Option Strict Off</code> (BackOffice's actual project default — see above), some of these mismatches can still compile and fail at runtime instead, or silently call <code>.ToString()</code> on the array (producing the unhelpful literal text <code>System.String[]</code> rather than the joined values you probably meant). If you ever see the literal string <code>"System.String[]"</code> show up somewhere in output or a log, that's the exact signature of a <code>String()</code> being stringified instead of joined — reach for <code>String.Join(", ", arr)</code> when you actually want the array's contents as one string.
+</div>
+
+<h2>Array bounds: the number in the parentheses is the highest index, not the size</h2>
+<p>A classic, still-relevant VB.NET trap: <code>Dim scores(9) As Integer</code> does not create an array of size <code>9</code> — the number in parentheses is the array's <strong>upper bound</strong> (the highest valid index), and VB.NET arrays are always zero-based. <code>Dim scores(9) As Integer</code> creates <strong>10</strong> elements, indices <code>0</code> through <code>9</code> inclusive:</p>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Dim scores(9) As Integer
+Console.WriteLine("Length: " & scores.Length)
+Console.WriteLine("Last valid index: " & scores.GetUpperBound(0))</pre>
+<pre class="tryit-output-src">Length: 10
+Last valid index: 9</pre>
+</div>
+<p>Reading this correctly matters most when a size looks deliberately chosen — <code>Dim buffer(255) As Byte</code> is a 256-byte buffer, not 255, and getting that off by one when translating a size requirement from a spec or from C# (where <code>new byte[256]</code> unambiguously means 256) is a real, easy mistake in either direction.</p>
+
+<h2>Static — a local variable that survives past the end of its own method</h2>
+<p>A local variable normally stops existing the moment its method returns. <code>Static</code> is VB.NET's keyword for the opposite: a local variable declared <code>Static</code> keeps its value between separate calls to the same method, for the lifetime of the containing object (or, inside a <code>Shared</code> method, for the lifetime of the whole application — there's only one copy, not one per object instance):</p>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Sub TrackCalls()
+    Static callCount As Integer = 0
+    callCount += 1
+    Console.WriteLine("This method has been called " & callCount & " time(s)")
+End Sub
+
+Sub Main()
+    TrackCalls()
+    TrackCalls()
+    TrackCalls()
+End Sub</pre>
+<pre class="tryit-output-src">This method has been called 1 time(s)
+This method has been called 2 time(s)
+This method has been called 3 time(s)</pre>
+</div>
+<div class="callout warn">
+<span class="callout-title">The initializer only runs once — a common source of confusion</span>
+<code>callCount As Integer = 0</code> only executes the first time <code>TrackCalls</code> is ever called; on every later call, that line is skipped entirely and <code>callCount</code> keeps whatever value it already had. This is fundamentally different from a normal local variable, whose initializer re-runs on every single call. A <code>Static</code> local is effectively a private field in disguise — scoped so only this one method can see it, but living exactly as long as a field would.
+</div>
+<p>Real-world use is narrow and specific: a call counter, a one-time-setup flag inside a frequently-called method, memoizing an expensive calculation across calls to the same method on the same instance. Reach for an actual class-level field instead when more than one method needs to see or share the value — <code>Static</code> is deliberately private to the one method it's declared in.</p>
 
 <h2>Same program, two languages</h2>
 <div class="tryit" data-lang="vbnet">
@@ -74,13 +147,55 @@ End Module</pre>
 <h2>Best practice</h2>
 <ul>
 <li>Match whatever casing convention the surrounding file already uses. VB.NET is case-insensitive, so <code>amount</code> and <code>Amount</code> are the same identifier to the compiler — but a file mixing both looks like two different variables to a human reader, which is exactly the confusing situation case-insensitivity can quietly create.</li>
-<li>Always use <code>Option Strict On</code> at the top of a real VB.NET file if you have the choice — it disables silent, potentially lossy type conversions that VB.NET otherwise allows by default.</li>
+<li>In a new BackOffice file, add <code>Option Strict On</code> at the top yourself if the change is substantial enough to justify it — it turns silent, potentially lossy conversions into compile errors you fix immediately instead of runtime surprises later. Don't retrofit it onto an existing large file casually: turning it on can surface a wave of pre-existing conversion warnings unrelated to your change.</li>
 </ul>
 
 <h2>Better ways</h2>
-<p>The comment marker in <a href="../../conventions/comment-style.md">Fiuu C# Conventions → Comment Style</a>'s real example — <code>// TODO: might not be correct. Was : Exit For</code> — is a tell for code mechanically ported from VB.NET to C# without a careful rewrite. If you ever do this kind of port yourself, treat it as a rewrite opportunity, not a find-and-replace exercise — the two languages' idioms (exception-only control flow vs. VB's historical <code>On Error</code> style, for one) don't map one-to-one.</p>
+<p>The comment marker in <a href="../../conventions/comment-style.md">Fiuu Code Conventions → Comment Style</a>'s real example — <code>// TODO: might not be correct. Was : Exit For</code> — is a tell for code mechanically ported from VB.NET to C# without a careful rewrite. If you ever do this kind of port yourself, treat it as a rewrite opportunity, not a find-and-replace exercise — the two languages' idioms (exception-only control flow vs. VB's historical <code>On Error</code> style, for one) don't map one-to-one.</p>
 
 <h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>Dim iQty, iMaxQty As Integer</code> — a real line from OfflineSalesCreate.aspx.vb. What type is <code>iQty</code>?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This was true in classic VB6 — an undeclared name before the type keyword became an untyped Variant. VB.NET specifically fixed this: every name in the list gets the type named at the end." >Object, since it has no <code>As</code> clause of its own.</li>
+<li data-correct="true" data-explain="In VB.NET, every name in a comma-separated Dim list takes the type named after the last As clause that applies to it — unlike VB6, where only the immediately preceding name got the type and earlier names silently became Variant." >Integer — VB.NET gives every name in the list the type named at the end, unlike VB6.</li>
+<li data-correct="false" data-explain="This statement is valid VB.NET and compiles cleanly — it does not require separate Dim statements per variable." >This doesn't compile — VB.NET requires a separate <code>Dim</code> for each variable.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>Dim arrEmail As String() = Split(sEmailAddress, ";")</code> — a real line from DealerCreate.aspx.vb. What does <code>arrEmail</code> actually hold?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Split() always returns String() — an array — never a single String, regardless of how many delimited pieces it finds." >A single semicolon-delimited string, unchanged.</li>
+<li data-correct="true" data-explain="String() is an array-of-strings type, distinct from a plain String the same way int[] differs from int in C#. Split() always returns String(), which is exactly why the variable is typed String() here, not String." >A reference to an array of strings — one element per semicolon-separated piece of the original text.</li>
+<li data-correct="false" data-explain="Split() returns a real String() array with real elements — it's not a lazy count-only result." >The number of semicolons found in the string.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="predict" data-answer="10">
+<p class="quiz-q"><code>Dim scores(9) As Integer</code> — how many elements does this array actually have? (just the number)</p>
+<textarea class="quiz-blank" rows="1"></textarea>
+<button type="button" class="quiz-submit">Check answer</button>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A method has <code>Static callCount As Integer = 0</code> as its first line, then increments <code>callCount</code>. It's called three times in a row. What does the third call see as the initial value of <code>callCount</code>, before the increment?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="A normal local variable would reset to 0 on every call — but Static specifically means the initializer only runs once, on the very first call, and the variable retains its value across all later calls." >0 — the initializer re-runs on every call, resetting it.</li>
+<li data-correct="true" data-explain="Static means the = 0 initializer only executes the first time the method is ever called. On every subsequent call, that line is skipped and callCount keeps whatever value the previous call left it at — 2, after two prior increments." >2 — the value left over from the two previous calls, since the <code>= 0</code> initializer only ran once, on the first call ever.</li>
+<li data-correct="false" data-explain="Static doesn't throw on repeated declaration — it's designed specifically to be declared once and referenced across multiple calls without error." >It throws an exception, since the variable was already declared on a previous call.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A BackOffice <code>.aspx.vb</code> file has no <code>Option Strict</code> declaration of its own. What governs whether risky implicit type conversions are allowed in that file?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Option Strict On is the language default when you create a brand-new standalone VB.NET project via certain templates, but it's a per-project MSBuild setting — this specific project's .vbproj sets it explicitly, and that setting is what actually applies." >VB.NET always defaults to Option Strict On regardless of project settings.</li>
+<li data-correct="true" data-explain="Fiuu.App.BackOffice.Web.vbproj sets <OptionStrict>Off</OptionStrict> at the project level. Every file inherits that unless it declares its own Option Strict On/Off at the top — most BackOffice files don't, so most of them run with Strict Off." >The project file's own <code>&lt;OptionStrict&gt;</code> setting — verified as <code>Off</code> for BackOffice — which every file inherits unless it overrides it locally.</li>
+<li data-correct="false" data-explain="The .aspx markup file has no bearing on the code-behind .vb file's compiler options — those are controlled by Option statements and the project file only.">Whether the corresponding <code>.aspx</code> markup file has strict typing enabled.</li>
+</ul>
+</div>
+
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">Why does VB.NET generally prefer <code>&amp;</code> over <code>+</code> for joining strings, even though both compile?</p>
 <ul class="quiz-options">
@@ -93,6 +208,7 @@ End Module</pre>
 <div id="lesson-footer"></div>
 </main>
 <script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/search.js"></script>
 <script src="../assets/js/site.js"></script>
 <script src="../assets/js/terms.js"></script>
 <script src="../assets/js/tryit.js"></script>

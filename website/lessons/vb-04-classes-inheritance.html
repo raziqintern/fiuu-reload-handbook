@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classes, Inheritance & Interfaces · Fiuu Reload Academy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<script src="../assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="vb-04-classes-inheritance">
+<header id="site-header"></header>
+<nav id="site-sidebar" aria-label="Lesson navigation"></nav>
+<main id="site-main">
+
+<span class="track-label">VB.NET Fundamentals</span>
+<h1>Classes, Inheritance &amp; Interfaces</h1>
+<p class="lede">VB.NET's OOP keywords are more explicit than C#'s in exactly the places that matter for reading BackOffice code — <code>MustOverride</code>/<code>Overrides</code> instead of C#'s <code>abstract</code>/<code>override</code>, and <code>Implements</code> written twice: once on the class, once again on every member.</p>
+
+<h2>Property instead of get/set, New instead of a matching-name constructor</h2>
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">Public Class Terminal
+    Public Property TerminalId As String
+    Public Property MerchantName As String
+    Public Property IsOnline As Boolean
+
+    Public Sub New(terminalId As String, merchantName As String)
+        Me.TerminalId = terminalId
+        Me.MerchantName = merchantName
+        Me.IsOnline = True
+    End Sub
+End Class
+
+Module Program
+    Sub Main()
+        Dim t As New Terminal("TNG-0042", "7-Eleven KL")
+        Console.WriteLine(t.TerminalId & " - " & t.MerchantName & " - " & t.IsOnline)
+    End Sub
+End Module</pre>
+<pre class="tryit-output-src">TNG-0042 - 7-Eleven KL - True</pre>
+</div>
+<p>Compare this to the C# version in <a href="cs-04-classes.html">C# Fundamentals → Classes</a> — same three properties, same constructor logic. <code>Public Property X As T</code> is VB's equivalent of C#'s <code>public T X { get; set; }</code>; the constructor is always named <code>New</code> instead of repeating the class name; <code>Me</code> is VB's <code>this</code>.</p>
+
+<h2>MustInherit &amp; MustOverride — real, verified, and central to how BackOffice enforces access control</h2>
+<p>VB.NET's abstract-class keyword is <code>MustInherit</code> (not <code>abstract</code>), and an abstract member is <code>MustOverride</code> (not an abstract method with no body). This isn't a hypothetical translation — it's the actual base class every access-controlled BackOffice page inherits from:</p>
+<pre class="code-block">Public MustInherit Class RestrictedPage
+    ...
+    Protected MustOverride ReadOnly Property ModuleName As ModuleNames
+    Protected MustOverride ReadOnly Property PageAction As EnumPageAction
+    ...
+End Class</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/RestrictedPage.vb:11,14,16</p>
+<p>Every real page that needs access control inherits from it and is <strong>forced by the compiler</strong> to supply both properties — there's no way to inherit <code>RestrictedPage</code> and forget one, the way you could forget to check permissions manually in an ad hoc base class:</p>
+<pre class="code-block">Namespace WebForms
+    Public Class TerminalFirmwareVersionList
+        Inherits RestrictedPage
+
+        Protected Overrides ReadOnly Property ModuleName As ModuleNames
+            Get
+                Return ModuleNames.TerminalFirmwareVersion
+            End Get
+        End Property</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:11-19</p>
+
+<div class="callout tip">
+<span class="callout-title">The four related keywords, and when each applies</span>
+<table>
+<tr><th>Keyword</th><th>Means</th><th>When to use it</th></tr>
+<tr><td><code>MustOverride</code></td><td>No implementation here — every derived class must supply one (like C#'s <code>abstract</code>)</td><td>A member where there's genuinely no sensible default — <code>RestrictedPage</code> has no idea what module a specific page belongs to</td></tr>
+<tr><td><code>Overridable</code></td><td>Has a real default implementation, but a derived class may replace it</td><td>A sensible default exists, but some derived classes legitimately need to customize it</td></tr>
+<tr><td><code>NotOverridable</code></td><td>Explicitly forbids further overriding (VB.NET methods are <code>NotOverridable</code> by default unless marked <code>Overridable</code> — this keyword is for un-sealing an inherited <code>Overrides</code> chain)</td><td>Rare — you're overriding a member yourself but want to stop any further subclass from overriding it again</td></tr>
+<tr><td><code>Shadows</code></td><td>Hides a base class member of the same name entirely — not a real override, a new, unrelated member that happens to share a name</td><td>Deliberately breaking the inheritance relationship for one member — uncommon, and worth a comment explaining why when you see it</td></tr>
+</table>
+</div>
+
+<h2>Implements — written on the class, then again on every member</h2>
+<p>The biggest real syntax difference from C# interfaces: VB.NET makes you say <code>Implements</code> twice — once declaring the class implements the interface, and again on each member that satisfies it, naming exactly which interface member it fulfills:</p>
+<pre class="code-block">Public Interface ITerminalService
+    Function Login(terminalId As String) As Boolean
+End Interface
+
+Public Class TerminalService
+    Implements ITerminalService
+
+    Public Function Login(terminalId As String) As Boolean Implements ITerminalService.Login
+        Console.WriteLine("Logging in terminal: " & terminalId)
+        Return True
+    End Function
+End Class</pre>
+<div class="callout warn">
+<span class="callout-title">Why the double declaration exists — and what it buys you</span>
+Unlike C#, a VB.NET method's <em>name</em> doesn't have to match the interface member it implements — <code>Public Function DoLogin(...) Implements ITerminalService.Login</code> is perfectly legal, and the <code>Implements</code> clause is what actually wires it up. This is genuinely more explicit than C# (you can always see exactly which interface member a method satisfies by reading its own signature, not by matching names), but it also means a method can implement an interface member under a completely different name than the interface declares — read the <code>Implements</code> clause, not just the method name, to know what a method actually satisfies.
+</div>
+
+<h2>Best practice</h2>
+<ul>
+<li>Reach for <code>MustInherit</code>/<code>MustOverride</code> when every subclass genuinely needs to supply its own answer and there's no sensible shared default — like <code>RestrictedPage</code> forcing every page to declare its own module and permission action. Reach for <code>Overridable</code> with a real default implementation when most subclasses would want the same behavior and only a few need to customize it.</li>
+<li>When implementing an interface, keep the method name matching the interface member name even though VB.NET doesn't require it — a mismatched name (<code>DoLogin</code> implementing <code>ITerminalService.Login</code>) is technically legal but makes the code harder to search and reason about for no real benefit.</li>
+</ul>
+
+<h2>Better ways</h2>
+<p><code>Public Property X As T</code> auto-properties are convenient, exactly like C#'s <code>{ get; set; }</code> — but the same caution applies: if setting the property is really a meaningful action with rules attached (not just a raw field write), a real method (<code>Sub Deactivate()</code>) communicates that intent better than a property anyone can silently overwrite.</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>RestrictedPage</code> declares <code>Protected MustOverride ReadOnly Property ModuleName As ModuleNames</code>. What does this force on every class that inherits <code>RestrictedPage</code>?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="MustOverride means there is no default implementation at all in RestrictedPage — there's nothing to optionally keep. A derived class is required to supply its own." >Nothing — it's optional, derived classes may keep RestrictedPage's own default behavior if they want.</li>
+<li data-correct="true" data-explain="MustOverride is VB's abstract-member keyword — RestrictedPage supplies no implementation at all, so every class that inherits it MUST supply its own ModuleName property, or the derived class itself must also be MustInherit." >Every derived class must supply its own implementation of <code>ModuleName</code> — there is no default to fall back on.</li>
+<li data-correct="false" data-explain="MustOverride doesn't relate to constructors at all — it's specifically about requiring derived classes to implement a member with no base implementation.">Every derived class must define a parameterless constructor.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">In VB.NET, <code>Public Function DoLogin(id As String) As Boolean Implements ITerminalService.Login</code> is valid, even though the method is named <code>DoLogin</code>, not <code>Login</code>. Why does this compile?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="VB.NET's Implements clause explicitly names which interface member a method fulfills — the method's own name doesn't need to match the interface member's name at all, unlike C# where the method name and the interface member name must be identical." >The <code>Implements</code> clause explicitly states which interface member this method satisfies — VB.NET doesn't require the method's own name to match the interface's member name.</li>
+<li data-correct="false" data-explain="VB.NET interfaces are compiled the same way regardless of naming — there's no relaxed-matching mode being invoked here, just the explicit Implements clause doing real work.">VB.NET interfaces use fuzzy name matching by default.</li>
+<li data-correct="false" data-explain="ITerminalService.Login is a real member being satisfied here, not an optional one — Implements always requires satisfying every member of the interface, named ones included.">This only works for interface members marked as optional.</li>
+</ul>
+</div>
+
+<div id="lesson-footer"></div>
+</main>
+<script src="../assets/js/nav-data.js"></script>
+<script src="../assets/js/search.js"></script>
+<script src="../assets/js/site.js"></script>
+<script src="../assets/js/terms.js"></script>
+<script src="../assets/js/tryit.js"></script>
+<script src="../assets/js/quiz.js"></script>
+</body>
+</html>
