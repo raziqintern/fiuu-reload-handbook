@@ -41,6 +41,9 @@
 </div>
 
 <p>Click <strong>Run ▸</strong>, then click the "Refresh Status" button inside the result panel — that's <code>addEventListener</code> reacting to a real click, and <code>.textContent</code>/<code>.style</code> editing the DOM live, exactly like a real reload_portal page would when a status updates without a full page reload.</p>
+<div class="callout warn">
+<span class="callout-title">What if the selector doesn't match anything? querySelector doesn't throw — it returns null</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector"><code>Document.querySelector()</code> reference</a> states this plainly: <em>"If no matches are found, <code>null</code> is returned."</em> Not an error — just <code>null</code>, silently. A typo'd selector (<code>"#stat"</code> instead of <code>"#status"</code>) doesn't fail where the mistake actually is; it fails several lines later, the moment something tries to use the result as if it were a real element — <code>heading.textContent = "..."</code> throwing <code>"Cannot set properties of null (setting 'textContent')"</code> is the actual, visible symptom, but the selector typo several lines earlier is the real root cause. This is exactly the shape of bug the next section covers.</div>
 
 <h2>The browser console is your debugger</h2>
 <p>Everything you've been reading in the "Console" output boxes on this site is exactly what you'll see in real browser DevTools (F12 → Console tab) on any real page. The habits:</p>
@@ -65,8 +68,9 @@ console.log(terminal.merchantName); // this line throws</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>When something breaks, read the Console tab's <em>first</em> error before any that follow — a single root-cause error thrown early often stops later script from running, producing a cascade of confusing follow-on errors that all trace back to the first one.</li>
-<li>Reach for <code>console.table(someArray)</code> instead of <code>console.log</code> when inspecting an array of objects (like an API response) — it renders as an actual readable table instead of a wall of nested braces.</li>
+<li><strong>When something breaks, read the Console tab's <em>first</em> error before any that follow.</strong> A single root-cause error thrown early often stops later script from running, producing a cascade of confusing follow-on errors that all trace back to the first one.</li>
+<li><strong>Reach for <code>console.table(someArray)</code> instead of <code>console.log</code> when inspecting an array of objects (like an API response).</strong> It renders as an actual readable table instead of a wall of nested braces.</li>
+<li><strong>When a "Cannot read/set properties of null/undefined" error names a DOM element, suspect the selector first, not the line that actually threw.</strong> <code>querySelector</code> fails silently with <code>null</code>, several lines before the real crash.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -93,6 +97,15 @@ jQuery is a JavaScript library, not a separate language — <code>$(document).re
 <li data-correct="true" data-explain="A ReferenceError thrown by calling an undefined function stops execution of that script block right there — every statement after it, including the three .change()/.click() bindings later in the same ready() callback, never runs. The page loads with no visible error to the user, just handlers that silently never attached." >None of them get bound — the ReferenceError from the missing function halts the rest of that script block, so every line after it, including the later bindings, never executes.</li>
 <li data-correct="false" data-explain="JavaScript doesn't skip just the failing line and continue — a thrown, uncaught error unwinds the rest of the current call, taking every subsequent statement in that same block down with it.">Only the call to the missing function fails; the other three bindings still run normally.</li>
 <li data-correct="false" data-explain="jQuery doesn't retry or defer a failed call — a ReferenceError is a normal JavaScript exception, not something jQuery intercepts and reschedules.">jQuery queues the failed call and retries it after the other handlers bind.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>document.querySelector("#stat")</code> is a typo for <code>"#status"</code>, and no element on the page has <code>id="stat"</code>. What does this line do, right where it runs?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="MDN's own querySelector reference states plainly: 'If no matches are found, null is returned.' There's no thrown error at the selector call itself — the typo doesn't surface here." >It throws immediately, since no element matches the selector.</li>
+<li data-correct="true" data-explain="Per MDN's own reference, querySelector returns null when nothing matches — no error, no warning. The real crash happens later, wherever the resulting null is used as if it were a real element." >Nothing visible — it silently returns <code>null</code>, and the actual crash only happens later, wherever that <code>null</code> is used as if it were a real element.</li>
+<li data-correct="false" data-explain="querySelector doesn't create anything — it only searches the existing DOM for a match." >It creates a new empty element with that id and returns it.</li>
 </ul>
 </div>
 
