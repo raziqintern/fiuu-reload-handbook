@@ -55,6 +55,33 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/langu
 <code>If obj IsNot Nothing And obj.IsValid Then</code> looks reasonable but is dangerous: <code>And</code> evaluates <em>both</em> sides regardless of the first result, so if <code>obj</code> actually is <code>Nothing</code>, <code>obj.IsValid</code> still runs and throws a <code>NullReferenceException</code> — the <code>IsNot Nothing</code> check accomplished nothing. <code>AndAlso</code> would short-circuit and never evaluate the right side once the left side is <code>False</code>. <strong>Default to <code>AndAlso</code>/<code>OrElse</code> in new code</strong>; reach for plain <code>And</code>/<code>Or</code> only in the rare case where you specifically need both sides evaluated regardless (e.g. two independent method calls with side effects, where you genuinely want both to run).
 </div>
 
+<h2>Arithmetic operators — VB.NET has two division operators, not one</h2>
+<p>C# has a single <code>/</code> that behaves differently depending on the operand types (integer <code>/</code> integer truncates; anything with a <code>double</code> keeps the fraction). VB.NET instead has <strong>two distinct operators</strong> that always mean the same thing regardless of type — you pick which behavior you want by which symbol you write, not by what type happens to be involved.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/operators/integer-division-operator">\ Operator reference</a> states the distinction directly: <em>"The result is the integer quotient of expression1 divided by expression2, which discards any remainder and retains only the integer portion. This is known as truncation."</em> — contrasted explicitly with its sibling: <em>"The / Operator (Visual Basic) returns the full quotient, which retains the remainder in the fractional portion."</em> Its own worked example: <code>11 \ 4</code>, <code>9 \ 3</code>, <code>100 \ 3</code>, and <code>67 \ -3</code> return <code>2</code>, <code>3</code>, <code>33</code>, and <code>-22</code> respectively — the remainder is simply gone, not rounded.
+</div>
+<table>
+<tr><th>Operator</th><th>Name</th><th>Example</th><th>Result</th></tr>
+<tr><td><code>+</code></td><td>Addition</td><td><code>5 + 3</code></td><td><code>8</code></td></tr>
+<tr><td><code>-</code></td><td>Subtraction</td><td><code>5 - 3</code></td><td><code>2</code></td></tr>
+<tr><td><code>*</code></td><td>Multiplication</td><td><code>5 * 3</code></td><td><code>15</code></td></tr>
+<tr><td><code>/</code></td><td>Floating-point division</td><td><code>7 / 2</code></td><td><code>3.5</code></td></tr>
+<tr><td><code>\</code></td><td>Integer division — truncates, doesn't round</td><td><code>7 \ 2</code></td><td><code>3</code></td></tr>
+<tr><td><code>Mod</code></td><td>Remainder after division</td><td><code>7 Mod 2</code></td><td><code>1</code></td></tr>
+<tr><td><code>^</code></td><td>Exponentiation</td><td><code>2 ^ 8</code></td><td><code>256</code></td></tr>
+</table>
+<p>Real, verified <code>Mod</code> usage from this codebase — checking whether a count is odd, and computing check-digit remainders for a card/terminal ID:</p>
+<pre class="code-block">If PagerSettings.PageButtonCount Mod 2 = 1 Then</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/UserControls/GridView.vb:88</p>
+<pre class="code-block">r = x Mod 10
+r = sum Mod 10</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TNGLocationIDEdit.aspx.vb:202,208 (check-digit computation)</p>
+<div class="callout warn">
+<span class="callout-title">A search across this specific codebase turned up no real <code>\</code> or <code>^</code> usage</span>
+Both operators are real, documented, and fully supported — the example row above is straight from Microsoft's own reference, not fabricated — but a grep of BackOffice and CEPP found no genuine use of either in this codebase's own code. <code>Mod</code> and <code>/</code> cover the div/remainder needs that come up in practice here; know <code>\</code> and <code>^</code> exist and what they mean if you encounter them (in a spec, a StackOverflow answer, or code from elsewhere), but don't expect to find them in this specific repo.
+</div>
+
 <h2>Exit — leaving early, and which keyword matches which block</h2>
 <p>VB.NET's early-exit keyword changes depending on what you're inside — there's no single <code>break</code>/<code>return</code> pair covering every case:</p>
 <div class="callout tip">
@@ -79,6 +106,33 @@ End If</pre>
 <div class="callout tip">
 <span class="callout-title">Guard clauses are the main real use of Exit Sub/Function</span>
 Validate-and-bail-early at the top of a method (as in the real example above) keeps validation flat and readable — six independent <code>If invalid Then ... Exit Sub</code> checks in sequence, rather than six levels of nested <code>If</code>/<code>Else</code>. This is the same "fail fast, avoid deep nesting" idea C# guard clauses use with an early <code>return;</code> — VB.NET just spells it with the keyword matching the block you're actually in.
+</div>
+
+<h3>Exiting a Function early from inside an If — two real, different shapes in the same codebase</h3>
+<p><code>Exit Function</code> inside a <code>Function</code> works the same way <code>Exit Sub</code> does inside a <code>Sub</code> — it leaves immediately — but a <code>Function</code> has to leave <em>something</em> behind as its return value, and that's exactly where the two real patterns below diverge.</p>
+<pre class="code-block">Private Function IsEmailFieldValid(sEmailAddress As String) As Boolean
+    For Each sEmail In arrEmail
+        If Not SharedFunction.validateEmail(sEmail) Then
+            MessageBox.ShowErrorMessage(Message.InvalidEmailAddress)
+            Return False
+            Exit Function
+        End If</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/DealerEdit.aspx.vb:2159-2168</p>
+<div class="callout warn">
+<span class="callout-title">Real, shipped dead code — worth recognising, not copying</span>
+<code>Return False</code> already exits the function immediately with a value; the <code>Exit Function</code> on the very next line can never execute — it's unreachable, and functionally identical to deleting it. This isn't a hypothetical "what if someone wrote this" example: it's real, committed code in this exact file. The lesson isn't "this specific line is broken" (it isn't — the function still behaves correctly, since <code>Return</code> alone does the whole job) — it's that <code>Return</code> and <code>Exit Function</code> are two full, independent ways to leave a function, and combining them doesn't combine their effects, it just leaves one of them silently unreachable.
+</div>
+<p>The second real pattern relies on <code>Exit Function</code> alone, with no explicit return value at all:</p>
+<pre class="code-block">Private Function ValidateEditDealer() As Boolean
+    ...
+    If (String.IsNullOrEmpty(txtDealer.Text.Trim())) Then
+        MessageBox.ShowErrorMessage(Message.DealerNameRequired)
+        Exit Function
+    End If</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/DealerEdit.aspx.vb:317,320-322</p>
+<div class="callout real">
+<span class="callout-title">What value does this actually return?</span>
+A bare <code>Exit Function</code> returns whatever the function's own implicit return value currently holds — for a <code>Boolean</code> function, that's its type's default, <code>False</code>, unless something earlier in the method explicitly set it to something else first. Here that's exactly the intent (validation failed → return <code>False</code>), but it works by relying on the default rather than stating it — <code>Return False</code> in the same spot would say the same thing more explicitly, at no cost. Prefer an explicit <code>Return value</code> over a bare <code>Exit Function</code> whenever the returned value matters to the reader, precisely because <code>Exit Function</code> alone hides what's actually being returned.
 </div>
 
 <h2>For loops are inclusive on both ends</h2>
@@ -140,6 +194,23 @@ Console.WriteLine("Batch valid? " & allValid)</pre>
 Batch valid? False</pre>
 </div>
 
+<h2>Other loop shapes: Do Until/While, and For Each over your own objects</h2>
+<p><code>For</code>/<code>For Each</code> both assume you know in advance what you're iterating over — a count, or a collection. <code>Do While</code>/<code>Do Until</code> exist for the opposite case: keep looping <em>until some condition changes</em>, with no predetermined number of iterations. Real, verified usage — reading a file stream in fixed-size chunks until there's nothing left to read:</p>
+<pre class="code-block">Dim sourceBytes As Integer = 1
+Do Until (sourceBytes <= 0)
+    sourceBytes = fs.Read(buffer, 0, buffer.Length)
+    strmZipOutputStream.Write(buffer, 0, sourceBytes)
+Loop</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/ReportChannelPartner.aspx.vb:199-202</p>
+<p><code>fs.Read(...)</code> returns however many bytes it actually managed to read — a number nobody can know ahead of time, since it depends on how much of the file is left. That's exactly the shape <code>Do Until</code> fits and a counting <code>For</code> loop can't: the number of iterations is discovered one at a time, by the loop's own condition, not decided before the loop starts. <code>Do While (condition)</code> is the same construct with the test inverted — keep going <em>while</em> true instead of <em>until</em> true; pick whichever phrasing reads more naturally for the specific condition.</p>
+
+<p><code>For Each</code> works identically whether the collection holds a primitive type or a class this codebase defines itself — the mechanism doesn't care what <code>T</code> is, only that the collection is enumerable (see <a href="vb-01-syntax.html">VB.NET Fundamentals → Syntax, Types &amp; Option Strict</a> for why). Three real, verified examples looping over custom objects, not primitives:</p>
+<pre class="code-block">For Each data As CommissionDealerColumn In dataList
+For Each product As IProduct In lstProduct
+For Each configDetail As ConfigDetails In _backOfficeConfigDetails</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/Commission.aspx.vb:628; WebForms/ProductCreate.aspx.vb:414; Helpers/HelperFunction.vb:15</p>
+<p>Each loop variable (<code>data</code>, <code>product</code>, <code>configDetail</code>) is a full object of that type inside the loop body — its properties and methods are all available exactly as if you'd written <code>Dim data As CommissionDealerColumn = dataList(i)</code> yourself, just without an index variable to manage.</p>
+
 <h2>Select Case — VB's switch, with real differences worth knowing</h2>
 <p>Real code from <code>TerminalFirmwareVersionList.aspx.vb</code>'s grid command handler:</p>
 <pre class="code-block">Select Case e.CommandName
@@ -174,6 +245,7 @@ Once you're comparing the <em>same</em> single value against three or more possi
 <li><strong>Default to <code>AndAlso</code>/<code>OrElse</code> in new code, not <code>And</code>/<code>Or</code>.</strong> Reach for the non-short-circuit forms only when you specifically need both sides evaluated regardless of the first result — e.g. two independent method calls with side effects, where you genuinely want both to run.</li>
 <li><strong>Write out the first and last value a translated loop actually touches, not just its shape.</strong> <code>For i = 0 To n - 1</code> is the correct VB.NET translation of C#'s <code>for (int i = 0; i &lt; n; i++)</code> — the <code>- 1</code> is the whole trick, and it's easy to drop under time pressure.</li>
 <li><strong>Reach for <code>Select Case</code> once you're testing one value against three or more possibilities.</strong> A chain of <code>ElseIf</code>s works but hides that every branch is testing the same thing; <code>Select Case</code> makes that structure visible at a glance.</li>
+<li><strong>Use <code>Return value</code> to exit a Function, not a bare <code>Exit Function</code>, whenever the returned value matters to the reader.</strong> A bare <code>Exit Function</code> returns whatever the implicit return value already holds (a type's default if nothing set it) — correct, but it hides the actual value being returned; <code>Return False</code> says the same thing without making the reader work it out.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -210,6 +282,39 @@ Once you're comparing the <em>same</em> single value against three or more possi
 <li data-correct="false" data-explain="VB.NET's Select Case has no fall-through concept at all — there's no keyword to opt into it, unlike C-style switch where fall-through is the default you opt out of." >You need <code>Continue Case</code> to fall through, and no keyword to stop it.</li>
 <li data-correct="true" data-explain="Select Case never falls through, in any version — each Case implicitly stops at its own End, with no equivalent of a missing break; bug ever being possible." >Nothing — <code>Select Case</code> never falls through; each <code>Case</code> always stops on its own.</li>
 <li data-correct="false" data-explain="Exit Select exits the whole Select Case block early from inside a Case (rarely needed) — it's not what prevents fall-through, since there's nothing to fall through to in the first place.">You need <code>Exit Select</code> at the end of every <code>Case</code> to prevent fall-through.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="predict" data-answer="3">
+<p class="quiz-q"><code>7 \ 2</code> — VB.NET's integer division operator. What's the result? (just the number)</p>
+<textarea class="quiz-blank" rows="1"></textarea>
+<button type="button" class="quiz-submit">Check answer</button>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A real function in DealerEdit.aspx.vb has <code>Return False</code> immediately followed by <code>Exit Function</code> on the next line, inside the same <code>If</code> block. What does the <code>Exit Function</code> line actually do?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Return already exits the function immediately, carrying the value False with it — there is no 'after Return' for a second exit statement to run in." >It overrides the <code>Return False</code>, making the function actually return some other default value.</li>
+<li data-correct="true" data-explain="Return False already exits the function with its value the instant it executes — code after a Return statement in the same block never runs. The Exit Function line is real, committed, and permanently unreachable." >Nothing — it's dead code. <code>Return False</code> already exited the function, so the line after it can never execute.</li>
+<li data-correct="false" data-explain="VB.NET doesn't require a matching Exit Function after every Return — Return alone is a complete, valid way to leave a function." >It's required syntax — VB.NET needs an explicit Exit Function after every Return inside an If block.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A real <code>Boolean</code> function (<code>ValidateEditDealer</code>) hits a validation failure and executes a bare <code>Exit Function</code> with no <code>Return</code> value specified. What does the function actually return to its caller?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="A bare Exit Function doesn't throw — it's a normal, valid way to leave a function, just one that returns the implicit value rather than stating one explicitly." >It throws a runtime exception, since no value was explicitly returned.</li>
+<li data-correct="true" data-explain="A bare Exit Function returns whatever the function's implicit return value currently holds — for a Boolean function where nothing set it yet, that's the type's default, False. This happens to match the validation-failure intent here, but it works by relying on a default rather than stating the value explicitly." ><code>False</code> — the type's default value, since nothing in the method had explicitly set the function's return value before the <code>Exit Function</code> ran.</li>
+<li data-correct="false" data-explain="A bare Exit Function does not require a prior Return statement to know what to return — it falls back to the implicit/default value instead." >It's a compile error — every code path in a Function must use <code>Return</code>, not <code>Exit Function</code>.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A method needs to read a file in chunks until there's nothing left, but doesn't know in advance how many chunks that will take. Which loop shape fits, based on the real <code>ReportChannelPartner.aspx.vb</code> example?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="A counting For loop needs to know the number of iterations up front — exactly what isn't known here, since it depends on the file's remaining length discovered one Read() call at a time." >A <code>For i = 1 To fileSize</code> loop, since the file size is known.</li>
+<li data-correct="true" data-explain="This is exactly the real ReportChannelPartner.aspx.vb pattern: Do Until (sourceBytes <= 0) keeps reading chunks until fs.Read returns 0, a stopping condition discovered one iteration at a time rather than known in advance." >A <code>Do Until</code> (or <code>Do While</code>) loop, since the number of chunks isn't known ahead of time — only the stopping condition is.</li>
+<li data-correct="false" data-explain="For Each iterates over an existing collection's elements — a file stream being read incrementally isn't a pre-existing collection to enumerate." >A <code>For Each</code> loop directly over the file stream object.</li>
 </ul>
 </div>
 
