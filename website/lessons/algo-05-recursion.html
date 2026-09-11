@@ -63,6 +63,10 @@ End Sub</pre>
 CountDown(5);</pre>
 With no condition to stop it, this keeps calling itself with an ever-more-negative <code>n</code> forever. Every call adds a new frame to the call stack, and the stack has a fixed size — this eventually throws a <code>StackOverflowException</code>. In .NET specifically, this exception is <strong>uncatchable</strong>: no <code>try</code>/<code>catch</code>, however broad, will stop it — the entire process terminates immediately. (JavaScript's equivalent, <code>RangeError: Maximum call stack size exceeded</code>, can actually be caught — a real, notable difference between the platforms.)
 </div>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.stackoverflowexception"><code>StackOverflowException</code> reference</a> states this as a hard platform rule, not an implementation detail: <em>"You can't catch a StackOverflowException object with a try/catch block, and the corresponding process is terminated by default... Applying the HandleProcessCorruptedStateExceptionsAttribute attribute to a method that throws a StackOverflowException has no effect. You still cannot handle the exception from user code."</em> Its own guidance for genuinely unbounded recursion isn't <code>try</code>/<code>catch</code> at all — it's exactly the fix below: <em>"if your app depends on recursion, use a counter or a state condition to terminate the recursive loop."</em>
+</div>
 
 <h2>The fix: the same function, with a base case</h2>
 <div class="tryit" data-lang="dual">
@@ -110,7 +114,10 @@ When writing any recursive function, write the base case <em>first</em>, before 
 </div>
 
 <h2>Best practice</h2>
-<p>Because a runaway .NET recursion can't be caught, treat "this base case might not always be reached" as a correctness bug to fix at the source, not something to defend against with a <code>try</code>/<code>catch</code> — that safety net doesn't exist here the way it does in some other languages.</p>
+<ul>
+<li><strong>Because a runaway .NET recursion can't be caught, treat "this base case might not always be reached" as a correctness bug to fix at the source.</strong> Not something to defend against with a <code>try</code>/<code>catch</code> — that safety net doesn't exist here the way it does in some other languages.</li>
+<li><strong>If a recursive function's depth genuinely can't be bounded by its own logic, add an explicit counter or depth limit as the real base case.</strong> This is Microsoft's own documented mitigation for recursion depth that can't otherwise be proven safe — not a workaround, the recommended fix.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -119,6 +126,15 @@ When writing any recursive function, write the base case <em>first</em>, before 
 <li data-correct="false" data-explain="Recursion doesn't automatically detect this — it keeps calling itself exactly as written until something external (the call stack limit) stops it." >It runs once and returns a default value safely.</li>
 <li data-correct="true" data-explain="Every recursive call adds a new frame to the call stack. With no reachable base case, this continues until the stack's fixed size is exceeded, throwing an uncatchable StackOverflowException that terminates the process immediately — no try/catch can stop it." >It keeps calling itself until the process crashes with an uncatchable StackOverflowException.</li>
 <li data-correct="false" data-explain=".NET doesn't statically analyze whether your base case is reachable — this isn't caught before the code runs.">The compiler detects the mistake at compile time and refuses to build it.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Per Microsoft's own documentation, what happens if you wrap a call to a runaway-recursive method in <code>try { ... } catch (Exception ex) { ... }</code>, even a broad catch-all?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Microsoft's own StackOverflowException reference is explicit: 'You can't catch a StackOverflowException object with a try/catch block' — this applies regardless of how broad the catch clause is." >The <code>catch (Exception ex)</code> catches it, since <code>Exception</code> is the base type for everything.</li>
+<li data-correct="true" data-explain="The reference states this directly, and even notes that HandleProcessCorruptedStateExceptionsAttribute — a real attribute meant for exactly this kind of corrupted-state exception — 'has no effect' here either: 'You still cannot handle the exception from user code.' The process terminates regardless of any try/catch present." >Nothing — <code>StackOverflowException</code> can't be caught by any <code>try</code>/<code>catch</code>, and the process terminates anyway.</li>
+<li data-correct="false" data-explain="This exception specifically escapes normal catch mechanisms — a rethrow inside the catch block never gets the chance to run, since the catch block itself is never entered." >It's caught, but then automatically rethrown after logging.</li>
 </ul>
 </div>
 
