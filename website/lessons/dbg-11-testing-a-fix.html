@@ -31,6 +31,10 @@
 <p>So the real change is: <strong>PayerIc (<code>account1</code>) is now unrestricted in length/format</strong> for this one biller, and <strong>IncomeCode (<code>account2</code>) must now be exactly 9 digits</strong> — a brand-new constraint that didn't exist before. Two different fields, two opposite directions (one loosened, one tightened). A test plan built from the title alone ("added MBMBKW38") would miss that this is really two separate rule changes layered on one category.</p>
 
 <h2>Step 2 — build a boundary-value matrix, not one happy-path click</h2>
+<div class="callout tip">
+<span class="callout-title">Official documentation — this technique has a name</span>
+<a href="https://istqb-glossary.page/boundary-value-analysis/">ISTQB's glossary</a> defines exactly this technique: <em>"A black-box test design technique in which test cases are designed based on boundary values."</em> Every row in the tables below — the old boundary, one step inside a new range, one step outside it — is a deliberate instance of this named technique, the same family as the decision-table testing covered in <a href="dbg-06-postback-state-trap.html">the postback state trap lesson</a>: writing down the structure of the input space instead of picking values at random.
+</div>
 <p>For the loosened field (PayerIc), the useful test isn't "does a valid value still work" — it's proving the <em>old</em> boundary still works <strong>and</strong> values outside it now also work, without silently breaking the field's other guard (empty-string rejection, untouched by this diff):</p>
 <table>
 <tr><th>#</th><th>account1 (PayerIc)</th><th>Why this value</th><th>Expected</th></tr>
@@ -55,7 +59,11 @@ For IncomeCode (now must be exactly 9 digits), the matrix is the mirror image: 9
 <p>The MR's own checklist asked for one happy-path Initiate→Confirm per existing biller. Since the actual code edit was a deletion from a shared <code>OrElse</code> chain — the exact kind of edit where an off-by-one can silently shift a neighboring condition — the more complete version adds one boundary-<em>failure</em> case per untouched biller too (one length just past each biller's own valid range), specifically because this fix's edit sat directly inside the chain those checks live in. A checklist written before the diff exists can't know which lines are riskiest to touch; reading the actual diff can.</p>
 
 <h2>Best practice</h2>
-<p>When testing a fix: read the diff first to find every field it actually touches (not just the one the title mentions), build a boundary-value matrix around each one (the old boundary, just inside the new range, just outside it, and any separate untouched guard nearby), and before blaming a failing result on your change, check whether a completely different, pre-existing rule could explain it. Regression tests on sibling code paths should specifically target whatever's structurally closest to the actual edit (a shared conditional chain, a shared helper) — that's where an unintended side effect is most likely to hide.</p>
+<ul>
+<li><strong>When testing a fix, read the diff first to find every field it actually touches, not just the one the MR title mentions.</strong> A title can describe the feature without describing the actual shape of the change underneath it.</li>
+<li><strong>Build a boundary-value matrix around each touched field: the old boundary, just inside the new range, just outside it, and any separate untouched guard nearby.</strong> This is boundary value analysis, a named technique, not an ad hoc list of "values that seem worth trying."</li>
+<li><strong>Before blaming a failing result on your change, check whether a completely different, pre-existing rule could explain it.</strong> Regression tests on sibling code paths should specifically target whatever's structurally closest to the actual edit (a shared conditional chain, a shared helper) — that's where an unintended side effect is most likely to hide.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
