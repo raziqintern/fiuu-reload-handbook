@@ -55,9 +55,30 @@ switch (status)
 <pre class="tryit-output-src">Awaiting confirmation</pre>
 </div>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/selection-statements">if and switch statements reference</a> states the rule as a compiler guarantee, not a style convention: <em>"Every switch section must end with a break, goto, or return. Falling through from one switch section to the next generates a compiler error."</em>
+</div>
 <div class="callout warn">
 <span class="callout-title">Don't forget break</span>
 Unlike some languages, C#'s <code>switch</code> requires an explicit <code>break</code> (or <code>return</code>) at the end of every case — it will not compile if a case can "fall through" to the next one silently. This is a deliberate safety rail C# has that some other C-family languages don't.
+</div>
+<p>What the same reference calls a "deliberate design choice," and real, verified production code doing exactly this — <em>multiple</em> case labels stacked on one section deliberately share the same logic, which is not the same thing as fall-through:</p>
+<pre class="code-block">switch (trans.TransType)
+{
+    case TransType.OpenBalance:
+    case TransType.CloseBalance:
+        trans.EncryptedBalance = EncryptBalance(spSecretKey.Label, trans.Balance);
+        break;
+    case TransType.Transfer:
+    case TransType.Reversal:
+    case TransType.Adjustment:
+        // ...
+}</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Providers/WalletProvider.cs:159-167</p>
+<div class="callout tip">
+<span class="callout-title">Stacked case labels aren't fall-through — the distinction that matters</span>
+<code>case TransType.OpenBalance:</code> immediately followed by <code>case TransType.CloseBalance:</code> with no statements between them is legal and common — an empty case label falls through to the next label with no code executing in between, which is different from a case with a body that's missing its <code>break</code>. The rule from the official reference is precise: <em>"Falling through from one switch section to the next generates a compiler error"</em> — a "switch section" is a case label plus its statements. Two empty labels sharing one section below them was always fine; a section with real statements missing its terminating <code>break</code> is what the compiler rejects.
 </div>
 
 <h2>Loops: for and foreach</h2>
@@ -95,11 +116,16 @@ Batch valid? False</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Use <code>switch</code> once you have three or more branches on the same value — it's more readable than a long <code>if</code>/<code>else if</code> chain, and the compiler enforces every case ends cleanly.</li>
-<li>Prefer <code>foreach</code> over an indexed <code>for</code> loop whenever you don't need the index itself — it reads clearer and removes an entire class of off-by-one mistakes.</li>
+<li><strong>Use <code>switch</code> once you have three or more branches on the same value.</strong> It's more readable than a long <code>if</code>/<code>else if</code> chain, and the compiler enforces every case ends cleanly.</li>
+<li><strong>Prefer <code>foreach</code> over an indexed <code>for</code> loop whenever you don't need the index itself.</strong> It reads clearer and removes an entire class of off-by-one mistakes.</li>
+<li><strong>Stack empty case labels when several values share identical handling, rather than repeating the same body.</strong> As the real <code>WalletProvider.cs</code> example above does — it's a documented, deliberate C# idiom, not a fall-through bug.</li>
 </ul>
 
 <h2>Better ways</h2>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own reference distinguishes when each form fits: <em>"switch statement is used to control the execution flow within a block of code. switch expression is typically used in contexts of value return and value assignment... a switch expression case section can't be empty, but a switch statement case section can."</em>
+</div>
 <p>A modern C# alternative worth knowing: switch <em>expressions</em> (<code>var msg = status switch { "Success" =&gt; "...", "Pending" =&gt; "...", _ =&gt; "..." };</code>) replace the older statement form above for cases that just compute a single value — more compact, and the compiler can warn you if a case is missing.</p>
 
 <h2>Check your understanding</h2>
@@ -109,6 +135,15 @@ Batch valid? False</pre>
 <li data-correct="false" data-explain="Some other C-family languages fall through silently — C# specifically does not allow this by default." >It silently falls through to the next case, same as some other languages.</li>
 <li data-correct="true" data-explain="C# requires each reachable case to end with break, return, throw, or goto case — an empty case falling through without one of these is a compile error, catching a common bug class at compile time.">The code won't compile — C# requires each case to explicitly end somehow.</li>
 <li data-correct="false" data-explain="It's a compile-time error, not a runtime exception.">Nothing — it runs fine and just skips that case.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Real code has <code>case TransType.OpenBalance:</code> immediately followed by <code>case TransType.CloseBalance:</code>, with the shared logic written only once, under the second label. Does this compile?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This is legal, documented C# — an empty case label falling through to the next label (with no statements in between) is explicitly allowed, and is different from a case with a body missing its break." >No — this is exactly the fall-through the compiler rejects.</li>
+<li data-correct="true" data-explain="Microsoft's own reference is explicit that this is a deliberate design choice: multiple switch labels can share one section. What the compiler actually rejects is a section with real statements that doesn't end in break/return/goto — an empty label falling through to the next label is a different, allowed case." >Yes — stacking empty case labels that share one section below them is explicitly documented and legal; it's not the same as a section with statements missing its <code>break</code>.</li>
+<li data-correct="false" data-explain="This compiles regardless of enum member order — case label stacking doesn't depend on the underlying enum's declared order." >Only if <code>OpenBalance</code> and <code>CloseBalance</code> are declared adjacently in the enum itself.</li>
 </ul>
 </div>
 
