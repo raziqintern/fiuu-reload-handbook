@@ -58,10 +58,40 @@
 </ol>
 
 <h2>Best practice</h2>
-<p>Use <code>&lt;table&gt;</code> for genuinely tabular data (rows and columns of related values) — not as a general-purpose layout tool for positioning unrelated page elements. That older "layout tables" habit predates CSS layout and actively confuses screen readers, which announce table structure as if it were meaningful data.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_table_basics">HTML table basics guide</a> is direct about why the older "layout tables" habit is a real accessibility problem, not just an aesthetic one: <em>"Layout tables reduce accessibility for visually impaired users: screen readers... interpret the tags that exist in an HTML page and read out the contents to the user. Because tables are not the right tool for layout... the screen readers' output will be confusing to their users."</em>
+</div>
+<ul>
+<li><strong>Use <code>&lt;table&gt;</code> only for genuinely tabular data</strong> — rows and columns of related values, like the transaction list above — never as a general-purpose layout tool for positioning unrelated page elements. Use CSS for layout instead.</li>
+</ul>
 
 <h2>Better ways</h2>
 <p>A large real table (hundreds or thousands of transaction rows) rendered all at once will make a browser tab sluggish. Real admin screens handle this with server-side pagination or a "virtualized" list that only renders the rows currently in view — worth knowing the term for when you eventually need to explain why a report page is slow.</p>
+<div class="callout real">
+<span class="callout-title">Real, verified: pagination on a real BackOffice grid</span>
+<code>&lt;mol:GridView runat="server" AllowPaging="True" AllowSorting="True" ID="gvTerminalFirmwareVersion" ... PageSize="100" ...&gt;</code> — this WebForms grid control renders down to a real <code>&lt;table&gt;</code>, but <code>AllowPaging="True"</code> with <code>PageSize="100"</code> means only 100 rows are ever actually rendered into the page at once, no matter how many thousands of rows the underlying query returns. That's the server-side pagination technique in production, not a theoretical example.
+</div>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx:107</p>
+
+<h2>Check your understanding</h2>
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why does MDN's own guidance specifically warn against using <code>&lt;table&gt;</code> for page layout instead of CSS?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Tables render fine visually for layout purposes too — that's exactly why the old habit existed. The real problem is accessibility, not rendering." >Because tables don't render correctly in modern browsers.</li>
+<li data-correct="true" data-explain="MDN's own HTML table basics guide states this directly: screen readers interpret table tags and read out their structure to the user, and 'because tables are not the right tool for layout... the screen readers' output will be confusing to their users.'" >Because a screen reader announces table structure as if it were meaningful data, which is confusing when the table was only ever meant for visual positioning.</li>
+<li data-correct="false" data-explain="This isn't about search engines — the documented reason is accessibility for screen reader users, plus the resulting markup complexity." >Because search engines penalize pages that use <code>&lt;table&gt;</code> for layout.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A real BackOffice grid sets <code>AllowPaging="True"</code> and <code>PageSize="100"</code> on a table backed by a query that could return tens of thousands of rows. What does this actually prevent?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Pagination doesn't change what the underlying SQL query returns — the database can still compute a large result. What changes is how many of those rows the page actually renders into HTML at once." >It prevents the underlying SQL query from ever returning more than 100 rows.</li>
+<li data-correct="true" data-explain="Server-side pagination means only the current page's worth of rows (100 here) are ever rendered into the page's HTML at once, regardless of how large the full result set is — this is what keeps a browser tab from becoming sluggish on a huge table." >It prevents the browser from ever having to render more than 100 <code>&lt;tr&gt;</code> rows into the page at once, no matter how large the full result set is.</li>
+<li data-correct="false" data-explain="Paging is unrelated to which columns are sortable — AllowSorting is the separate setting controlling that." >It prevents the user from sorting the table by more than one column.</li>
+</ul>
+</div>
 
 <div class="callout tip">
 <span class="callout-title">You now know enough HTML</span>

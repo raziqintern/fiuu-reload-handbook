@@ -51,6 +51,15 @@
 <tr><td><code>select</code>/<code>option</code></td><td>A fixed dropdown of choices, e.g. payment method.</td></tr>
 </table>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/checkbox"><code>&lt;input type="checkbox"&gt;</code> reference</a> states the rule for an unchecked box precisely: <em>"If a checkbox is unchecked when its form is submitted, neither the name nor the value is submitted to the server."</em> Not sent as empty or false — not sent at all. This is exactly why "the field is just missing" (not "the field is blank") is the correct way to describe this symptom in a bug report.
+</div>
+<div class="callout real">
+<span class="callout-title">Real, verified: this WebForms grid does the same thing underneath a server control</span>
+<code>&lt;asp:CheckBox runat="server" Checked='&lt;%# Eval("Checked") %&gt;' ID="CheckBoxAllSupplier" /&gt;</code> is a WebForms server control, not plain HTML — but it still compiles down to an ordinary <code>&lt;input type="checkbox"&gt;</code> at render time, so the exact same submission rule applies underneath the <code>asp:</code> wrapper.
+</div>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/UserEdit.aspx:608</p>
 <div class="callout warn">
 <span class="callout-title">Why this matters for debugging</span>
 When a "reload failed" ticket comes in, one of the first things to check is: did the form actually send the field the server expected? A mismatched <code>name</code> attribute, or a field disabled by JavaScript (disabled fields aren't submitted at all), is a classic silent-failure cause you can spot in seconds with DevTools' Network tab, before touching any server code.
@@ -58,11 +67,16 @@ When a "reload failed" ticket comes in, one of the first things to check is: did
 
 <h2>Best practice</h2>
 <ul>
-<li>Always pair an input with a real <code>&lt;label&gt;</code>, linked by matching <code>for</code>/<code>id</code> — it's what makes the label clickable to focus the field, and it's what a screen reader announces when the field gets focus.</li>
-<li>Set sensible HTML-level constraints (<code>min</code>, <code>max</code>, <code>required</code>) as a first line of defense for user experience — but never as the only validation. They're trivially bypassed by anyone calling the API directly.</li>
+<li><strong>Always pair an input with a real <code>&lt;label&gt;</code>, linked by matching <code>for</code>/<code>id</code>.</strong> It's what makes the label clickable to focus the field, and it's what a screen reader announces when the field gets focus.</li>
+<li><strong>Set sensible HTML-level constraints (<code>min</code>, <code>max</code>, <code>required</code>) as a first line of defense for user experience — but never as the only validation.</strong> They're trivially bypassed by anyone calling the API directly.</li>
+<li><strong>When debugging a "missing field," check whether it was ever submitted at all before assuming a server-side bug.</strong> An unchecked checkbox, a disabled input, or a field outside the <code>&lt;form&gt;</code> tag are all real reasons a field never reaches the server.</li>
 </ul>
 
 <h2>Better ways</h2>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Guides/Constraint_validation">Constraint validation guide</a> is direct about why client-side checks alone are never enough: <em>"HTML Constraint validation doesn't remove the need for validation on the server side... invalid [requests] can still be sent in many ways: By modifying HTML via the browser's developer tools. By hand-crafting an HTTP request without using the form... Therefore, you should always validate form data on the server side, consistent with what is done on the client side."</em>
+</div>
 <p>Client-side constraints improve the experience for a well-behaved browser user; they do nothing for a malicious or buggy API caller who skips the form entirely. The actual security/correctness boundary has to be server-side — exactly why reload validates again at the C# layer (<a href="cs-03-methods.html">C# Fundamentals → Methods &amp; Parameters</a>'s <code>ValidateReload</code> example) regardless of what the form already checked.</p>
 
 <h2>Check your understanding</h2>
@@ -72,6 +86,15 @@ When a "reload failed" ticket comes in, one of the first things to check is: did
 <li data-correct="true" data-explain="Unchecked checkboxes are not included in form submission at all — this is standard HTML behavior, not a bug, and it's the single most common 'missing field' surprise for anyone new to forms.">The checkbox was left unchecked — unchecked checkboxes aren't submitted at all.</li>
 <li data-correct="false" data-explain="The name attribute doesn't need to match the id — id is only for the label/for linkage and JS/CSS targeting.">The checkbox's id doesn't match its name.</li>
 <li data-correct="false" data-explain="Order in the HTML doesn't affect whether a field is submitted.">The checkbox was placed after the submit button in the HTML.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A reload form sets <code>min="5"</code> and <code>max="500"</code> on the amount field. Why can't the server trust that every submitted amount actually falls in that range?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="min/max are real, standard HTML attributes that do work in the browser — the problem isn't that they're non-standard, it's that they're client-side only." >Because <code>min</code>/<code>max</code> aren't real HTML attributes — they don't do anything.</li>
+<li data-correct="true" data-explain="MDN's own Constraint validation guide is explicit: HTML constraints can be bypassed by modifying the page in DevTools or by hand-crafting an HTTP request without using the form at all — so the server must independently validate the same range, not trust that the browser enforced it." >Because HTML constraints only run in a well-behaved browser — a hand-crafted HTTP request, or a request built after editing the page in DevTools, skips them entirely.</li>
+<li data-correct="false" data-explain="min/max apply regardless of input type — the issue here is who can bypass them (an API caller skipping the form entirely), not which input type they work with." >Because <code>min</code>/<code>max</code> only work on <code>type="text"</code>, not <code>type="number"</code>.</li>
 </ul>
 </div>
 
