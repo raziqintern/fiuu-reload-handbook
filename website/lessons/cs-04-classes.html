@@ -48,6 +48,10 @@ class Program
 
 <h2>Interfaces: a contract, separate from the implementation</h2>
 <p>An interface declares <em>what</em> a class can do, without saying <em>how</em>. This matters because it lets code depend on the contract instead of a specific class — you can swap the implementation later without touching every place that uses it.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/types/interfaces">Interfaces reference</a> defines the contract precisely: <em>"An interface defines a contract: a group of related methods, properties, events, and indexers that a class or struct must implement."</em> Two hard rules make that separation real, not just conventional: <em>"Interfaces can't contain instance fields, instance constructors, or finalizers"</em> — there's nowhere to put implementation, only signatures — and <em>"You can't instantiate an interface directly."</em> <code>new ITerminalService()</code> simply doesn't compile; an interface is a shape a class fills in, never a thing you can create on its own.
+</div>
 
 <div class="tryit" data-lang="csharp">
 <pre class="tryit-src">public interface ITerminalService
@@ -88,11 +92,16 @@ Login result: True</pre>
 <span class="callout-title">This is not a hypothetical example</span>
 <code>ITerminalService</code> and <code>TerminalService</code> are real types in reload's <code>class-library</code> (<code>Reloads/TNG/Services/TerminalService.cs</code>). The <code>I</code>-prefix-on-interfaces convention shown here is followed with zero exceptions across the entire sampled codebase — see <a href="conv-01-naming.html">Fiuu C# Conventions → Naming</a> for the full picture, including where other naming conventions in this codebase are <em>not</em> so consistent.
 </div>
+<div class="callout warn">
+<span class="callout-title">What if ITerminalService adds a second method later? Every implementer must catch up</span>
+Per the same Microsoft reference: <em>"A class or struct that implements an interface must provide implementations for all declared members."</em> If <code>ITerminalService</code> later grows a <code>Logout(string terminalId)</code> method, every class implementing it — <code>TerminalService</code> and any others — must add a matching <code>Logout</code> method too, or the code stops compiling immediately. That's the real cost side of the flexibility above: an interface change ripples out to every implementer, compiler-enforced.
+</div>
 
 <h2>Best practice</h2>
 <ul>
-<li>Give every class a constructor that leaves it in a valid state — <code>Terminal</code>'s constructor sets <code>IsOnline = true</code> so there's never a moment where a <code>Terminal</code> object exists half-initialized.</li>
-<li>Depend on the interface (<code>ITerminalService</code>), not the concrete class, in any code that calls a Service — it's what makes the implementation swappable later, and it's the real, consistent pattern in reload's own code.</li>
+<li><strong>Give every class a constructor that leaves it in a valid state.</strong> <code>Terminal</code>'s constructor sets <code>IsOnline = true</code> so there's never a moment where a <code>Terminal</code> object exists half-initialized.</li>
+<li><strong>Depend on the interface (<code>ITerminalService</code>), not the concrete class, in any code that calls a Service.</strong> It's what makes the implementation swappable later, and it's the real, consistent pattern in reload's own code.</li>
+<li><strong>Before adding a method to a widely-implemented interface, check how many classes will need to catch up.</strong> The compiler will force every implementer to add it, but that ripple effect is worth planning for, not discovering after the fact.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -105,6 +114,15 @@ Login result: True</pre>
 <li data-correct="false" data-explain="Both compile and run identically fast — this isn't a performance choice." >It's required for the code to compile.</li>
 <li data-correct="true" data-explain="Typing the variable as the interface means the rest of the method only knows about the contract (Login), not the concrete class — so the implementation could be swapped for a different one (e.g. a mock in a test) without changing this code." >The rest of the code only depends on the interface's contract, not the specific class — the implementation can be swapped later.</li>
 <li data-correct="false" data-explain="It has no effect on which members are visible from outside the class — that's controlled by access modifiers like public/private, not by which type a variable is declared as here.">It hides the class's public methods from other files.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Someone writes <code>ITerminalService service = new ITerminalService();</code> hoping to create a default instance. What happens?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="An interface has nowhere to put implementation — Microsoft's own reference is explicit that interfaces can't contain instance fields or constructors at all, so there's no default behavior to construct." >It compiles and creates an object with default (empty) behavior for every method.</li>
+<li data-correct="true" data-explain="Microsoft's own Interfaces reference states plainly: 'You can't instantiate an interface directly.' An interface is only a contract — new needs a concrete class with real constructors and fields to build, and an interface has neither." >It doesn't compile — an interface can't be instantiated with <code>new</code>, since it has no fields, constructors, or actual implementation to build from.</li>
+<li data-correct="false" data-explain="This isn't a runtime failure — the compiler rejects it before the program can even run, since instantiating an interface directly isn't valid C#." >It compiles, but throws an exception the first time any method is called.</li>
 </ul>
 </div>
 
