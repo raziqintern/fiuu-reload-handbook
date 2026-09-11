@@ -49,6 +49,10 @@ Both anti-patterns exist because proper CSV escaping was never implemented — o
 </div>
 
 <h2>The correct fix: real RFC4180 escaping</h2>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+<a href="https://www.rfc-editor.org/rfc/rfc4180">RFC 4180</a>, the actual CSV standard, states both rules directly. When to quote a field at all: <em>"Fields containing line breaks (CRLF), double quotes, and commas should be enclosed in double-quotes."</em> How to escape a quote inside a quoted field: <em>"If double-quotes are used to enclose fields, then a double-quote appearing inside a field must be escaped by preceding it with another double quote."</em> Its own example shows exactly this: <code>"aaa","b""bb","ccc"</code> — the middle field's internal quote is doubled, not backslash-escaped or stripped.
+</div>
 <p>Wrap every field in real double quotes, and double any double quote that appears inside the value. Once done correctly, commas and embedded newlines inside a quoted field need no special handling at all — this is the one mechanism a proper CSV writer (or a small shared helper) needs to implement exactly once for the whole codebase to stop reinventing it two different broken ways:</p>
 <pre class="code-block">Private Function CsvEscape(ByVal value As String) As String
     If value Is Nothing Then Return """"""
@@ -58,8 +62,8 @@ End Function</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Never hand-roll CSV output with ad-hoc string concatenation, an Excel formula trick, or character stripping — all three are workarounds for not having a real escaping function, and each fails in its own way the moment a free-text field contains a comma, a quote, or a newline.</li>
-<li>Any field sourced from user-entered text (a dealer name, a store name, a remark) is exactly the kind of value that needs escaping — numeric IDs, enum names, and fixed-format dates don't, which is why bugs like this one hide for so long: most columns in most exports never happen to contain the character that breaks them.</li>
+<li><strong>Never hand-roll CSV output with ad-hoc string concatenation, an Excel formula trick, or character stripping.</strong> All three are workarounds for not having a real escaping function, and each fails in its own way the moment a free-text field contains a comma, a quote, or a newline.</li>
+<li><strong>Treat any field sourced from user-entered text (a dealer name, a store name, a remark) as exactly the kind of value that needs escaping.</strong> Numeric IDs, enum names, and fixed-format dates don't, which is why bugs like this one hide for so long: most columns in most exports never happen to contain the character that breaks them.</li>
 </ul>
 
 <h2>Check your understanding</h2>
