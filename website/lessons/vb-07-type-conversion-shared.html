@@ -110,6 +110,70 @@ Dim result = TryCast(n, Integer)</pre>
 Reaching for <code>TryCast</code> out of habit on a value-type target is the one scenario where you're forced back to <code>CType</code> even when "might fail gracefully" is exactly the behavior you wanted — there's no <code>Nothing</code>-returning safe cast for value types in VB.NET; <code>Integer?</code> (see <a href="theory-03-nullable-types.html">C#/.NET Deep Dives → Nullable Types</a>, which applies to VB.NET equally) combined with a manual check is the nearest equivalent.
 </div>
 
+<h2>Beyond casting: the other real ways this codebase converts data</h2>
+<p><code>CType</code>/<code>DirectCast</code>/<code>TryCast</code> answer "how do I treat this value as a different type." A separate, equally common question is "how do I turn this raw piece of data — a query-string value, a database column, a form field — into a properly-typed value in the first place." VB.NET and this codebase use several real, distinct mechanisms for that, not just one.</p>
+
+<h3>The <code>C*</code> family: VB's own dedicated conversion functions</h3>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/functions/type-conversion-functions">Type Conversion Functions reference</a> recommends these over the .NET-wide alternatives, for two concrete reasons: <em>"These functions are compiled inline, meaning the conversion code is part of the code that evaluates the expression... which improves performance"</em> and <em>"you should use the Visual Basic type conversion functions in preference to the .NET Framework methods such as ToString()... the .NET Framework conversion methods do not always produce the same results as the Visual Basic functions, for example when converting Boolean to Integer."</em>
+</div>
+<p>Real, verified usage across several of the family, not just <code>CInt</code>:</p>
+<pre class="code-block">endOfShiftDetail.TerminalServiceProductId = CInt(task.RequestFields(i))
+sCheckDigit = CStr(iResult1)
+ElseIf CDate(dtStartDate) &lt; DateAdd(DateInterval.Month, -3, CDate(dtEndDate)) Then
+Return If(ViewState("IsActionCompleted") IsNot Nothing, CBool(ViewState("IsActionCompleted")), False)</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/Reloads/TerminalServer/Console/MessageHandlers/BillPaymentEndOfShiftHandler.vb:42; MessageHandlerBase.vb:1130; reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/OfflineSalesList.aspx.vb:275; InCommGiftCard.aspx.vb:236</p>
+
+<h3><code>TryParse</code>: convert-or-tell-me, no exception involved</h3>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+<code>Integer.TryParse</code>, <code>Decimal.TryParse</code>, and their siblings exist specifically to avoid throwing. Per Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.int32.tryparse">Int32.TryParse reference</a>: <em>"The TryParse method is like the Parse method, except the TryParse method does not throw an exception if the conversion fails. It eliminates the need to use exception handling to test for a FormatException in the event that <code>s</code> is invalid and cannot be successfully parsed."</em>
+</div>
+<pre class="code-block">If Not Decimal.TryParse(txtRepostAmount.Text, repostamount) Then
+    ' invalid input — show a validation message and stop, no exception ever thrown
+End If</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/BillPaymentVoidRepostCreate.aspx.vb:105</p>
+<p>This is the right tool specifically when "the input might not be a valid number" is an expected, routine possibility (user-typed text in a textbox) rather than a genuine bug — the same "expected failure, not exceptional" territory <code>TryCast</code> occupies for reference-type casts, just for parsing text instead.</p>
+
+<h3>Converting between a collection and an array: <code>.ToList()</code> / <code>.ToArray()</code></h3>
+<pre class="code-block">Dim lstProductGroup As List(Of IProductGroup) =
+    ServiceLocator.Country(Profiles.User.CountryId).ProductService.GetProductGroups().ToList()</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/CommissionEdit.aspx.vb:135</p>
+<pre class="code-block">Dim iSelectedDealers = String.Join(",", selectedDealers.ToArray())</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/DealerParticipation.aspx.vb:337</p>
+<p><code>GetProductGroups()</code> returns an <code>IEnumerable(Of IProductGroup)</code> (see <a href="vb-01-syntax.html">Syntax, Types &amp; Option Strict</a> for why a method might promise only "enumerable" rather than a concrete collection) — <code>.ToList()</code> converts that promise into a real, concrete <code>List(Of T)</code> when the caller specifically needs list-only operations. <code>.ToArray()</code> is the same idea in the other direction — useful here because <code>String.Join</code>'s classic overload wants an array, not an arbitrary enumerable.</p>
+
+<h3>The DBNullTo* family: converting a database column that might be NULL</h3>
+<p>A <code>DataRow</code> column typed <code>DBNull.Value</code> can't be cast directly to <code>Integer</code>/<code>String</code>/<code>DateTime</code> — attempting it throws. This codebase's shared helper (<code>Fiuu.MasterFramework.Database.Conversion</code>, deliberately not named <code>Convert</code> to avoid colliding with <code>System.Convert</code>) collapses "is it <code>DBNull</code>, and if not, convert it" into one call:</p>
+<pre class="code-block">Id = Conversion.DBNullToInt64(dr["Id"])
+ReferenceId = Conversion.DBNullToString(dr["ReferenceId"])
+TransactionDate = Conversion.DBNullToDateTime(dr["TransactionDate"]).ToString("yyyyMMddHHmmss")</pre>
+<p class="code-cite">reload/class-library/Secure/Telekom/Providers/BillPaymentProvider.cs:61-62,67 (this helper's real call sites are all in this codebase's C# provider classes — the VB.NET WebForms layer doesn't call it directly)</p>
+<div class="callout real">
+<span class="callout-title">Why this one matters even though the call sites happen to be C#</span>
+This is exactly the same shape of problem <a href="conv-05-data-access.html">Fiuu Code Conventions → Data Access</a> covers for Pattern 1's hand-mapped <code>DataRow</code> reads — a field-by-field conversion helper stepping in for exactly the columns Dapper (Pattern 3) would map automatically. If you're ever writing this kind of field-by-field mapping in VB.NET yourself, the same DBNull-guard-then-convert shape applies, whether you reuse this exact helper, write your own, or reach for <code>If(dr.IsDBNull(...), default, dr.GetInt32(...))</code> inline.
+</div>
+
+<h2>When to write <code>As Type</code> explicitly, and when to let inference do it</h2>
+<p><a href="vb-01-syntax.html">Syntax, Types &amp; Option Strict</a> already covers what <code>Option Infer</code> does mechanically — <code>Dim x = 5</code> infers <code>Integer</code> without an <code>As</code> clause. The remaining question is a judgment call: when should you write the type out anyway, even though the compiler doesn't require it?</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/variables/local-type-inference">Local Type Inference reference</a> gives the concrete case for writing <code>As</code> explicitly — when the inferred type isn't the one you actually want: <em>"If you do not want <code>num2</code> in the previous example to be typed as an <code>Integer</code>, you can specify another type by using a declaration like <code>Dim num3 As Object = 3</code> or <code>Dim num4 As Double = 3</code>."</em> It also states a hard boundary where inference simply isn't available at all: <em>"Type inference can be used only for non-static local variables; it cannot be used to determine the type of class fields, properties, or functions."</em> and the same restriction applies to <code>Static</code> locals.
+</div>
+<table>
+<tr><th>Situation</th><th>What to do</th><th>Why</th></tr>
+<tr><td>A class field, property, or <code>Function</code> return type</td><td>Always write <code>As Type</code></td><td>Per the official docs above, inference is a <em>local-variable-only</em> mechanism — it isn't legal syntax anywhere else, regardless of style preference.</td></tr>
+<tr><td>A <code>Static</code> local variable</td><td>Always write <code>As Type</code></td><td>Same restriction — inference doesn't apply to <code>Static</code> locals even though they're declared inside a procedure.</td></tr>
+<tr><td>The initializer's type is obvious from the line itself (a literal, a <code>New SomeType(...)</code>, an obviously-typed method name)</td><td>Either is fine; inference is common and idiomatic</td><td><code>Dim name = "Springfield"</code> and <code>Dim name As String = "Springfield"</code> genuinely declare the same thing — the type is equally obvious either way.</td></tr>
+<tr><td>You want a <em>wider</em> or <em>different</em> type than what the initializer alone would infer</td><td>Write <code>As Type</code> explicitly</td><td><code>Dim x = 3</code> infers <code>Integer</code> — if you actually wanted <code>Double</code> or <code>Object</code>, per the official example above, you must say so with an explicit <code>As</code> clause; inference cannot read your intent past the literal.</td></tr>
+<tr><td>The initializer is a method call whose return type isn't obvious from its name alone</td><td>Write <code>As Type</code> explicitly</td><td>A reader shouldn't have to open <code>GetProductGroups</code>'s own definition just to know what <code>lstProductGroup</code> holds — this is exactly why the real <code>CommissionEdit.aspx.vb</code> example above writes <code>As List(Of IProductGroup)</code> explicitly rather than relying on inference.</td></tr>
+</table>
+<div class="callout warn">
+<span class="callout-title">What if you rely on inference somewhere it silently does the wrong thing?</span>
+<code>Dim total = 0</code> followed later by <code>total += someDecimalValue</code> infers <code>total</code> as <code>Integer</code> from the literal <code>0</code> — any fractional part silently truncates on every addition, with no compiler warning, because nothing about the declaration itself looks wrong. Writing <code>Dim total As Decimal = 0</code> up front avoids the whole class of bug. This is the concrete version of "you want a different type than what would be inferred" from the table above — it's easy to trigger by accident with a bare numeric literal that happens to look like the type you actually needed, but isn't.
+</div>
+
 <h2>Shared: one copy for the whole class, not one per instance</h2>
 <p>Per Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/modifiers/shared">Shared reference</a>: <em>"Sharing a member of a class or structure makes it available to every instance, rather than non-shared, where each instance keeps its own copy."</em> This is VB's name for what C# calls <code>static</code> — same concept, different keyword.</p>
 <div class="callout tip">
@@ -156,6 +220,8 @@ If <code>Parse</code> were declared without <code>Shared</code>, every call site
 <li><strong>Reach for <code>TryCast</code></strong> the moment "the cast might legitimately not succeed" is a real, expected possibility on a reference type — pair it with <code>IsNot Nothing</code>, never leave the result unchecked.</li>
 <li><strong>Reach for <code>CType</code> only when neither of the above applies</strong> — genuinely converting between unrelated types (a boxed enum to its underlying integer, a string to a number) where no inheritance relationship could ever exist — and still expect it to be able to throw at runtime on a bad individual value, even though the type pair itself is allowed.</li>
 <li><strong>Reach for <code>Shared</code></strong> when a value or method is conceptually about the whole class, not any one instance of it — a factory method with no natural "existing instance" to call it on, or a value every instance should agree on.</li>
+<li><strong>Prefer VB's own <code>C*</code> conversion functions over <code>Convert.ToX</code>/<code>.ToString()</code> for VB-to-VB code, and reach for <code>TryParse</code> the moment invalid input is a routine possibility, not a bug.</strong> Per Microsoft's own docs, the <code>C*</code> functions are faster (compiled inline) and more consistent with VB semantics than the .NET-wide <code>Convert</code> class.</li>
+<li><strong>Write <code>As Type</code> explicitly whenever the initializer's type isn't obvious at a glance, or you need a wider/different type than what a literal alone would infer.</strong> Rely on inference only when the type is equally obvious either way — a bare numeric literal you actually intend as <code>Decimal</code>/<code>Double</code> is the classic silent-truncation trap inference alone won't catch.</li>
 </ul>
 
 <h2>Check your understanding</h2>
@@ -183,6 +249,33 @@ If <code>Parse</code> were declared without <code>Shared</code>, every call site
 <li data-correct="false" data-explain="Independent copies per instance is exactly the non-shared behavior — the whole point of Shared is that this does NOT happen." >Each instance has its own independent copy, unaffected by the other's changes.</li>
 <li data-correct="true" data-explain="A Shared field is stored once, at the class level, regardless of how many instances exist. Both instances read and write the exact same storage location — an increment through either one is visible to both immediately." >Both instances see the same single value — an increment through either instance changes what the other one reads next.</li>
 <li data-correct="false" data-explain="Shared fields don't require any instance to exist at all, let alone the first one specifically — they belong to the class itself." >Only the first instance created can actually access the field; later instances get an error.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A textbox's text needs to become a <code>Decimal</code>, but the user might have typed something invalid. Based on the real <code>BillPaymentVoidRepostCreate.aspx.vb</code> pattern, what's the right tool?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="CDec would throw on invalid input, forcing you into Try/Catch for what's actually a routine, expected possibility (a user mistyping a number) — not the right tool when failure is normal, not exceptional." ><code>CDec</code>, wrapped in a <code>Try</code>/<code>Catch</code> to handle bad input.</li>
+<li data-correct="true" data-explain="This is exactly the real BillPaymentVoidRepostCreate.aspx.vb:105 pattern: Decimal.TryParse returns a Boolean instead of throwing, per Microsoft's own docs specifically 'to eliminate the need to use exception handling to test for a FormatException.'" ><code>Decimal.TryParse</code>, checking its returned <code>Boolean</code> — no exception handling needed for what's a routine, expected input case.</li>
+<li data-correct="false" data-explain="DirectCast requires an inheritance/implementation relationship between the two types — a String and a Decimal have no such relationship, so this wouldn't even compile as a meaningful conversion for parsing text.">DirectCast(txtRepostAmount.Text, Decimal)</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Per Microsoft's own Type Conversion Functions reference, why does this codebase's real code prefer <code>CInt</code>/<code>CStr</code>/<code>CBool</code> over <code>Convert.ToInt32</code>/<code>.ToString()</code> where both would work?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="The official reference states both reasons directly: the VB functions 'are compiled inline... which improves performance' and 'the .NET Framework conversion methods do not always produce the same results as the Visual Basic functions, for example when converting Boolean to Integer.'" >They're compiled inline for better performance, and the .NET Framework's Convert methods don't always produce identical results to VB's own functions for the same conversion.</li>
+<li data-correct="false" data-explain="Convert.ToInt32 and CInt both work regardless of Option Strict — this isn't a compatibility restriction gating one or the other." >Convert.ToInt32 doesn't work when Option Strict is On.</li>
+<li data-correct="false" data-explain="Both families support the standard numeric/string/boolean/date types shown in this lesson — this isn't a scope limitation on the VB functions.">The VB conversion functions only work with numeric types, never strings or booleans.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>Dim total = 0</code> is later used as <code>total += someDecimalValue</code> inside a loop. What actually happens, and why?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Dim total = 0 infers Integer from the literal 0 — per Microsoft's own Local Type Inference docs, the compiler 'infers the type of the variable from the type of the initialization expression,' with no way to know you actually wanted Decimal. Every addition to an Integer silently truncates the fractional part, with no compiler warning at all." >Any fractional part of <code>someDecimalValue</code> is silently truncated on every addition, because <code>total</code> was inferred as <code>Integer</code> from the literal <code>0</code> — not the wider type the code actually needed.</li>
+<li data-correct="false" data-explain="Type inference determines the type once, at declaration, from the initializer — it doesn't widen automatically later just because a wider value gets added to it." >VB.NET automatically widens <code>total</code> to <code>Decimal</code> the first time a <code>Decimal</code> value is added to it.</li>
+<li data-correct="false" data-explain="This compiles and runs without error — the bug is silent truncation, not a runtime exception." >It throws an <code>OverflowException</code> the first time a fractional value is added.</li>
 </ul>
 </div>
 
