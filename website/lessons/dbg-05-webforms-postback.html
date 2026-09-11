@@ -37,13 +37,21 @@ End Sub</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:31-58</p>
 <p><code>btnExcel.Visible</code> is decided exactly once, guarded by <code>If Not IsPostBack</code> — the very first time the page loads. Every subsequent postback on this page (clicking Search, clicking Reset) never touches it again. That's not an oversight to "fix" reflexively: in WebForms, a control's server-side properties — <code>Visible</code> included — are persisted in <strong>ViewState</strong> and survive across postbacks automatically. Once set, it stays set until something explicitly changes it, exactly the way a page author would want for a value that only depends on the user's access rights, which don't change mid-session.</p>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/previous-versions/aspnet/bb386448(v=vs.100)">ASP.NET View State Overview</a> confirms this is deliberate framework behavior, not something specific to this page: <em>"View state is the method that the ASP.NET page framework uses to preserve page and control values between round trips... View state is used automatically by the ASP.NET page framework to persist information that must be preserved between postbacks. This information includes any non-default values of controls."</em> <code>Visible</code> is exactly this kind of non-default control value — once set to <code>True</code> outside the framework's own default, ViewState is what keeps it <code>True</code> across every later postback with zero code re-running that line.
+</div>
+
 <div class="callout warn">
 <span class="callout-title">The trap this pattern sets for the next change</span>
 The moment someone makes <code>btnExcel</code>'s visibility depend on something that <em>can</em> change across postbacks — like whether the last search returned results — ViewState persistence stops being free and becomes a liability. If a results-found search sets <code>btnExcel.Visible = True</code> and a later no-results search doesn't explicitly set it back to <code>False</code>, the button stays visible on an empty grid, because nothing told it otherwise. This exact scenario was the subject of a real review discussion on <span class="term" data-term="merge-request">MR</span> !1906: a reviewer asked "is resetting both controls' visibility at the top of the method necessary?" — and the honest answer was yes, once visibility depends on per-search state rather than a value that's fixed for the whole session.
 </div>
 
 <h2>Best practice for pitfall 1</h2>
-<p>When a control's visibility depends only on something session-wide and unchanging (access rights, a feature flag), set it once and leave it — don't add defensive resets "just in case." When it depends on something that varies per postback (search results, validation state), reset it to a safe default at the <em>top</em> of the handler and only opt it back to visible where the conditions are actually met — don't rely on remembering to add an explicit <code>False</code> to every branch that doesn't grant it, including ones added later.</p>
+<ul>
+<li><strong>When a control's visibility depends only on something session-wide and unchanging (access rights, a feature flag), set it once and leave it — don't add defensive resets "just in case."</strong> ViewState is doing exactly what it's supposed to for this case.</li>
+<li><strong>When visibility depends on something that varies per postback (search results, validation state), reset it to a safe default at the top of the handler and only opt it back to visible where the conditions are actually met.</strong> Don't rely on remembering to add an explicit <code>False</code> to every branch that doesn't grant it, including ones added later.</li>
+</ul>
 
 <h2>Pitfall 2 — a function literally named <code>pageLoad</code> is a framework hook, not just a name you picked</h2>
 <p>ASP.NET AJAX (<code>Sys.Application</code>, the framework behind <code>UpdatePanel</code>) automatically calls a global JavaScript function named exactly <code>pageLoad(sender, args)</code> — if one exists anywhere on the page — after the initial page load, <strong>and again after every single async partial postback completes</strong>. It's not an event you subscribe to; it's a magic name the framework looks for.</p>
@@ -83,7 +91,10 @@ WebForms hides a lot of client/server plumbing behind a small surface area — a
 </div>
 
 <h2>Best practice</h2>
-<p>Before adding a script block to a WebForms page that already uses <code>UpdatePanel</code>: check for an existing global <code>pageLoad</code> function (don't silently shadow or half-delete one), confirm any new file-download button calls <code>RegisterPostBackControl</code>, and verify any script referenced by <code>OnClientClick</code> has its dependencies (jQuery, etc.) actually loaded on that specific page — copying a script block from a sibling page doesn't copy the <code>&lt;script src&gt;</code> tags it silently depends on.</p>
+<ul>
+<li><strong>Before adding a script block to a WebForms page that already uses <code>UpdatePanel</code>, check for an existing global <code>pageLoad</code> function — don't silently shadow or half-delete one.</strong> It's a magic framework hook, not just a name you happened to pick.</li>
+<li><strong>Confirm any new file-download button calls <code>RegisterPostBackControl</code>, and verify any script referenced by <code>OnClientClick</code> has its dependencies (jQuery, etc.) actually loaded on that specific page.</strong> Copying a script block from a sibling page doesn't copy the <code>&lt;script src&gt;</code> tags it silently depends on.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
