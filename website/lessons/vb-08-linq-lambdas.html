@@ -94,8 +94,55 @@ End Function</pre>
 The moment a shape needs to be passed between methods, stored in a field, or referred to by a real type name anywhere else, an anonymous type stops working — there's no type name that could legally fill in the <code>???</code> above, because the type was never given one. An anonymous type's "type" only has meaning within the single method (and any lambdas nested inside it) that created it. Once a shape needs to cross a method boundary like this, define an actual class instead.
 </div>
 
+<h2>Filtering one collection against another: three real idioms, and one real trap</h2>
+<p>A recurring shape in BackOffice: given a full list and a list of items to exclude, produce the remainder. This isn't a special LINQ feature — it's an application of <code>Where</code> you already know, plus two variants worth recognizing by name.</p>
+<p>The dominant idiom, seen repeated across every "sync a multi-select against a saved list" page in BackOffice — filter one collection by whether each element is <em>absent</em> from another:</p>
+<pre class="code-block">Dim addedStore = stores.Where(Function(b) Not UserStore.Contains(b)).ToList()
+Dim removedStores = UserStore.Where(Function(b) Not stores.Contains(b)).ToList()</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/UserEdit.aspx.vb:840-841 (the identical shape repeats for dealers/suppliers in the same file, and in DealerEdit.aspx.vb, CompanyEdit.aspx.vb, SupplierEdit.aspx.vb, RoleEdit.aspx.vb, ProductEdit.aspx.vb)</p>
+<p>Read it as one sentence: "keep every <code>b</code> from <code>stores</code> where <code>UserStore</code> does <em>not</em> contain it." <code>Not ...Contains(...)</code> is just a boolean lambda like any other — nothing about it is exclusion-specific syntax; it's the general-purpose <code>Where</code> you already know, applied to a negated membership test.</p>
+
+<div class="callout tip">
+<span class="callout-title">A second idiom for the same-looking problem: Except computes a real set difference</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.except"><code>Enumerable.Except</code> reference</a> defines it precisely: <em>"The set difference of two sets is defined as the members of the first set that don't appear in the second set."</em> That's functionally the same outcome as <code>Where(Function(x) Not other.Contains(x))</code> for this shape — but real, verified usage in this codebase reaches for it specifically when computing a diff between two versions of a list, not a general exclusion filter:
+<pre class="code-block">lstSerialNumber = lstFullList.Except(lstStocks.Select(Function(s) s.SerialNo)).ToList()</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/StockAllocationCreate.aspx.vb:267</p>
+Prefer <code>Where(Function(x) Not other.Contains(x))</code> when the intent is "filter this list" — it reads as a filter. Reach for <code>Except</code> when the intent is genuinely "what's different between these two sets" — it reads as a diff. Both compile to comparable performance; the choice here is about which one tells the next reader what the code is actually for.
+</div>
+
+<div class="callout tip">
+<span class="callout-title">A third variant: chained <code>&lt;&gt;</code>, for a tiny fixed blacklist instead of a dynamic list</span>
+When there are only one or two hardcoded values to exclude — not a runtime list — this codebase skips <code>Contains</code> entirely and just chains inequality checks:
+<pre class="code-block">Where service.ServiceCode &lt;&gt; TerminalContentServices.WLET AndAlso
+      service.ServiceCode &lt;&gt; TerminalContentServices.RCAL</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/PaymentEnquiry.aspx.vb:567-568</p>
+This doesn't scale past two or three values (each new exclusion is another <code>AndAlso</code> clause) — the moment a third or fourth exclusion shows up, or the excluded set might change without a code change, that's the signal to switch to a real list and <code>Where(Function(x) Not excludeList.Contains(x))</code> instead.
+</div>
+
+<h2>The Array/IEnumerable trap: why <code>[Enum].GetValues(...).Where(...)</code> doesn't compile</h2>
+<p><code>[Enum].GetValues(GetType(T))</code> returns the non-generic <code>System.Array</code> type — and <code>Array</code> only implements the non-generic <code>IEnumerable</code>, not <code>IEnumerable(Of T)</code>. <code>Where</code>, like every LINQ method, is written against <code>IEnumerable(Of T)</code>, so it simply isn't visible on a plain <code>Array</code>-typed variable — this is a real, easy compile error to hit, not a hypothetical one.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.cast"><code>Enumerable.Cast&lt;TResult&gt;</code> reference</a> names this exact bridge: <em>"The <code>Cast&lt;TResult&gt;(IEnumerable)</code> method enables the standard query operators to be invoked on non-generic collections by supplying the necessary type information. For example, <code>ArrayList</code> does not implement <code>IEnumerable&lt;T&gt;</code>, but by calling <code>Cast&lt;TResult&gt;(IEnumerable)</code> on the <code>ArrayList</code> object, the standard query operators can then be used."</em> The same fix applies to the non-generic <code>Array</code> that <code>[Enum].GetValues</code> returns.
+</div>
+<p>Real, verified production code doing exactly this — three lines, each demonstrating a different piece of what's been covered in this lesson and the last one:</p>
+<pre class="code-block">Dim arrExcludedActions As EnumAllocateAction() = {EnumAllocateAction.Provision, EnumAllocateAction.ReActivate, EnumAllocateAction.Suspend}
+Dim arrAllocationActions As IEnumerable(Of EnumAllocateAction) = [Enum].GetValues(GetType(EnumAllocateAction)).Cast(Of EnumAllocateAction)()
+Dim arrFilteredAllocationActions As EnumAllocateAction() = arrAllocationActions.Where(Function(iAllocationAction) Not arrExcludedActions.Contains(iAllocationAction)).ToArray()</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/StockAllocationCreate.aspx.vb:502-504</p>
+<p>Line by line: <code>arrExcludedActions</code> is a genuine array literal (<code>vb-01</code>'s array-type rule), correctly typed <code>EnumAllocateAction()</code>. <code>arrAllocationActions</code> is the bridge — <code>.Cast(Of EnumAllocateAction)()</code> turns the non-generic <code>Array</code> into an <code>IEnumerable(Of EnumAllocateAction)</code>, which is why it's declared <code>As IEnumerable(Of EnumAllocateAction)</code>, not <code>As Array</code>. <code>arrFilteredAllocationActions</code> applies the exclusion idiom from above, then <code>.ToArray()</code> converts the result back into a real array.</p>
+<div class="callout warn">
+<span class="callout-title">The wrong way: declaring the Cast(Of T)() result As Array undoes the fix</span>
+<pre class="code-block">' Looks like a small, harmless simplification — it isn't.
+Dim arrAllocationActions As Array = [Enum].GetValues(GetType(EnumAllocateAction)).Cast(Of EnumAllocateAction)()</pre>
+<code>.Cast(Of EnumAllocateAction)()</code> returns <code>IEnumerable(Of EnumAllocateAction)</code>, which is not a <code>System.Array</code> — they're unrelated types, one a lazy enumerator and the other a concrete array class. With <code>Option Strict On</code> this is a compile error; with <code>Option Strict Off</code> (BackOffice's real default — see <a href="vb-01-syntax.html">vb-01</a>), it compiles but throws an <code>InvalidCastException</code> the moment it runs. And even setting that aside, re-typing the variable <code>As Array</code> puts you right back where you started: <code>.Where</code> won't be visible on it, for the exact same reason it wasn't visible on the original <code>[Enum].GetValues(...)</code> call. The variable name (<code>arr...</code>) staying the same across the fix is itself worth noticing — this codebase's Hungarian notation is a loose, approximate convention (per <a href="conv-01-naming.html">Fiuu Code Conventions → Naming</a>), not a strictly type-accurate one; the real file above keeps the <code>arr</code> prefix on <code>arrAllocationActions</code> even though its actual declared type is <code>IEnumerable(Of T)</code>, not an array.
+</div>
+
 <h2>Best practice</h2>
 <ul>
+<li><strong>Reach for <code>Where(Function(x) Not excludeList.Contains(x))</code> for a general exclusion filter; <code>Except</code> specifically when computing a diff between two versions of a list.</strong> Both work for the same shape of problem, but each signals a different intent to the next reader.</li>
+<li><strong>Reach for chained <code>&lt;&gt;</code>/<code>AndAlso</code> only for a tiny, genuinely fixed blacklist (one or two values).</strong> Switch to a real list and <code>Contains</code> the moment a third exclusion appears or the set might change at runtime.</li>
+<li><strong>Bridge a non-generic <code>Array</code>/<code>IEnumerable</code> with <code>.Cast(Of T)()</code> before calling any LINQ method on it — and keep the resulting variable typed as <code>IEnumerable(Of T)</code>, never <code>As Array</code>.</strong> Re-typing it back to <code>Array</code> reintroduces the exact error the cast was meant to fix.</li>
 <li><strong>Reach for query syntax</strong> when a query has several chained operations (filter, then sort, then shape) and would read as a long, nested chain in method syntax — the SQL-like structure keeps each step on its own line, in the same order SQL developers already read intuitively.</li>
 <li><strong>Reach for method syntax</strong> for a single operation (one <code>.Where(...)</code>, one <code>.Any(...)</code>) — query syntax's <code>From</code>/<code>Select</code> ceremony isn't worth it for one clause.</li>
 <li><strong>Keep lambda bodies to one expression.</strong> A lambda that needs several statements and local variables to express its logic is a sign the logic deserves a real, named method instead, referenced with <code>AddressOf</code>.</li>
@@ -127,6 +174,24 @@ The moment a shape needs to be passed between methods, stored in a field, or ref
 <li data-correct="false" data-explain="An anonymous type never has a name — there's no way to write it as a method's declared return type, in this method or any other." >Nothing — write the anonymous type's generated name as the method's return type.</li>
 <li data-correct="true" data-explain="An anonymous type only has meaning inside the method that created it. The moment the shape needs to cross a method boundary — as a parameter, return type, or field — it needs a real, named class instead." >A real, named class needs to be defined with those two properties, and the method's return type changed to that class.</li>
 <li data-correct="false" data-explain="Dictionary(Of String, Integer) would lose the named .Text/.Value property access the original anonymous type had — it's not a drop-in equivalent, and doesn't solve the naming problem either.">Wrap it in a Dictionary(Of String, Integer) instead.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A variable holds the result of <code>[Enum].GetValues(GetType(EnumAllocateAction))</code>, declared <code>As Array</code>. Calling <code>.Where(...)</code> on it fails to compile. Why?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Where works on empty collections fine — this isn't a runtime data problem, it's that the method can't be found on this type at compile time at all." >Because the enum has no values defined yet.</li>
+<li data-correct="true" data-explain="Array only implements the non-generic IEnumerable, not IEnumerable(Of T) — and Where, like every LINQ method, is written against IEnumerable(Of T). Calling .Cast(Of T)() first bridges it, which is exactly what Microsoft's own Cast<TResult> reference describes it for." >Because <code>Array</code> only implements the non-generic <code>IEnumerable</code>, not <code>IEnumerable(Of T)</code> — <code>Where</code> needs the generic interface, so it isn't visible on a plain <code>Array</code>-typed variable.</li>
+<li data-correct="false" data-explain="Where is not restricted to List(Of T) specifically — it works on any IEnumerable(Of T), arrays included, once the type is known generically." >Because <code>Where</code> only works on <code>List(Of T)</code>, never on anything else.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Real code declares <code>Dim arrAllocationActions As IEnumerable(Of EnumAllocateAction) = [Enum].GetValues(GetType(EnumAllocateAction)).Cast(Of EnumAllocateAction)()</code>. A well-meaning edit changes the declared type to <code>As Array</code> to "match the variable's <code>arr</code> name." What happens?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain=".Cast(Of T)() returns IEnumerable(Of T), which is not a System.Array — they're unrelated types. With Option Strict On this is a compile error; with it Off (BackOffice's real default), it compiles but throws InvalidCastException at runtime. Either way, the variable is back to not supporting .Where for the same reason as before." >It breaks — <code>IEnumerable(Of T)</code> and <code>Array</code> are unrelated types, so this is either a compile error or a runtime <code>InvalidCastException</code>, and <code>.Where</code> stops working on it again either way.</li>
+<li data-correct="false" data-explain="This is exactly backwards — re-typing it As Array undoes the .Cast(Of T)() fix rather than confirming it." >Nothing changes — <code>Array</code> and <code>IEnumerable(Of T)</code> are interchangeable in VB.NET.</li>
+<li data-correct="false" data-explain="VB.NET doesn't auto-correct a declared type based on a variable's name — the compiler only looks at the actual declared/inferred type, never the identifier text." >VB.NET silently keeps it working because the variable name still starts with <code>arr</code>.</li>
 </ul>
 </div>
 

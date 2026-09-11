@@ -26,6 +26,10 @@
 <tr><td><code>&lt;ul&gt;</code> / <code>&lt;ol&gt;</code></td><td>Unordered (bulleted) / ordered (numbered) list — contain <code>&lt;li&gt;</code> items.</td></tr>
 </table>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/strong"><code>&lt;strong&gt;</code> reference</a> draws the line precisely: <em>"Typically this element is rendered by default using a bold font weight. However, it should not be used to apply bold styling; use the CSS <code>font-weight</code> property for that purpose. Use the <code>&lt;b&gt;</code> element to draw attention to certain text without indicating a higher level of importance."</em> Put directly: <em>"The <code>&lt;strong&gt;</code> element is for content that is of greater importance, while the <code>&lt;b&gt;</code> element is used to draw attention to text without indicating that it's more important."</em>
+</div>
 <div class="callout warn">
 <span class="callout-title">Common trap</span>
 <code>&lt;b&gt;</code> and <code>&lt;strong&gt;</code> look identical by default, but <code>&lt;strong&gt;</code> carries semantic meaning (screen readers announce it differently) while <code>&lt;b&gt;</code> is purely visual. Prefer <code>&lt;strong&gt;</code>/<code>&lt;em&gt;</code> unless you specifically don't want the semantics.
@@ -33,6 +37,16 @@
 
 <h2>Links and images</h2>
 <p>A link needs an <code>href</code> attribute (where it goes). An image needs <code>src</code> (where the file is) and should always have <code>alt</code> (text shown if the image fails to load, and read by screen readers).</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img"><code>&lt;img&gt;</code> reference</a> spells out what's actually lost when <code>alt</code> is skipped entirely, not just left empty: <em>"When an <code>alt</code> attribute is not present on an image, some screen readers may announce the image's file name instead. This can be a confusing experience if the file name isn't representative of the image's contents."</em> Descriptive <code>alt</code> text solves both real failure modes at once — <em>"Alt text is also displayed on the page if the image can't be loaded"</em> and separately, <em>"screen readers read the attribute value out to their users so they know what the image means."</em> An empty <code>alt=""</code> is itself meaningful, not an oversight — it deliberately marks an image as decorative: <em>"Setting this attribute to an empty string... indicates that this image is not a key part of the content."</em></div>
+<p>What each of the three states actually produces, side by side:</p>
+<table>
+<tr><th>Markup</th><th>What a screen reader says</th></tr>
+<tr><td><code>&lt;img src="tng-logo.png" alt="TNG e-Wallet logo"&gt;</code></td><td>"TNG e-Wallet logo, image" — clear and correct.</td></tr>
+<tr><td><code>&lt;img src="tng-logo.png"&gt;</code> (no <code>alt</code> at all)</td><td>Per MDN, possibly the raw filename: "tng-logo.png, image" — meaningless to the listener.</td></tr>
+<tr><td><code>&lt;img src="divider.png" alt=""&gt;</code></td><td>Nothing — correctly skipped, because this image is purely decorative.</td></tr>
+</table>
 
 <div class="tryit" data-lang="html">
 <pre class="tryit-src">&lt;!doctype html&gt;
@@ -51,8 +65,9 @@
 
 <h2>Best practice</h2>
 <ul>
-<li>Write link text that makes sense out of context — "View full activity log" beats "Click here." A screen reader user tabbing through a page's links hears only the link text itself, not the surrounding sentence.</li>
-<li>Never fake a list with manual <code>&lt;br&gt;</code>-separated lines when <code>&lt;ul&gt;</code>/<code>&lt;ol&gt;</code> exists — the real list tag gets you correct spacing and semantics for free.</li>
+<li><strong>Write link text that makes sense out of context.</strong> "View full activity log" beats "Click here." A screen reader user tabbing through a page's links hears only the link text itself, not the surrounding sentence.</li>
+<li><strong>Never fake a list with manual <code>&lt;br&gt;</code>-separated lines when <code>&lt;ul&gt;</code>/<code>&lt;ol&gt;</code> exists.</strong> The real list tag gets you correct spacing and semantics for free.</li>
+<li><strong>Give every meaningful image real <code>alt</code> text; give every purely decorative one <code>alt=""</code>.</strong> Omitting the attribute entirely is the one choice that helps nobody — it risks a screen reader reading a meaningless filename aloud instead.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -66,6 +81,15 @@
 <li data-correct="false" data-explain="alt doesn't control size — that's width/height or CSS.">It controls the image's display size.</li>
 <li data-correct="true" data-explain="alt is the fallback text shown when the image can't load, and it's what screen readers announce — both matter for a merchant-facing page.">It's the text shown if the image fails to load, and what screen readers read aloud.</li>
 <li data-correct="false" data-explain="That's what src does.">It tells the browser where to download the image from.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A purely decorative divider image is marked up as <code>&lt;img src="divider.png" alt=""&gt;</code> — an empty string, not a missing attribute. What does this actually communicate?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This is exactly the opposite of what alt="" signals — it's a deliberate way of saying the image carries no content, not a mistake to be fixed." >It's a mistake — the author forgot to write real alt text.</li>
+<li data-correct="true" data-explain="MDN's own img reference states this directly: alt=\"\" 'indicates that this image is not a key part of the content (it's decoration or a tracking pixel), and that non-visual browsers may omit it from rendering.' It's a deliberate, correct choice for a purely decorative image, distinct from omitting alt entirely." >It deliberately marks the image as decorative, so screen readers correctly skip announcing it at all.</li>
+<li data-correct="false" data-explain="This is the opposite of alt=''s effect — an empty alt tells screen readers to skip the image, not to describe it using the filename." >It tells the screen reader to announce the image's filename instead.</li>
 </ul>
 </div>
 

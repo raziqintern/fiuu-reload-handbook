@@ -37,6 +37,15 @@
 <li><code>&lt;head&gt;</code> — metadata: page title, linked stylesheets, scripts. Nothing in here is visible on the page itself.</li>
 <li><code>&lt;body&gt;</code> — everything the user actually sees.</li>
 </ul>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Glossary/Doctype">Doctype glossary entry</a> explains exactly what that first line is protecting you from: <em>"Its sole purpose is to prevent a browser from switching into so-called 'quirks mode' when rendering a document; that is, the <code>&lt;!doctype html&gt;</code> doctype ensures that the browser makes a best-effort attempt at following the relevant specifications, rather than using a different rendering mode that is incompatible with some specifications."</em>
+</div>
+<div class="callout real">
+<span class="callout-title">Real, verified: not every page in this codebase uses the modern doctype</span>
+<code>TerminalFirmwareVersionList.aspx</code>'s markup starts with <code>&lt;!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"&gt;</code> instead of the modern one-line <code>&lt;!doctype html&gt;</code> — a real relic of when this WebForms UI was first built, well before HTML5 existed. It still renders in every modern browser (old doctypes are still recognized), but it's a concrete sign of the page's age, and one more reason old and new markup in this codebase can look and behave slightly differently.
+</div>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx:5</p>
 
 <h2>Tags nest — and the nesting is the structure</h2>
 <p>A tag opens with <code>&lt;tag&gt;</code> and closes with <code>&lt;/tag&gt;</code>. What's between them is its content, and tags can contain other tags. Indentation in the examples exists purely to make that nesting readable to <em>you</em> — the browser doesn't care about whitespace.</p>
@@ -50,6 +59,10 @@
 <tr><td><code>&lt;a href="..."&gt;</code></td><td>A link.</td></tr>
 <tr><td><code>&lt;img src="..."&gt;</code></td><td>An image. Self-closing — no separate closing tag.</td></tr>
 </table>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/div"><code>&lt;div&gt;</code> reference</a> states the "no meaning of its own" rule as a recommendation, not just a description: <em>"The <code>&lt;div&gt;</code> element should be used only when no other semantic element (such as <code>&lt;article&gt;</code> or <code>&lt;nav&gt;</code>) is appropriate."</em> Its usage notes go further: <em>"As a 'pure' container, the <code>&lt;div&gt;</code> element does not inherently represent anything. Instead, it's used to group content so it can be easily styled..."</em> — a <code>&lt;div&gt;</code> is what's left after every meaningful tag has been ruled out, not a default first choice.
+</div>
 
 <div class="callout tip">
 <span class="callout-title">Why this matters for debugging</span>
@@ -74,8 +87,9 @@ When a merchant reports "the reload page looks broken", your first move is often
 
 <h2>Best practice</h2>
 <ul>
-<li>Exactly one <code>&lt;h1&gt;</code> per page — it's the page's title, not a size setting. Use <code>&lt;h2&gt;</code>/<code>&lt;h3&gt;</code> for subsections, and don't skip a level just because a smaller size looks better (use CSS for that).</li>
-<li>Indent nested tags consistently. It costs nothing and it's the difference between spotting a missing closing tag in two seconds versus two minutes.</li>
+<li><strong>Exactly one <code>&lt;h1&gt;</code> per page.</strong> It's the page's title, not a size setting. Use <code>&lt;h2&gt;</code>/<code>&lt;h3&gt;</code> for subsections, and don't skip a level just because a smaller size looks better (use CSS for that).</li>
+<li><strong>Indent nested tags consistently.</strong> It costs nothing and it's the difference between spotting a missing closing tag in two seconds versus two minutes.</li>
+<li><strong>Reach for a semantic tag before a <code>&lt;div&gt;</code>, per MDN's own recommendation.</strong> Only fall back to <code>&lt;div&gt;</code> once you've genuinely ruled out <code>&lt;header&gt;</code>/<code>&lt;nav&gt;</code>/<code>&lt;main&gt;</code>/<code>&lt;article&gt;</code>/<code>&lt;footer&gt;</code> as not fitting.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -98,6 +112,15 @@ When a merchant reports "the reload page looks broken", your first move is often
 <li data-correct="false" data-explain="That's a reasonable second step, but it's slower — you don't yet know if the problem is even in the C# layer.">Pull up the reload_portal C# source and start reading controllers.</li>
 <li data-correct="true" data-explain="DevTools shows you the actual rendered DOM and any console errors immediately — the fastest way to see what's actually wrong before you guess at a cause." >Open browser DevTools and inspect the rendered HTML/console for errors.</li>
 <li data-correct="false" data-explain="Restarting might mask a real rendering bug without telling you anything about the cause.">Ask them to restart their browser and try again.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A page's markup is missing <code>&lt;!doctype html&gt;</code> entirely. What actually happens in the browser?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The page still renders — the doctype isn't required for content to appear. The real effect is on which rendering mode the browser uses, not whether anything shows up." >Nothing renders at all — the page fails to load.</li>
+<li data-correct="true" data-explain="MDN's own Doctype glossary entry states this directly: without it, the browser switches into 'quirks mode,' a legacy rendering mode 'incompatible with some specifications' — CSS and layout can behave subtly differently than in standards mode, not identically." >The browser switches into "quirks mode," a legacy rendering mode that doesn't follow modern specifications the way standards mode does.</li>
+<li data-correct="false" data-explain="The doctype has nothing to do with which scripting language a server-side framework uses to generate the page — it's purely a browser rendering-mode signal." >The server rejects the page and returns an error instead.</li>
 </ul>
 </div>
 
