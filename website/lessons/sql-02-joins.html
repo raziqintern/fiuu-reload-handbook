@@ -28,6 +28,10 @@ INNER JOIN Terminals t ON ta.TerminalId = t.TerminalId;</pre>
 </div>
 
 <p>Read it as: "for every row in <code>TerminalActivities</code>, find the matching row in <code>Terminals</code> where the <code>TerminalId</code> is equal, and pull columns from both." <code>ta</code> and <code>t</code> are aliases — short names so you don't have to spell out the full table name on every column.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql">FROM clause plus JOIN reference</a> defines <code>INNER</code> precisely: <em>"Specifies all matching pairs of rows are returned. Discards unmatched rows from both tables."</em> That "discards" is the whole reason a row with no match on either side simply never appears — it's documented behavior, not an incidental side effect.
+</div>
 
 <h2>LEFT JOIN: keep rows even without a match</h2>
 <div class="tryit" data-lang="sql">
@@ -40,6 +44,10 @@ WHERE t.TerminalId = 3;</pre>
 </div>
 
 <p>Terminal 3 ("Old Kiosk") has no activity rows. An <code>INNER JOIN</code> would have dropped it from the results entirely; <code>LEFT JOIN</code> keeps it and fills the missing activity columns with <code>NULL</code>. Use <code>LEFT JOIN</code> whenever "no matching rows" is itself a meaningful answer, not an error.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+The same reference states <code>LEFT [OUTER]</code>'s behavior in the same precise terms: <em>"Specifies that all rows from the left table not meeting the join condition are included in the result set, and output columns from the other table are set to NULL in addition to all rows returned by the inner join."</em> Every row an <code>INNER JOIN</code> would have kept is still there — <code>LEFT JOIN</code> only adds back the ones that <code>INNER</code> would have discarded.
+</div>
 
 <div class="callout real">
 <span class="callout-title">A real incident: data existed, but an INNER JOIN two layers deep was silently dropping it</span>
@@ -67,8 +75,9 @@ WHERE ta.Amount > 15;</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Always alias your tables in a join (<code>ta</code>, <code>t</code> above) and qualify every column with its alias — once a query joins three or four tables, an unqualified column name becomes genuinely ambiguous to a reader (and sometimes to the database itself).</li>
-<li>Default to <code>INNER JOIN</code> and only reach for <code>LEFT JOIN</code> when you've deliberately decided "no match" is a valid, meaningful result you want to keep — an accidental <code>LEFT JOIN</code> can quietly let bad/incomplete data through a report that should have excluded it.</li>
+<li><strong>Always alias your tables in a join (<code>ta</code>, <code>t</code> above) and qualify every column with its alias.</strong> Once a query joins three or four tables, an unqualified column name becomes genuinely ambiguous to a reader (and sometimes to the database itself).</li>
+<li><strong>Default to <code>INNER JOIN</code> and only reach for <code>LEFT JOIN</code> when you've deliberately decided "no match" is a valid, meaningful result you want to keep.</strong> An accidental <code>LEFT JOIN</code> can quietly let bad/incomplete data through a report that should have excluded it.</li>
+<li><strong>When a query returns fewer rows than expected, check every <code>INNER JOIN</code> in the chain, not just the outermost query.</strong> As the real incident above shows, a service-layer join two calls removed can silently be the actual cause.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -81,6 +90,15 @@ WHERE ta.Amount > 15;</pre>
 <li data-correct="false" data-explain="INNER JOIN only keeps rows that have a match in both tables — a terminal with zero transactions would be silently dropped from the results." >INNER JOIN, filtered by transaction count.</li>
 <li data-correct="true" data-explain="LEFT JOIN keeps every row from the left table (Terminals) regardless of whether a match exists on the right — exactly what's needed when 'no matches' is a valid, meaningful result." >LEFT JOIN from Terminals to TerminalActivities.</li>
 <li data-correct="false" data-explain="This just reads every activity row without any connection to the Terminals table at all.">A plain SELECT * FROM TerminalActivities with no join.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">In the real incident described above, the page's own SQL and its own WHERE filters were correct. What actually caused users with a NULL/orphaned <code>DepartmentId</code> to silently disappear from the list?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The stored procedure's own country filter was confirmed correct — the actual cause was a separate INNER JOIN in a different layer of the call chain." >The stored procedure's own country filter was wrong.</li>
+<li data-correct="true" data-explain="This is the real, verified cause: a page-level LINQ query re-filtered the already-correct results with its own Join against GetUsers(), which ran INNER JOIN Departments ON Departments.Id = Users.DepartmentId internally — per the official INNER JOIN definition, that discards any row with no matching Department, silently dropping every user with a NULL or orphaned DepartmentId." >A separate, page-level <code>GetUsers()</code> call three layers away ran its own <code>INNER JOIN</code> against <code>Departments</code>, which discarded any user without a matching department — completely unrelated to the page's own visible filters.</li>
+<li data-correct="false" data-explain="The status filter dropdown was confirmed to behave correctly regardless of which value was selected — the issue reproduced for every status filter, which is exactly what pointed away from the visible filter logic." >The status filter dropdown on the page was broken.</li>
 </ul>
 </div>
 
