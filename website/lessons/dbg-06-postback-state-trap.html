@@ -43,8 +43,8 @@ A Web Forms page submits back to <em>itself</em> on almost every user action (a 
 </table>
 
 <div class="callout tip">
-<span class="callout-title">The technique, not just this bug</span>
-Crossing every boolean condition that guards a piece of state into an explicit table — instead of reasoning about "the happy path" and one or two edge cases from memory — is what actually found the gap. Path D (a normal postback, non-Void) is exactly a page-number click on a non-Void order: the everyday case, not an edge case, which is why the bug was so visible and so confusing.
+<span class="callout-title">The technique, not just this bug — and it has a name</span>
+Crossing every boolean condition that guards a piece of state into an explicit table — instead of reasoning about "the happy path" and one or two edge cases from memory — is what actually found the gap. This isn't ad hoc: it's <a href="https://istqb-glossary.page/decision-table-testing/">ISTQB's own "decision table testing"</a>, defined as <em>"a black-box test design technique in which test cases are designed to execute the combinations of inputs and/or stimuli (causes) shown in a decision table."</em> Path D (a normal postback, non-Void) is exactly a page-number click on a non-Void order: the everyday case, not an edge case, which is why the bug was so visible and so confusing — and exactly the combination a decision table forces you to write down instead of skip.
 </div>
 
 <h2>Step 3 — the twist: the real cause was far simpler</h2>
@@ -59,7 +59,10 @@ The hidden-field / <code>OnClientActiveTabChanged</code> / ViewState-tracking me
 <p>When a value that ViewState should be preserving keeps resetting across postbacks in this codebase, check first whether something in <code>Page_Load</code> is <strong>unconditionally re-assigning it outside the <code>Not IsPostBack</code> guard</strong> — that's a one-line, code-only check. Only reach for a heavier client-state-tracking fix (hidden fields, client-side event hooks, a ViewState-backed shadow property) once a full path audit has actually ruled out a simpler, purely server-side explanation. The more "interesting" framework-quirk explanation is not automatically the right one just because it's real and well-documented elsewhere.</p>
 
 <h2>Best practice</h2>
-<p>Before proposing a fix for state that "resets unexpectedly" on a Web Forms page, list every boolean condition that guards the property in question and cross them into a table, the way Step 2 did. The gap — a path nothing touches — is usually obvious once it's written down, and it tells you exactly where to look before you reach for a more elaborate mechanism.</p>
+<ul>
+<li><strong>Before proposing a fix for state that "resets unexpectedly" on a Web Forms page, list every boolean condition that guards the property in question and cross them into a decision table, the way Step 2 did.</strong> The gap — a path nothing touches — is usually obvious once it's written down.</li>
+<li><strong>Rule out a simpler, local, code-only cause with a full path audit before reaching for a heavier fix built around a plausible framework quirk.</strong> A documented compatibility issue matching the symptom is a reason to investigate it, not a reason to skip auditing the actual code first.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
