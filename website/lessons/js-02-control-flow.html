@@ -32,10 +32,19 @@ if (amount <= 0) {
 
 <p>Comparison operators: <code>===</code> (equal, no type conversion — use this), <code>!==</code> (not equal), <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>. Logical: <code>&amp;&amp;</code> (and), <code>||</code> (or), <code>!</code> (not).</p>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Equality">Equality (==) reference</a> names the exact difference: <em>"Unlike the strict equality operator, it attempts to convert and compare operands that are of different types."</em> The <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Strict_equality">Strict equality (===) reference</a> confirms what that buys you instead: <em>"the strict equality operator does not attempt type conversion. Instead, the strict equality operator always considers operands of different types to be different."</em>
+</div>
 <div class="callout warn">
 <span class="callout-title">Use === , not ==</span>
 <code>==</code> performs type coercion before comparing — <code>0 == "0"</code> is <code>true</code>, but so is the much more surprising <code>0 == ""</code> and <code>0 == false</code>. <code>===</code> compares without converting anything, which is almost always what you actually mean. Always default to <code>===</code>.
 </div>
+<div class="callout real">
+<span class="callout-title">Real, verified: loose equality in production reload JS</span>
+<code>if (parts.length == 2) return parts.pop().split(";").shift();</code> — a real cookie-parsing helper compares <code>.length</code> (always already a <code>Number</code>) against the literal <code>2</code>. This specific case is safe, since both sides are already numbers and no coercion actually happens — but it's a real example of how <code>==</code> shows up in older reload script blocks even where <code>===</code> would cost nothing and remove any doubt for a reader checking whether coercion is involved.
+</div>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx:53</p>
 
 <h2>Loops</h2>
 <p>A <code>for</code> loop when you know how many times to repeat; <code>for...of</code> to walk through every item in a list.</p>
@@ -73,12 +82,32 @@ console.log("Batch valid?", allValid);</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Handle the "invalid" cases first and return/exit early, rather than nesting the "happy path" three levels deep inside <code>if</code>s — you saw this shape already in the batch-validation example above.</li>
-<li>Prefer <code>for...of</code> over a classic indexed <code>for</code> loop when you don't actually need the index — it removes an entire class of off-by-one bugs (wrong start value, <code>&lt;=</code> vs <code>&lt;</code>) by construction.</li>
+<li><strong>Handle the "invalid" cases first and return/exit early, rather than nesting the "happy path" three levels deep inside <code>if</code>s.</strong> You saw this shape already in the batch-validation example above.</li>
+<li><strong>Prefer <code>for...of</code> over a classic indexed <code>for</code> loop when you don't actually need the index.</strong> It removes an entire class of off-by-one bugs (wrong start value, <code>&lt;=</code> vs <code>&lt;</code>) by construction.</li>
+<li><strong>Always default to <code>===</code>, even where <code>==</code> happens to be safe.</strong> A reader checking a comparison for coercion bugs has to think harder every time they see <code>==</code>, even the harmless ones — <code>===</code> removes that doubt for free.</li>
 </ul>
 
 <h2>Better ways</h2>
-<p>The batch-validation loop above works, but <code>amounts.every(amt =&gt; amt &lt;= limit)</code> says the same thing in one line, without a manually-managed <code>allValid</code> flag. Array methods like <code>.every()</code>/<code>.some()</code> (and <code>.filter()</code>/<code>.map()</code> from the next lesson) often replace a hand-written loop entirely once you know them — worth reaching for once the basic loop shape feels automatic.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/every"><code>Array.prototype.every()</code> reference</a> defines it precisely: <em>"The every() method... returns false if it finds an element in the array that does not satisfy the provided testing function. Otherwise, it returns true."</em> It also documents the short-circuit behavior that makes it more than just a shorter loop: <em>"It calls a provided callbackFn function once for each element in an array, until the callbackFn returns a falsy value. If such an element is found, every() immediately returns false and stops iterating through the array."</em>
+</div>
+<p>The batch-validation loop above works, but <code>amounts.every(amt =&gt; amt &lt;= limit)</code> says the same thing in one line, without a manually-managed <code>allValid</code> flag — and per the documented short-circuit behavior above, it also stops checking the moment it finds one invalid amount, rather than always walking the whole array the hand-written loop does. Same result, run both to confirm:</p>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">const amounts = [10, 25, 600, 15];
+const limit = 500;
+
+// the hand-written loop from above
+let allValid = true;
+for (const amt of amounts) {
+  if (amt > limit) allValid = false;
+}
+console.log("Loop version:", allValid);
+
+// the same check, one line, short-circuits on the first failure
+console.log("every() version:", amounts.every(amt => amt <= limit));</pre>
+</div>
+<p>Array methods like <code>.every()</code>/<code>.some()</code> (and <code>.filter()</code>/<code>.map()</code> from the next lesson) often replace a hand-written loop entirely once you know them — worth reaching for once the basic loop shape feels automatic.</p>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="predict" data-answer="false">
@@ -93,6 +122,15 @@ console.log("Batch valid?", allValid);</pre>
 <li data-correct="false" data-explain="=== is not slower in any way that matters, and that's not the real reason to prefer it.">=== runs faster.</li>
 <li data-correct="true" data-explain="== silently converts types before comparing, producing surprising results like 0 == \"\" being true. === compares as-is, which is almost always the intent.">== silently converts types before comparing, which produces surprising results; === does not.</li>
 <li data-correct="false" data-explain="Both work with any type — the difference is whether conversion happens, not what types are allowed.">=== only works on numbers.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>amounts.every(amt => amt <= limit)</code> is checking a 10,000-element array, and the very first element already exceeds <code>limit</code>. What does <code>every()</code> actually do?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="MDN's own every() reference states it stops as soon as the callback returns a falsy value — it does not keep checking the rest of the array once the answer is already determined." >It checks all 10,000 elements regardless, then returns <code>false</code> at the end.</li>
+<li data-correct="true" data-explain="MDN's own reference is explicit: 'It calls a provided callbackFn function once for each element in an array, until the callbackFn returns a falsy value. If such an element is found, every() immediately returns false and stops iterating through the array.' So it stops after checking just the first element." >It stops immediately after the first failing element and returns <code>false</code> — the other 9,999 elements are never checked.</li>
+<li data-correct="false" data-explain="every() doesn't throw for a failing element — returning false for a failed check is its whole documented purpose, not an error condition." >It throws an exception, since the array failed the check.</li>
 </ul>
 </div>
 
