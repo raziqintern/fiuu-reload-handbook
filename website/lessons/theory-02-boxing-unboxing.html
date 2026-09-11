@@ -49,10 +49,34 @@ System.Int32
 </div>
 
 <p><code>boxed.GetType()</code> reports <code>System.Int32</code> — the boxed object remembers its original value type. Unboxing (<code>(int)boxed</code> / <code>CInt(boxed)</code>) copies the value back into a plain stack-based <code>int</code>. Both directions involve a real copy; boxing additionally involves a real heap allocation.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/types/boxing-and-unboxing">Boxing and Unboxing reference</a> defines the mechanism precisely: <em>"When the common language runtime (CLR) boxes a value type, it wraps the value inside a System.Object instance and stores it on the managed heap."</em> It also confirms the two variables genuinely become independent after boxing: changing the original <code>int</code> afterward leaves the boxed copy unchanged, because <em>"the original value type and the boxed object use separate memory locations, and therefore can store different values."</em>
+</div>
+<div class="callout warn">
+<span class="callout-title">What if you unbox to the wrong type? A real, specific exception, not a silent conversion</span>
+The same reference is exact about the requirement: <em>"For the unboxing of value types to succeed at run time, the item being unboxed must be a reference to an object that was previously created by boxing an instance of that value type."</em> Miss that, and: <em>"Attempting to unbox null causes a NullReferenceException. Attempting to unbox a reference to an incompatible value type causes an InvalidCastException."</em> Its own worked example unboxes an <code>int</code>-boxed value as <code>short</code> instead of <code>int</code> and gets exactly <code>"Specified cast is not valid."</code> — boxing remembers the <em>exact</em> original type, and unboxing to anything else, even a similarly-sized numeric type, fails.
+</div>
 
 <div class="callout warn">
 <span class="callout-title">Why this matters: it's a hidden performance cost</span>
 Boxing looks like a harmless assignment, but it's a heap allocation and a memory copy every single time it happens. Do it once, irrelevant. Do it inside a hot loop processing thousands of transactions, and you've created thousands of tiny heap allocations the garbage collector now has to clean up — a real, measurable performance cost that's invisible just from reading the code, unless you know to look for it.
+</div>
+
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">int i = 123;
+object o = i;  // boxed as System.Int32
+
+try
+{
+    int j = (short)o;  // wrong type — o is a boxed int, not a boxed short
+    Console.WriteLine("Unboxing OK.");
+}
+catch (InvalidCastException e)
+{
+    Console.WriteLine(e.Message + " Error: Incorrect unboxing.");
+}</pre>
+<pre class="tryit-output-src">Specified cast is not valid. Error: Incorrect unboxing.</pre>
 </div>
 
 <h2>Where this used to bite people: non-generic collections</h2>
@@ -60,8 +84,9 @@ Boxing looks like a harmless assignment, but it's a heap allocation and a memory
 
 <h2>Best practice</h2>
 <ul>
-<li>Always prefer the generic collection types (<code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey,TValue&gt;</code>) over their non-generic predecessors — reload's own code already does this consistently.</li>
-<li>Be alert to boxing hiding behind an innocent-looking method signature that takes <code>object</code> — logging helpers that accept <code>params object[]</code> (common for formatted log messages) box every value-type argument you pass them.</li>
+<li><strong>Always prefer the generic collection types (<code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey,TValue&gt;</code>) over their non-generic predecessors.</strong> Reload's own code already does this consistently.</li>
+<li><strong>Be alert to boxing hiding behind an innocent-looking method signature that takes <code>object</code>.</strong> Logging helpers that accept <code>params object[]</code> (common for formatted log messages) box every value-type argument you pass them.</li>
+<li><strong>Unbox to the exact original type, never a same-size lookalike.</strong> A value boxed as <code>int</code> must be unboxed as <code>int</code> — unboxing it as <code>short</code>, <code>long</code>, or any other type throws <code>InvalidCastException</code>, even when the numeric ranges would otherwise be compatible.</li>
 </ul>
 
 <h2>Check your understanding</h2>
@@ -71,6 +96,15 @@ Boxing looks like a harmless assignment, but it's a heap allocation and a memory
 <li data-correct="false" data-explain="Both are perfectly capable of storing large numbers of items — capacity isn't the distinguishing factor here." ><code>List&lt;int&gt;</code> can hold more items than ArrayList.</li>
 <li data-correct="true" data-explain="ArrayList stores everything as object, so every int added or read involved a boxing or unboxing operation — a heap allocation and a copy. List<int> is generic and stores actual ints directly, with no boxing at all." ><code>ArrayList</code> boxes every int into an object on every add/read; <code>List&lt;int&gt;</code> stores actual ints with no boxing.</li>
 <li data-correct="false" data-explain="This isn't about syntax convenience — the actual difference is a real, measurable runtime behavior (boxing vs. no boxing), not just how the code reads.">List&lt;int&gt; is just newer syntax for the exact same underlying behavior as ArrayList.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>object o = (int)123;</code> then <code>long j = (long)o;</code> — unboxing the boxed <code>int</code> as a <code>long</code> instead. What happens, even though every <code>int</code> value fits inside a <code>long</code>?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Numeric range compatibility doesn't matter for unboxing — Microsoft's own reference requires the exact original boxed type, not just a type the value would fit into." >It succeeds — any numeric type that can hold an <code>int</code>'s value works for unboxing it.</li>
+<li data-correct="true" data-explain="Microsoft's own Boxing and Unboxing reference is exact: the item being unboxed must be a reference to an object 'previously created by boxing an instance of that value type' — the exact type, not a compatible one. Unboxing to any other type, including a wider numeric type, throws InvalidCastException, as the reference's own short-vs-int example demonstrates." >It throws <code>InvalidCastException</code> — unboxing requires the exact original boxed type, and <code>long</code> is not the same type as the boxed <code>int</code>, regardless of range compatibility.</li>
+<li data-correct="false" data-explain="An implicit widening conversion like int-to-long only applies to unboxed values — it does not apply to the unboxing cast itself, which requires an exact type match." >It succeeds, widening the <code>int</code> to a <code>long</code> the same way an implicit numeric conversion would.</li>
 </ul>
 </div>
 
