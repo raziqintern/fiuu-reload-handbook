@@ -26,6 +26,9 @@ Under reload's dominant catch-log-return-sentinel pattern (<a href="conv-03-erro
 <h2>Search by correlation key, not chronologically</h2>
 <p>Recall the <code>&gt;&gt;&gt;</code>/<code>&lt;&lt;&lt;</code> bracket convention from <a href="conv-04-logging.html">Conventions → Logging</a>: outbound calls are logged with a <code>[Key: ...]</code> correlation id, usually the business reference. Given a specific failing transaction, search the log for its reference id directly — don't scroll from the top of the file.</p>
 
+<h2>The root cause: logging and handling are two separate responsibilities that keep getting merged into one <code>catch</code> block</h2>
+<p>"Log the exception" and "handle/recover from the exception" are logically independent decisions — a layer can do either, both, or neither. The bug in this section happens whenever two layers in the same call chain <em>both</em> decide to log, because neither one knows the other already did. This isn't specific to reload's <code>LogHelper</code> convention — it's a general call-stack problem that shows up anywhere exceptions propagate through more than one layer.</p>
+
 <h2>The most misleading thing you'll see in a log: duplicate entries for one real error</h2>
 <p>This is a real, explicitly-named review complaint — reviewer <code>khenggek</code> flags it repeatedly across unrelated <a class="term" data-term="merge-request">merge requests</a>:</p>
 <blockquote>"Please check whether the reference will write to event viewer. There is no point in writing to viewer and throw the same exception again. This will cause it to write to event viewer twice for the same error and will be misleading." — MR !844</blockquote>
@@ -33,16 +36,29 @@ Under reload's dominant catch-log-return-sentinel pattern (<a href="conv-03-erro
 
 <p>A method catches an exception, logs it, and rethrows — but the <em>caller</em> also catches and logs the same exception. Result: one real failure produces two log entries with different call-stack framing, which looks like two separate problems during incident triage.</p>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation — this is a known problem at the framework level too, not just a reload code-review nitpick</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/core/compatibility/aspnet-core/10/exception-handler-diagnostics-suppressed">ASP.NET Core 10 breaking-change notice</a> documents the exact same failure mode inside ASP.NET Core's own exception-handling middleware. <strong>Previous behavior:</strong> <em>"the exception handler middleware recorded diagnostics about exceptions handled by IExceptionHandler"</em> — meaning the middleware logged the exception even when an app's own <code>IExceptionHandler</code> had already logged it. <strong>Reason for the fix in .NET 10:</strong> <em>"Their IExceptionHandler implementation reported that the exception was handled, but the error handling middleware still recorded the error in the app's telemetry."</em> Microsoft's own framework shipped this exact "handled here, but logged again one layer up" bug for multiple major versions before fixing it in .NET 10 — the reload review complaints above are catching, by hand, precisely the class of bug Microsoft needed a breaking change to fix in their own middleware.
+</div>
+
 <div class="callout warn">
 <span class="callout-title">The rule</span>
 Log in exactly one place per exception. Either let it propagate unlogged to a handler further up that will log it, or catch and log it here without rethrowing to something that will log it again. If you see the same error message twice in a log with slightly different context, suspect this pattern before you suspect two real, independent failures.
+</div>
+
+<div class="callout real">
+<span class="callout-title">What if the caller doesn't log at all?</span>
+The opposite failure mode is just as real: if the inner method's <code>catch</code> swallows the exception (logs it, then returns a sentinel like <code>-1</code> or <code>false</code> instead of rethrowing — see <a href="conv-03-error-handling.html">Conventions → Error Handling</a>) and the caller has no idea an exception happened, the caller can't add any of its own context (which terminal, which request) to that log entry. Either extreme — logging twice with no coordination, or logging once with no context from the caller — comes from the same root problem: no single layer owns "who logs this exception," so each layer decides independently.
 </div>
 
 <h2>What actually gets logged — and what doesn't</h2>
 <p>Full outbound request/response JSON payloads, generally. Exceptions, with whatever <code>customMessage</code> the author bothered to add. Row-count/no-op conditions, sometimes, as informational writes rather than errors. What's <em>not</em> guaranteed: a consistent method surface across modules (each module's <code>LogHelper</code> is different — see <a href="conv-04-logging.html">Logging</a>), or redaction of sensitive fields before logging.</p>
 
 <h2>Best practice</h2>
-<p>Before re-reading C# a third time on a "why did this silently not work" report, go straight to the log and search by the transaction's reference id or terminal id — the correlation-key convention exists specifically so you don't have to scroll chronologically.</p>
+<ul>
+<li><strong>Before re-reading C# a third time on a "why did this silently not work" report, go straight to the log and search by the transaction's reference id or terminal id.</strong> The correlation-key convention exists specifically so you don't have to scroll chronologically.</li>
+<li><strong>If you're adding a new <code>try/catch</code> in a call chain, decide up front whether this layer logs or the caller does — never assume "logging here is harmless, it's just extra information."</strong> As the ASP.NET Core case above shows, "log defensively at every layer just in case" is exactly how duplicate, misleading log entries get created, even in mature, widely-used frameworks.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -51,6 +67,15 @@ Log in exactly one place per exception. Either let it propagate unlogged to a ha
 <li data-correct="false" data-explain="Two independent failures producing the exact same exception message and reference id, back to back, is a much less likely explanation than the documented double-logging pattern." >Two unrelated bugs happened to occur at almost the same time.</li>
 <li data-correct="true" data-explain="This is a real, named, recurring review complaint in this codebase: a method logs an exception and rethrows to a caller that also logs it — one real failure, two log entries." >A method logged the exception and rethrew it to a caller that also logs — the double-exception-logging anti-pattern.</li>
 <li data-correct="false" data-explain="Log rotation would produce missing or truncated entries, not a duplicate of the same message with different framing.">The log file rotated and duplicated an old entry.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Per Microsoft's own ASP.NET Core 10 breaking-change notice, what was the actual problem with the exception handler middleware's previous behavior?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="The notice states the middleware 'recorded diagnostics about exceptions handled by IExceptionHandler' even when the app's own handler had already reported the exception as handled — the exact same double-logging failure mode reload's reviewers flag in code review." >It logged an exception via its diagnostics even when the app's own <code>IExceptionHandler</code> had already handled and reported that same exception.</li>
+<li data-correct="false" data-explain="The breaking change is about duplicate/unwanted diagnostics recording, not about the middleware failing to catch exceptions at all.">It failed to catch unhandled exceptions, letting them crash the app.</li>
+<li data-correct="false" data-explain="The fix (a SuppressDiagnosticsCallback option) is about controlling logging/telemetry behavior, not about performance or exception-throwing speed.">It made exceptions slower to throw by adding extra stack unwinding.</li>
 </ul>
 </div>
 
