@@ -156,6 +156,81 @@ This method has been called 3 time(s)</pre>
 </div>
 <p>Real-world use is narrow and specific: a call counter, a one-time-setup flag inside a frequently-called method, memoizing an expensive calculation across calls to the same method on the same instance. Reach for an actual class-level field instead when more than one method needs to see or share the value — <code>Static</code> is deliberately private to the one method it's declared in.</p>
 
+<h2>Building your own values: <code>New</code>, object initializers, and the collection types that hold many of them</h2>
+<p>Everything so far declares a value the language already knows how to build (an <code>Integer</code>, a <code>String()</code>). The next step is the same declaration grammar applied to types <em>you</em> define, and to the built-in generic collection types that hold many of them at once — a custom class, a <code>Dictionary(Of TKey, TValue)</code>, a <code>List(Of T)</code>. The root mechanism is one thing: <code>New SomeType(...)</code> calls a constructor and produces an instance; everything below is a variation on that single idea, not four unrelated features.</p>
+
+<h3>A custom class: <code>New</code>, with or without setting properties inline</h3>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/objects-and-classes/object-initializers-named-and-anonymous-types">Object Initializers reference</a> describes the <code>With</code> syntax directly: <em>"Object initializers provide a simple way to call the constructor of a type and then set the values of some or all properties in a single statement."</em> Its own example makes the equivalence explicit — <code>Dim cust1 As New Customer With {.Name = "Toni Poe", .City = "Louisville"}</code> is stated to be identical to constructing the object first and then assigning each property in separate statements afterward; the initializer is convenience syntax for the same two steps, not a different mechanism.
+</div>
+<p>Both forms are real, verified BackOffice code, in the same file — a plain <code>New</code> with no properties set inline, and a <code>New ... With {}</code> setting one property as part of construction:</p>
+<pre class="code-block">razerAccountBalance = New RazerAccount
+
+Dim prepayNationGetBalanceRequest As New Fiuu.Reloads.Pinless.Models.PrepayNationGetBalanceRequest With {
+    .CorrelationId = Date.Now.ToString("yyyymmddHHmmss")
+}</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/RazerAccountBalance.aspx.vb:291-293,300</p>
+<p><code>RazerAccount</code> and <code>PrepayNationGetBalanceRequest</code> are both classes this codebase defines itself — not framework types — and <code>New</code> works on them exactly the way it works on <code>Dictionary</code> or <code>List</code> below: it calls the class's constructor and hands back a reference to the new instance. The only difference between the two lines above is whether any properties are also being set as part of that one statement.</p>
+
+<h3>Dictionary(Of TKey, TValue): looking a value up by a key, not by position</h3>
+<p>An array or a list holds things in <em>order</em> — you get an item back by its position. A <code>Dictionary(Of TKey, TValue)</code> holds things by an arbitrary <em>key</em> instead — you get a value back by whatever key you stored it under, regardless of insertion order.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.dictionary-2">Dictionary&lt;TKey,TValue&gt; reference</a> states what it is and why it's fast: <em>"The Dictionary&lt;TKey,TValue&gt; generic class provides a mapping from a set of keys to a set of values."</em> and <em>"Retrieving a value by using its key is very fast, close to O(1), because the Dictionary&lt;TKey,TValue&gt; class is implemented as a hash table."</em> That's the concrete reason to reach for one instead of a <code>List(Of T)</code> you'd search linearly: looking something up by key stays fast regardless of how many entries exist, where scanning a list for a match gets slower as the list grows.
+</div>
+<pre class="code-block">Dim dcSerialNo_CancellationReason As New Dictionary(Of String, String)()</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/StockAllocationCreate.aspx.vb:169</p>
+<p>This maps a serial number (the key) to its cancellation reason (the value) during stock allocation cancellation — exactly the shape a dictionary is for: "given this one identifier, what's the associated value," not "give me the third one."</p>
+
+<h3>Enumerable collections: <code>List(Of T)</code>, <code>IEnumerable(Of T)</code>, and <code>For Each</code></h3>
+<p><code>For Each</code> doesn't work on every type — it works on anything that implements the pattern .NET calls <em>enumerable</em>. Knowing the name of that pattern is what makes a method signature like <code>Function GetSupplierProducts(...) As IEnumerable(Of ISupplierProducts)</code> readable at a glance instead of mysterious.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ienumerable-1">IEnumerable&lt;T&gt; reference</a> names it directly: <em>"IEnumerable&lt;T&gt; is the base interface for collections in the System.Collections.Generic namespace such as List&lt;T&gt;, Dictionary&lt;TKey,TValue&gt;, and Stack&lt;T&gt;... Collections that implement IEnumerable&lt;T&gt; can be enumerated by using the <code>foreach</code> statement"</em> — VB.NET's <code>For Each</code> is the same mechanism under a different keyword. <code>Dictionary(Of TKey, TValue)</code> above is itself one of these — it can be looped with <code>For Each</code> too, yielding key/value pairs, even though its whole point is key-based lookup rather than sequential order.
+</div>
+<pre class="code-block">Dim dealergrouplist As New List(Of IDealerGroup)
+...
+For Each po In POList
+    ...
+    pogrid = New PurchaseOrderGrid
+    ...
+Next</pre>
+<p class="code-cite">Module: BackOffice/Web · File: Services/PurchaseOrderListService.vb:31,34,38</p>
+<p>A declared parameter or return type can also be the interface itself, <code>IEnumerable(Of T)</code>, rather than the concrete <code>List(Of T)</code> — this promises only "you can loop over this," without committing to how it's stored internally:</p>
+<pre class="code-block">Dim items As IEnumerable(Of IFunction)
+
+Dim supplierProducts As IEnumerable(Of ISupplierProducts) =
+    ServiceLocator.Country(Profiles.User.CountryId).SupplierService
+        .GetSupplierProducts(ddlSupplier.SelectedValue) _
+        .Where(Function(f) f.Product IsNot Nothing)</pre>
+<p class="code-cite">Module: BackOffice/Web · Files: Services/MenuService.vb:33; WebForms/PurchaseOrderCreate.aspx.vb:116</p>
+<div class="callout warn">
+<span class="callout-title">What if you picked the wrong collection for the job?</span>
+Reaching for a <code>List(Of T)</code> and calling <code>.Contains(...)</code> or a hand-written loop to find a match by some identifier still works — it's not a compile error, and for a handful of items the difference is invisible. It becomes a real, measurable cost as the list grows, because every lookup has to walk the list from the start until it finds (or fails to find) a match. A <code>Dictionary(Of TKey, TValue)</code> keyed on that same identifier turns the identical lookup into the near-constant-time operation the official docs describe above — the fix isn't "write faster code," it's picking the collection whose actual purpose matches what you're doing with it.
+</div>
+
+<div class="tryit" data-lang="vbnet">
+<pre class="tryit-src">' Same lookup, two collection types — watch what each one is actually good at.
+Dim namesList As New List(Of String) From {"TNG", "BILL_PAYMENT", "TICKET"}
+Dim namesDict As New Dictionary(Of String, Integer) From {
+    {"TNG", 1}, {"BILL_PAYMENT", 2}, {"TICKET", 3}
+}
+
+' List: good for "is this value present" / "give me each one in order"
+Console.WriteLine(namesList.Contains("TICKET"))
+For Each n In namesList
+    Console.Write(n & " ")
+Next
+Console.WriteLine()
+
+' Dictionary: good for "given this key, what's the value" — no scanning
+Console.WriteLine(namesDict("TICKET"))</pre>
+<pre class="tryit-output-src">True
+TNG BILL_PAYMENT TICKET
+3</pre>
+</div>
+
 <h2>Same program, two languages</h2>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">Module Program
@@ -209,6 +284,7 @@ End Module</pre>
 <li><strong>Match the surrounding file's casing convention.</strong> VB.NET is case-insensitive, so <code>amount</code> and <code>Amount</code> are the same identifier to the compiler — but a file mixing both looks like two different variables to a human reader, which is exactly the confusing situation case-insensitivity can quietly create.</li>
 <li><strong>Opt new BackOffice files into <code>Option Strict On</code> when the change justifies it.</strong> It turns silent, potentially lossy conversions into compile errors you fix immediately instead of runtime surprises later. Don't retrofit it onto an existing large file casually: turning it on can surface a wave of pre-existing conversion warnings unrelated to your change.</li>
 <li><strong>Use <code>String.Join</code> to render an array, never string concatenation.</strong> As shown above, <code>&amp; someArray</code> silently produces <code>System.String[]</code> instead of the values — <code>String.Join(", ", someArray)</code> is the correct, general-purpose fix for any array type.</li>
+<li><strong>Reach for <code>Dictionary(Of TKey, TValue)</code> when the actual operation is "find the value for this key," and <code>List(Of T)</code> when it's "give me every item, in order."</strong> Using a list plus a linear scan for what is really a key lookup is a real, measurable performance cost once the collection isn't tiny — not a stylistic preference.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -263,6 +339,24 @@ End Module</pre>
 <li data-correct="false" data-explain="Runtime performance between & and + for string concatenation isn't the reason this convention exists.">& runs measurably faster than +.</li>
 <li data-correct="true" data-explain="+ is also VB's numeric addition operator, so mixing it with values that might be numbers or strings creates ambiguity about intent. & is unambiguously 'concatenate as text', regardless of the operand types." >+ is also the numeric addition operator, so & removes any ambiguity about whether you mean addition or concatenation.</li>
 <li data-correct="false" data-explain="Both operators work with variables of any of these types — that's not the distinction.">+ only works with numbers, & only works with pre-declared string variables.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A method needs to look up a cancellation reason by serial number, potentially across thousands of stock items. Based on the real <code>StockAllocationCreate.aspx.vb</code> code above, which collection type fits, and why?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="A List(Of T) holds items in order and is searched by scanning — for a lookup by identifier, that scan gets slower as the list grows, which is exactly the cost a Dictionary avoids." >A <code>List(Of String)</code>, since it can hold any number of strings.</li>
+<li data-correct="true" data-explain="This is the real StockAllocationCreate.aspx.vb:169 line: Dictionary(Of String, String) maps serial number to cancellation reason. Per Microsoft's own docs, retrieving a value by key is 'close to O(1)' since it's a hash table — the right structure when the operation is 'given this key, what's the value,' regardless of how many entries exist." >A <code>Dictionary(Of String, String)</code>, since the operation is "given this serial number, what's its reason" — a key lookup, not a sequential scan.</li>
+<li data-correct="false" data-explain="An array's fixed size and index-based access don't match 'look this up by an arbitrary string identifier' at all — you'd still need to scan it to find a match." >A fixed-size <code>String()</code> array, since the number of stock items is known in advance.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>Dim x As New RazerAccount</code> and <code>Dim y As New PrepayNationGetBalanceRequest With {.CorrelationId = "..."}</code> — both real lines from RazerAccountBalance.aspx.vb. What's actually different between them, per Microsoft's own Object Initializers documentation?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Per Microsoft's own docs, the With {} form is stated to be equivalent to constructing the object first, then assigning each property in separate statements afterward — convenience syntax for the same two steps, not a different kind of object creation." >Nothing structural — both call <code>New</code> to construct an instance; the <code>With {}</code> form just also sets one property as part of the same statement, equivalent to setting it in a separate line afterward.</li>
+<li data-correct="false" data-explain="Both RazerAccount and PrepayNationGetBalanceRequest are classes this codebase defines itself — neither is a built-in .NET framework type." >One is a custom class and the other is a built-in .NET framework type.</li>
+<li data-correct="false" data-explain="Object initializer syntax (With {}) has nothing to do with array declaration — it's for setting properties on a newly constructed object." ><code>With {}</code> means the variable is actually an array, not a single object.</li>
 </ul>
 </div>
 
