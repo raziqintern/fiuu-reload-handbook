@@ -99,14 +99,19 @@ End Sub</pre>
 </div>
 
 <p>Notice this is the exact same shape as <a href="algo-05-recursion.html">Recursion</a>'s base-case/recursive-case pattern: a leaf node (no children) is the base case; a branch node recurses into each child and combines the results. Trees and recursion are a natural pair because a tree is, by definition, recursively structured — a tree is a node plus a list of smaller trees.</p>
+<div class="callout warn">
+<span class="callout-title">What if the structure isn't actually a tree? A cycle turns the base case into an infinite loop</span>
+The recursive traversal above has no explicit "have I visited this node before" check — it relies entirely on there being no way back up to an ancestor, which is the actual definition of a tree, not just a convenient assumption. If a bug (or bad data — a store's parent dealer ID accidentally pointing back down to one of its own stores) ever created a cycle, <code>CountTerminals</code> would recurse into that cycle forever, with no leaf node ever reached to stop it — exactly the missing-base-case failure from <a href="algo-05-recursion.html">Recursion</a>, and just as uncatchable once it throws <code>StackOverflowException</code>. This is precisely why the "no node can be its own ancestor" rule matters in practice, not just in the definition.
+</div>
 
 <h2>A special case you've already met: the binary search tree</h2>
 <p>A <strong>binary tree</strong> is a tree where every node has at most two children. A <strong>binary search tree</strong> keeps them ordered (left child smaller, right child larger) — which means <a href="algo-03-searching.html">Binary Search</a>'s halve-the-remaining-space idea is really just walking down one of these, left or right, at each step.</p>
 
 <h2>Best practice</h2>
 <ul>
-<li>Use a recursive traversal by default — it's the most natural fit for a tree's own recursive definition, and it's usually the most readable option.</li>
-<li>Watch traversal depth on a tree that could be unexpectedly deep (a hierarchy with no practical limit on nesting) — very deep recursion risks the same call-stack exhaustion from <a href="algo-05-recursion.html">Recursion</a>.</li>
+<li><strong>Use a recursive traversal by default.</strong> It's the most natural fit for a tree's own recursive definition, and it's usually the most readable option.</li>
+<li><strong>Watch traversal depth on a tree that could be unexpectedly deep.</strong> A hierarchy with no practical limit on nesting risks the same call-stack exhaustion from <a href="algo-05-recursion.html">Recursion</a>.</li>
+<li><strong>If the data's tree-ness is enforced by convention rather than the database schema, don't assume it can never become a cycle.</strong> A bad write elsewhere in the system is all it takes to turn a recursive traversal into an unrecoverable crash.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -119,6 +124,15 @@ End Sub</pre>
 <li data-correct="true" data-explain="A tree specifically requires each node to have exactly one parent — every terminal belongs to exactly one store, every store to exactly one dealer, and so on, with no node reachable via two different paths." >Because every terminal, store, and dealer has exactly one parent — no item belongs to two parents at once.</li>
 <li data-correct="false" data-explain="A tree can absolutely have more than two children per node (a dealer can have many stores) — 'at most two children' specifically describes a binary tree, a special case, not trees in general." >Because it only ever has at most two children per node.</li>
 <li data-correct="false" data-explain="Ordering isn't what makes something a tree — that's specifically the extra property of a binary search tree. A tree just needs the one-parent-per-node hierarchy shape." >Because the terminals are stored in sorted order.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Bad data accidentally makes a store's parent dealer ID point back down to one of that dealer's own stores, creating a cycle. What happens when <code>CountTerminals</code> (the recursive traversal above) is run on this structure?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The base case only triggers on a node with zero children — a cycle means the traversal keeps finding nodes with children forever, since it never reaches a true leaf along that cyclic path." >It correctly detects the cycle and stops at the base case.</li>
+<li data-correct="true" data-explain="The recursive traversal has no cycle-detection logic — it assumes the structure is genuinely a tree. With a cycle, it recurses into the same nodes forever, exactly the missing-base-case failure from the Recursion lesson, eventually throwing an uncatchable StackOverflowException." >It recurses forever along the cycle, since there's no leaf node to stop it — eventually crashing with an uncatchable <code>StackOverflowException</code>.</li>
+<li data-correct="false" data-explain="The .NET runtime doesn't detect cycles in an arbitrary object graph being recursed over — there's no such automatic protection here." >The .NET runtime automatically detects the cycle and throws a clear, catchable error.</li>
 </ul>
 </div>
 
