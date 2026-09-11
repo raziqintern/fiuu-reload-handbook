@@ -68,14 +68,23 @@ TXN-1001</pre>
 </table>
 
 <div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.priorityqueue-2"><code>PriorityQueue&lt;TElement,TPriority&gt;</code> reference</a> confirms the default ordering directly: <em>"Represents a collection of items that have a value and a priority. On dequeue, the item with the lowest priority value is removed."</em> It's specifically documented as <em>"an array-backed, quaternary min-heap"</em> — quaternary meaning each node has up to four children, not the two a "textbook" binary heap has, though the same core min-heap rule and O(log n) behavior still apply.
+</div>
+<div class="callout warn">
+<span class="callout-title">What if two items share the exact same priority? No FIFO guarantee</span>
+The same reference states this plainly: <em>"Note that the type does not guarantee first-in-first-out semantics for elements of equal priority."</em> If <code>TXN-1001</code> and <code>TXN-1004</code> are both enqueued with priority <code>2</code>, don't assume the one enqueued first comes out first — <code>PriorityQueue&lt;T,P&gt;</code> makes no promise about their relative order at all. If tie-breaking by arrival order genuinely matters, encode it explicitly — e.g. a compound priority combining urgency and a sequence number — rather than relying on undocumented behavior.
+</div>
+<div class="callout tip">
 <span class="callout-title">You don't need to hand-write one</span>
 <code>System.Collections.Generic.PriorityQueue&lt;TElement, TPriority&gt;</code> (available since .NET 6) is a real, correct, built-in heap — exactly like <code>List&lt;T&gt;</code>/<code>Dictionary&lt;TKey,TValue&gt;</code> from earlier lessons, there's essentially never a reason to hand-roll this data structure in real code.
 </div>
 
 <h2>Best practice</h2>
 <ul>
-<li>Reach for a priority queue specifically when "process the most urgent thing next" is a real requirement — not as a fancier-sounding substitute for a plain queue when arrival order was actually fine.</li>
-<li>Be explicit about what "priority 1" means in your own code (most urgent, as in the example above, or least urgent) — <code>PriorityQueue&lt;T,P&gt;</code> defaults to smallest-value-first, which surprises anyone assuming "higher number = higher priority" without checking.</li>
+<li><strong>Reach for a priority queue specifically when "process the most urgent thing next" is a real requirement.</strong> Not as a fancier-sounding substitute for a plain queue when arrival order was actually fine.</li>
+<li><strong>Be explicit about what "priority 1" means in your own code (most urgent, as in the example above, or least urgent).</strong> <code>PriorityQueue&lt;T,P&gt;</code> defaults to smallest-value-first, which surprises anyone assuming "higher number = higher priority" without checking.</li>
+<li><strong>Never rely on arrival order as a tie-breaker for equal-priority items.</strong> It's explicitly undocumented/unguaranteed behavior — encode any real tie-breaking rule into the priority value itself.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -88,6 +97,15 @@ TXN-1001</pre>
 <li data-correct="true" data-explain="The heap property guarantees the minimum (or maximum, for a max-heap) is always at the root — no searching required, unlike an unsorted array where you'd have to check every element to be sure you'd found the smallest." >The heap's defining rule guarantees the smallest (or largest) value is always sitting at the root — no search needed.</li>
 <li data-correct="false" data-explain="A heap is not fully sorted — only the parent-child rule holds, which is weaker than full sorting but cheaper to maintain." >A heap keeps every element fully sorted at all times.</li>
 <li data-correct="false" data-explain="Heaps don't use hashing at all — that's how Dictionary achieves fast lookups, a different data structure with a different mechanism." >It uses the same hashing mechanism as a Dictionary.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Two transactions, <code>TXN-1001</code> and <code>TXN-1004</code>, are enqueued into a <code>PriorityQueue&lt;string,int&gt;</code> with the exact same priority value, <code>TXN-1001</code> first. Which one does <code>Dequeue()</code> return first?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Microsoft's own PriorityQueue<TElement,TPriority> reference states directly that it 'does not guarantee first-in-first-out semantics for elements of equal priority' — arrival order is not what decides this." >Always <code>TXN-1001</code>, since it was enqueued first.</li>
+<li data-correct="true" data-explain="The official reference is explicit: the type 'does not guarantee first-in-first-out semantics for elements of equal priority.' Either could come out first, and which one does is an implementation detail, not something to rely on." >It's not guaranteed — either could come out first, and the order between equal-priority items isn't documented or promised.</li>
+<li data-correct="false" data-explain="PriorityQueue doesn't throw for equal-priority values — ties are handled fine, just without an order guarantee between them." >It throws an exception, since two items can't share the same priority.</li>
 </ul>
 </div>
 
