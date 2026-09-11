@@ -69,15 +69,42 @@ TXN-1001, TXN-1002, TXN-1003</pre>
 
 <p><code>var</code> lets the compiler infer the type from the right-hand side — it's still statically typed underneath (<code>transactions</code> is genuinely a <code>List&lt;Transaction&gt;</code>), it's just a shorthand so you don't have to spell the type out twice. <code>.Select(...)</code> transforms every item, matching JS's <code>.map()</code>.</p>
 
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">List&lt;double&gt; emptyList = new List&lt;double&gt;();
+
+try
+{
+    double firstValue = emptyList.First();
+    Console.WriteLine(firstValue);
+}
+catch (InvalidOperationException)
+{
+    Console.WriteLine("First() threw InvalidOperationException");
+}
+
+double firstOrDefaultValue = emptyList.FirstOrDefault();
+Console.WriteLine("FirstOrDefault() returned: " + firstOrDefaultValue);</pre>
+<pre class="tryit-output-src">First() threw InvalidOperationException
+FirstOrDefault() returned: 0</pre>
+</div>
+<div class="callout warn">
+<span class="callout-title">FirstOrDefault's "default" depends on the type — it isn't always null</span>
+For a reference type (a class, like <code>Transaction</code>), <code>FirstOrDefault()</code> on an empty sequence returns <code>null</code>. For a value type like <code>double</code> or <code>int</code>, there's no <code>null</code> to return — it returns that type's own default value instead (<code>0</code> for numbers, <code>false</code> for <code>bool</code>). This is exactly why checking a <code>FirstOrDefault()</code> result against <code>null</code> silently does nothing useful when the element type is a value type — the check needs to compare against that type's actual default, or the code needs to check <code>.Any()</code> before calling <code>FirstOrDefault()</code> at all.
+</div>
+
 <div class="callout tip">
 <span class="callout-title">You now know enough C#</span>
 That covers the C# fundamentals track. Next up: <strong>VB.NET Fundamentals</strong> for comparison — reload's BackOffice WebForms UI is entirely written in it. Several tracks later, <strong>Fiuu Code Conventions</strong> comes back to C# (and VB.NET) with the actual patterns, naming quirks, and inconsistencies this specific codebase has — the track that turns "I know C#" into "I can read reload."
 </div>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.first"><code>Enumerable.First</code> reference</a> documents the exact failure mode: <em>"The First&lt;TSource&gt;(IEnumerable&lt;TSource&gt;) method throws an exception if source contains no elements."</em> Specifically <code>InvalidOperationException</code>, listed in its own Exceptions table as occurring when <em>"The source sequence is empty."</em> The same reference names the fix directly: <em>"To instead return a default value when the source sequence is empty, use the FirstOrDefault method."</em>
+</div>
 <h2>Best practice</h2>
 <ul>
-<li>Prefer LINQ (<code>.Where</code>/<code>.Select</code>/<code>.Sum</code>) over hand-written loops for filtering, transforming, and aggregating — it's shorter, and it says <em>what</em> you want instead of <em>how</em> to loop to get it.</li>
-<li>Call <code>.FirstOrDefault(...)</code>, not <code>.First(...)</code>, whenever "no match" is a real possible outcome — <code>.First()</code> throws on an empty result, <code>.FirstOrDefault()</code> returns <code>null</code>/default, matching the real reviewer complaint about unguarded <code>FirstOrDefault()</code> results in <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a>.</li>
+<li><strong>Prefer LINQ (<code>.Where</code>/<code>.Select</code>/<code>.Sum</code>) over hand-written loops for filtering, transforming, and aggregating.</strong> It's shorter, and it says <em>what</em> you want instead of <em>how</em> to loop to get it.</li>
+<li><strong>Call <code>.FirstOrDefault(...)</code>, not <code>.First(...)</code>, whenever "no match" is a real possible outcome.</strong> <code>.First()</code> throws <code>InvalidOperationException</code> on an empty result; <code>.FirstOrDefault()</code> returns <code>null</code>/default, matching the real reviewer complaint about unguarded <code>FirstOrDefault()</code> results in <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a>.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -90,6 +117,15 @@ That covers the C# fundamentals track. Next up: <strong>VB.NET Fundamentals</str
 <li data-correct="false" data-explain="Select doesn't remove or keep items based on a condition — that's what Where does. Select transforms every item unconditionally." >Only the transactions whose TransNo is set.</li>
 <li data-correct="true" data-explain="Select runs the lambda on every item and collects the results — here, pulling just the TransNo string out of each Transaction object, in the same order." >A new sequence containing just the TransNo string from every transaction, in order.</li>
 <li data-correct="false" data-explain="Select returns a full sequence of results, not a single count.">The number of transactions that have a TransNo.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A method calls <code>amounts.FirstOrDefault(a => a > 1000)</code> on a <code>List&lt;double&gt;</code>, and no amount actually exceeds 1000. The result is checked with <code>if (result == null)</code> to detect "no match." Does this work?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="double is a value type, not a reference type — FirstOrDefault() can't return null for it, so this comparison behaves differently than the author likely expects." >Yes — <code>FirstOrDefault()</code> always returns <code>null</code> when nothing matches, regardless of type.</li>
+<li data-correct="true" data-explain="double is a value type. FirstOrDefault() returns that type's own default value when nothing matches — 0 for double, not null. Comparing the result to null either doesn't compile, or (depending on context) never behaves as intended, since a double is never actually null." >No — <code>double</code> is a value type, so <code>FirstOrDefault()</code> returns <code>0</code> (its default value) on no match, not <code>null</code>. The <code>== null</code> check doesn't detect this correctly.</li>
+<li data-correct="false" data-explain="FirstOrDefault() never throws on no match — that's specifically First()'s behavior. FirstOrDefault() is the non-throwing alternative." >It throws an exception, since <code>FirstOrDefault()</code> can't handle value types.</li>
 </ul>
 </div>
 
