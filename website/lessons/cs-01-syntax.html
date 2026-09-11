@@ -55,6 +55,19 @@ C# prints booleans as <code>True</code> / <code>False</code> (capitalized) — J
 <tr><td><code>string</code></td><td>Text, always double-quoted in C# (single quotes are for a single <code>char</code>).</td></tr>
 <tr><td><code>bool</code></td><td><code>true</code> / <code>false</code>.</td></tr>
 </table>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/floating-point-numeric-types">Floating-point numeric types reference</a> states the reasoning directly: <em>"The decimal type is appropriate when the required degree of precision is determined by the number of digits to the right of the decimal point. Such numbers are commonly used in financial applications, for currency amounts... Even numbers that are precise to only one decimal digit are handled more accurately by the decimal type: 0.1, for example, can be exactly represented by a decimal instance, while there's no double or float instance that exactly represents 0.1."</em>
+</div>
+<div class="callout real">
+<span class="callout-title">Real, verified: decimal is what reload's own money-shaped fields actually use</span>
+<code>public decimal TransactionAmount { get; set; }</code> and <code>public decimal TransAmount { get; private set; }</code> — every transaction-amount property sampled across the class-library is <code>decimal</code>, never <code>double</code>, confirming this isn't just textbook advice but the actual type this codebase's financial data is modeled with.
+</div>
+<p class="code-cite">reload/class-library/Database/Models/RMS_OFFLINE/EInvoiceRequestModel.cs:23; reload/class-library/Reloads/TNG/Cryptography/TransactionCryptogram.cs:17</p>
+<div class="callout warn">
+<span class="callout-title">What if you mix double and decimal in the same expression? It doesn't compile at all</span>
+Per the same Microsoft reference: <em>"You can't mix the decimal type with the float and double types in an expression. In this case, if you want to perform arithmetic, comparison, or equality operations, you must explicitly convert the operands either from or to the decimal type."</em> This means <code>decimal total = fee + doubleValue;</code> is a compile error, not a silent conversion — C# forces you to write <code>(decimal)doubleValue</code> explicitly, which is exactly the moment you should be asking whether that <code>double</code> should have been a <code>decimal</code> from the start.
+</div>
 
 <h2>String interpolation</h2>
 <p>Same idea as JavaScript's template literals, with a <code>$</code> instead of a backtick:</p>
@@ -72,8 +85,8 @@ Total: 25.5</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Use <code>var</code> only when the type is already obvious from the right-hand side (<code>var t = new Terminal();</code>) — not as a way to avoid thinking about types. Reload's real code declares types explicitly almost everywhere sampled.</li>
-<li>Use <code>decimal</code> for every money value without exception, including intermediate calculations — mixing <code>double</code> into a calculation that's otherwise all <code>decimal</code> reintroduces the exact rounding risk you were trying to avoid.</li>
+<li><strong>Use <code>var</code> only when the type is already obvious from the right-hand side (<code>var t = new Terminal();</code>) — not as a way to avoid thinking about types.</strong> Reload's real code declares types explicitly almost everywhere sampled.</li>
+<li><strong>Use <code>decimal</code> for every money value without exception, including intermediate calculations.</strong> Mixing <code>double</code> into a calculation that's otherwise all <code>decimal</code> doesn't even compile, per the rule above — treat that compile error as a signal to fix the type, not just cast around it.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -92,6 +105,15 @@ Total: 25.5</pre>
 <li data-correct="false" data-explain="decimal isn't about display formatting — it's about how the number is actually stored and calculated."><code>decimal</code> just displays with more decimal places.</li>
 <li data-correct="true" data-explain="double stores numbers in binary floating point, which can't represent every base-10 decimal exactly — that's an unacceptable risk for money. decimal stores base-10 digits exactly." ><code>double</code> can introduce tiny binary rounding errors that are unacceptable for currency; <code>decimal</code> avoids that.</li>
 <li data-correct="false" data-explain="decimal isn't faster — if anything it has more overhead than double. Correctness, not speed, is the reason.">decimal performs calculations faster than double.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>decimal total = fee + doubleValue;</code> where <code>fee</code> is <code>decimal</code> and <code>doubleValue</code> is <code>double</code>. What happens?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="C# doesn't pick a common type here — Microsoft's own floating-point types reference is explicit that decimal cannot be mixed with float/double in an expression at all." >It compiles fine — C# converts <code>doubleValue</code> to <code>decimal</code> automatically.</li>
+<li data-correct="true" data-explain="Microsoft's own reference states this directly: 'You can't mix the decimal type with the float and double types in an expression... you must explicitly convert the operands either from or to the decimal type.' An explicit cast like (decimal)doubleValue is required." >It's a compile error — <code>decimal</code> and <code>double</code> can't appear together in an expression without an explicit cast.</li>
+<li data-correct="false" data-explain="This isn't a runtime concern — the mismatch is caught at compile time, before the code ever runs." >It compiles and runs, but silently loses precision at runtime.</li>
 </ul>
 </div>
 
