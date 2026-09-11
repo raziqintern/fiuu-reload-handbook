@@ -62,6 +62,10 @@ GO</pre>
 SELECT * FROM TerminalActivities;</pre>
 </div>
 <p><code>WITH (NOLOCK)</code> appears on essentially every read stored procedure in the sampled codebase. It tells SQL Server "don't wait for locks, just read whatever's there even if it's mid-transaction" — a deliberate throughput-over-consistency trade-off for a high-volume transactional system. The cost: you can occasionally read a row that's about to be rolled back, or momentarily miss a row mid-insert. Worth knowing before you assume a read result is always perfectly consistent.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-table">Table Hints (Transact-SQL) reference</a> defines <code>NOLOCK</code> as exactly equivalent to <code>READUNCOMMITTED</code>, and spells out the trade-off precisely: <em>"Specifies that dirty reads are allowed. No shared locks are issued to prevent other transactions from modifying data read by the current transaction, and exclusive locks set by other transactions don't block the current transaction from reading the locked data. Allowing dirty reads can cause higher concurrency, but at the cost of reading data modifications that then are rolled back by other transactions."</em> The same reference also notes a real restriction worth knowing: <em>"READUNCOMMITTED and NOLOCK can't be specified for tables modified by insert, update, or delete operations"</em> — <code>NOLOCK</code> is a read-side hint only, never valid on the table an <code>UPDATE</code>/<code>DELETE</code>/<code>INSERT</code> is actually writing to.
+</div>
 
 <h2>The <code>M</code>-prefix, on the SQL side too</h2>
 <p>Foreign keys into a lookup/status table are prefixed <code>M</code> (for "Master") in the database, matching the C# side you'll see in the <a href="conv-01-naming.html">Conventions track</a>: <code>MServiceTypeId</code>, <code>MWorkFlowStatusId</code>, <code>MSourceTypeId</code>. Same convention, same intent, both layers.</p>
@@ -122,12 +126,17 @@ When a search procedure has an optional filter that needs its own join, don't jo
 
 <h2>Best practice</h2>
 <ul>
-<li>Follow the <code>&lt;Schema&gt;.&lt;Table&gt;_&lt;Verb&gt;</code> naming exactly when adding a new stored procedure to an existing module — inconsistent naming here breaks the informal but load-bearing convention linking it to its C# constant.</li>
-<li>Know that <code>WITH (NOLOCK)</code> means "I accept dirty reads" — reach for it deliberately for high-volume reporting reads, not as an unconsidered copy-paste habit for every query regardless of consistency needs.</li>
+<li><strong>Follow the <code>&lt;Schema&gt;.&lt;Table&gt;_&lt;Verb&gt;</code> naming exactly when adding a new stored procedure to an existing module.</strong> Inconsistent naming here breaks the informal but load-bearing convention linking it to its C# constant.</li>
+<li><strong>Know that <code>WITH (NOLOCK)</code> means "I accept dirty reads."</strong> Reach for it deliberately for high-volume reporting reads, not as an unconsidered copy-paste habit for every query regardless of consistency needs.</li>
+<li><strong>Never use <code>NOLOCK</code> on the target table of an <code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code>.</strong> It's documented as invalid there — <code>NOLOCK</code> is a read-side hint only.</li>
 </ul>
 
 <h2>Better ways</h2>
 <p><code>SCOPE_IDENTITY()</code> is the safer alternative to <code>@@IDENTITY</code> for retrieving a just-inserted row's id — it returns the id from the current scope's insert specifically, immune to a trigger on the table inserting its own row and returning the wrong id instead.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/scope-identity-transact-sql"><code>SCOPE_IDENTITY</code> reference</a> spells out exactly why this matters with a real worked example: insert into a table <code>TZ</code> whose trigger inserts into a second table <code>TY</code>, and <em>"SCOPE_IDENTITY returns the last identity value in the same scope. This was the insert on table TZ"</em> (result: <code>4</code>) while <em>"@@IDENTITY returns the last identity value inserted to TY by the trigger... This fired because of an earlier insert on TZ"</em> (result: <code>115</code>) — two different numbers, from the exact same statement, because <code>@@IDENTITY</code> isn't scoped to the insert you actually asked about.
+</div>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -136,6 +145,15 @@ When a search procedure has an optional filter that needs its own join, don't jo
 <li data-correct="true" data-explain="The C# constant holder and the SQL procedure name are kept in sync purely by convention, not by any codegen or build-time check visible in this repo — so a rename on one side with no corresponding change on the other only fails at runtime, when the call actually happens." >The link between the C# constant name and the SQL procedure name is convention-only — nothing checks it at compile time.</li>
 <li data-correct="false" data-explain="C# has no built-in awareness of SQL Server stored procedures at all — there's no such compiler feature to rely on here." >C# has a compiler feature that validates stored procedure names against the database.</li>
 <li data-correct="false" data-explain="Renaming a database-side object doesn't automatically propagate anywhere — nothing updates the C# side for you.">The rename automatically updates every C# reference.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A table <code>TZ</code> has an insert trigger that inserts into a second table <code>TY</code>. Immediately after <code>INSERT TZ VALUES (...)</code>, which function reliably returns the identity value generated in <code>TZ</code> specifically, not <code>TY</code>?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Microsoft's own SCOPE_IDENTITY reference's worked example shows @@IDENTITY returning the value from the trigger's insert into TY (115), not the original insert into TZ (4) -- exactly the wrong answer here." ><code>@@IDENTITY</code>, since it always reflects the most recent insert in the session.</li>
+<li data-correct="true" data-explain="Microsoft's own reference states this directly: SCOPE_IDENTITY 'returns the IDENTITY value inserted in T1. This was the last insert that occurred in the same scope.' Its worked example confirms it: SCOPE_IDENTITY returns 4 (the TZ insert), while @@IDENTITY returns 115 (the trigger's TY insert) -- SCOPE_IDENTITY is the one that stays scoped to the statement you actually ran." ><code>SCOPE_IDENTITY()</code>, since it's scoped to the current insert and unaffected by what a trigger inserts elsewhere.</li>
+<li data-correct="false" data-explain="IDENT_CURRENT is scoped to a specific table across any session, but it's not what's being asked here, and it isn't Microsoft's documented recommendation for this exact scoping problem either." ><code>IDENT_CURRENT('TZ')</code>, since it's the newest of the three functions.</li>
 </ul>
 </div>
 
