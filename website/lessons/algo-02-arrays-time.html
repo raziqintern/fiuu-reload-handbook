@@ -48,6 +48,10 @@ Console.WriteLine(Array.IndexOf(amounts, 90))</pre>
 </div>
 
 <p><code>amounts[3]</code> (VB.NET: <code>amounts(3)</code>) is instant no matter how large the array is — the array knows exactly where element 3 lives in memory. <code>Array.IndexOf</code> has no such shortcut: it has to check element 0, then 1, then 2... until it finds <code>90</code> (or gives up). In the worst case (the value isn't there, or it's the very last element), that's <code>n</code> checks.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.array.indexof"><code>Array.IndexOf</code> reference</a> states this in its own Remarks, in the same Big O terms as the previous lesson: <em>"This method is an O(n) operation, where n is the Length of array."</em> Not a rule of thumb applied from outside — the method's own documentation names its complexity directly.
+</div>
 
 <div class="callout real">
 <span class="callout-title">This is exactly what LINQ's FirstOrDefault does</span>
@@ -55,7 +59,10 @@ Recall <a href="cs-06-collections-linq.html">C# Fundamentals → Collections &am
 </div>
 
 <h2>Best practice</h2>
-<p>If code repeatedly searches the same collection for items by some key (not by position), that's a signal you might want a dictionary/map instead of an array — trading O(n) lookups for O(1) ones.</p>
+<ul>
+<li><strong>If code repeatedly searches the same collection for items by some key (not by position), treat that as a signal you might want a dictionary/map instead of an array.</strong> Trading O(n) lookups for O(1) ones.</li>
+<li><strong>Don't assume an array/list search is fast just because the syntax looks simple.</strong> <code>Array.IndexOf</code>, <code>.Contains(...)</code>, and <code>.FirstOrDefault(predicate)</code> are all documented O(n) operations under the hood, regardless of how short the call looks.</li>
+</ul>
 
 <h2>Better ways</h2>
 <p>See <a href="algo-06-stacks-queues.html">Stacks, Queues &amp; Dictionaries</a> for the O(1)-lookup alternative, and the real reload code (<code>SecretsHelper.SecretsDictionary</code>) that already uses it.</p>
@@ -68,6 +75,12 @@ Recall <a href="cs-06-collections-linq.html">C# Fundamentals → Collections &am
 <li data-correct="true" data-explain="Searching for an item by a value you don't already know the position of requires checking elements until you find a match — the textbook O(n) linear search." >O(n) — you may need to check up to all 10,000 items to find a match.</li>
 <li data-correct="false" data-explain="O(log n) applies to algorithms like binary search that can eliminate half the remaining data each step — that requires the data to be sorted and searched with that specific technique, not a plain scan.">O(log n) — arrays are always searched efficiently by default.</li>
 </ul>
+</div>
+
+<div class="quiz" data-type="predict" data-answer="O(n)">
+<p class="quiz-q">Per Microsoft's own documentation, what is <code>Array.IndexOf</code>'s Big O complexity searching a whole array? (type exactly, e.g. O(1))</p>
+<textarea class="quiz-blank" rows="1"></textarea>
+<button type="button" class="quiz-submit">Check answer</button>
 </div>
 
 <div id="lesson-footer"></div>
