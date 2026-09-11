@@ -41,6 +41,11 @@ Trusting the dialog's "Build failed" framing sends you looking for a syntax erro
 
 <h2>3. A hostname that "should" resolve, and doesn't</h2>
 <p>The fix for the deploy failure above is often "use the IP address instead of the hostname" — and that fix works, but it's worth understanding <em>why</em>, not just applying it. A hostname like <code>ec2amaz-e2hp5a7</code> is the auto-generated Windows computer name AWS EC2 assigns a new instance by default. That name typically isn't registered in any real DNS server — it only resolves via NetBIOS name broadcast on the same local network segment. If your machine is on a different subnet, behind a VPN split that doesn't relay that broadcast, or otherwise not on the same local segment as the target box, the name lookup fails silently — even though the machine itself is perfectly reachable by IP.</p>
+
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-2000-server/cc940063(v=technet.10)">NetBIOS Over TCP/IP reference</a> confirms exactly this limitation: <em>"Broadcasts are not usually forwarded by routers."</em> and <em>"Broadcast frames are processed by all computers on a subnet."</em> A NetBIOS name query that relies on that broadcast — which is exactly how a bare Windows computer name like <code>ec2amaz-e2hp5a7</code> resolves absent a real DNS record — inherently can't cross a router boundary. That's not a quirk of this particular AWS/VPN setup; it's the documented, general behavior of broadcast-based name resolution on any network.
+</div>
 <div class="callout tip">
 <span class="callout-title">Confirm it's a resolution problem before reaching for an IP</span>
 <pre class="code-block">nslookup ec2amaz-e2hp5a7
@@ -49,7 +54,10 @@ If <code>nslookup</code> fails to resolve the name at all, that confirms the pro
 </div>
 
 <h2>Best practice</h2>
-<p>When a tool's own error dialog gives you a vague, high-level summary ("build failed", "an error occurred"), find the actual underlying log or output window before acting on the summary's framing — the summary is often written to cover multiple failure domains at once, and acting on the wrong one wastes time investigating code that was never the problem. And when you fix something by replacing a symbolic reference (a hostname, a config key) with a literal value (an IP, a hardcoded path), understand why the symbolic version failed before deciding whether your fix belongs in a shared file or should stay local to your machine.</p>
+<ul>
+<li><strong>When a tool's own error dialog gives you a vague, high-level summary ("build failed", "an error occurred"), find the actual underlying log or output window before acting on the summary's framing.</strong> The summary is often written to cover multiple failure domains at once, and acting on the wrong one wastes time investigating code that was never the problem.</li>
+<li><strong>When you fix something by replacing a symbolic reference (a hostname, a config key) with a literal value (an IP, a hardcoded path), understand why the symbolic version failed before deciding whether your fix belongs in a shared file or should stay local to your machine.</strong> A workaround that's correct for your network path may be wrong for a teammate's.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
