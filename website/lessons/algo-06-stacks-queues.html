@@ -81,6 +81,10 @@ Processing: transaction B</pre>
 <span class="callout-title">Why the distinction matters</span>
 Picking the wrong one silently changes your processing order. A retry queue that should process failed transactions in the order they failed (FIFO) but is accidentally implemented as a stack (LIFO) will keep retrying the newest failure first and can leave an old one stuck at the bottom indefinitely.
 </div>
+<div class="callout warn">
+<span class="callout-title">What if not: calling Pop/Dequeue on an already-empty one?</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.stack-1.pop"><code>Stack&lt;T&gt;.Pop</code> reference</a> lists this in its Exceptions table: <em>"InvalidOperationException — The Stack&lt;T&gt; is empty."</em> <code>Queue&lt;T&gt;.Dequeue</code> throws the identical exception under the identical condition. Both operations are also documented as fast regardless of how full the collection is — the same reference states plainly: <em>"Stack&lt;T&gt; is implemented as an array. This method is an O(1) operation."</em> Always check <code>.Count > 0</code> (or catch <code>InvalidOperationException</code> deliberately) before popping/dequeuing from a collection that might legitimately be empty.
+</div>
 
 <h2>Example: Dictionary&lt;TKey, TValue&gt; — key-based O(1) lookup</h2>
 <p>When you need to look things up by a meaningful key instead of a numeric position, a dictionary gives you roughly O(1) lookup — a real, practical alternative to the O(n) array search from <a href="algo-02-arrays-time.html">Arrays &amp; Time Complexity</a>.</p>
@@ -114,11 +118,15 @@ False
 
 <div class="callout real">
 <span class="callout-title">This is a real structure in reload, not a toy example</span>
-Later, in <a href="conv-06-config-secrets.html">Fiuu Code Conventions → Configuration &amp; Secrets</a>, you'll meet <code>SecretsHelper.SecretsDictionary</code> — a <code>Dictionary&lt;string, string&gt;</code> caching resolved AWS Secrets Manager values by label, precisely so a repeated lookup by key doesn't need to re-fetch or re-scan. The Game module's logging (<a href="conv-04-logging.html">Logging</a>) uses a <code>ConcurrentDictionary&lt;string, Logger&gt;</code> the same way — one logger per country code, looked up by key instead of searched for. The examples above use exactly these real types.
+Later, in <a href="conv-06-config-secrets.html">Fiuu Code Conventions → Configuration &amp; Secrets</a>, you'll meet <code>SecretsHelper.SecretsDictionary</code> — a <code>Dictionary&lt;string, string&gt;</code> caching resolved AWS Secrets Manager values by label, precisely so a repeated lookup by key doesn't need to re-fetch or re-scan. <code>CEPP</code>'s own logging helper uses a <code>ConcurrentDictionary&lt;string, Logger&gt;</code> the same way — one cached <code>Logger</code> instance per key (its <code>MultipleCountry</code> flag suggests per-country loggers when configured that way), looked up by key instead of searched for. The examples above use exactly these real types.
 </div>
+<p class="code-cite">reload/web/DEV/NET/Components/CEPP/Helpers/LogHelper.cs:15,27</p>
 
 <h2>Best practice</h2>
-<p>Reach for <code>Stack&lt;T&gt;</code>/<code>Queue&lt;T&gt;</code>/<code>Dictionary&lt;TKey,TValue&gt;</code> from <code>System.Collections.Generic</code> rather than hand-rolling the behavior on top of a plain <code>List&lt;T&gt;</code> — they're well-tested, clearly communicate intent to the next reader, and (for Dictionary) are meaningfully faster for key lookups.</p>
+<ul>
+<li><strong>Reach for <code>Stack&lt;T&gt;</code>/<code>Queue&lt;T&gt;</code>/<code>Dictionary&lt;TKey,TValue&gt;</code> from <code>System.Collections.Generic</code> rather than hand-rolling the behavior on top of a plain <code>List&lt;T&gt;</code>.</strong> They're well-tested, clearly communicate intent to the next reader, and (for Dictionary) are meaningfully faster for key lookups.</li>
+<li><strong>Check <code>.Count > 0</code> before <code>Pop()</code>/<code>Dequeue()</code>, unless you're deliberately handling the exception instead.</strong> Both throw <code>InvalidOperationException</code> on an empty collection — a real, documented failure mode, not a hypothetical edge case.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -127,6 +135,15 @@ Later, in <a href="conv-06-config-secrets.html">Fiuu Code Conventions → Config
 <li data-correct="false" data-explain="A stack (LIFO) would process the most recently failed transaction first, not the order they originally failed — the opposite of what's needed here." >A Stack&lt;T&gt;, so the most recent failure is retried first.</li>
 <li data-correct="true" data-explain="FIFO (queue) processing preserves the original failure order — the oldest failure is retried first, exactly matching the requirement." >A Queue&lt;T&gt;, so the oldest failure is retried first, in original order.</li>
 <li data-correct="false" data-explain="A dictionary is for key-based lookup, not for preserving processing order — it doesn't guarantee any particular iteration order for this purpose.">A Dictionary&lt;TKey,TValue&gt;, keyed by transaction ID.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Code calls <code>.Pop()</code> on a <code>Stack&lt;T&gt;</code> that happens to be empty at that moment. What does Microsoft's own documentation say happens?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Pop() doesn't return a default/null value on an empty stack — Microsoft's own reference lists this as an exception condition, not a safe fallback." >It returns <code>null</code> or the type's default value safely.</li>
+<li data-correct="true" data-explain="Microsoft's own Stack<T>.Pop reference lists this directly in its Exceptions table: 'InvalidOperationException — The Stack<T> is empty.' Queue<T>.Dequeue throws the same exception under the same condition." >It throws <code>InvalidOperationException</code> — both <code>Stack&lt;T&gt;.Pop</code> and <code>Queue&lt;T&gt;.Dequeue</code> are documented to throw this on an empty collection.</li>
+<li data-correct="false" data-explain="Pop() doesn't block or wait — it's a synchronous, immediate operation that either succeeds or throws right away." >It blocks and waits until an item becomes available.</li>
 </ul>
 </div>
 
