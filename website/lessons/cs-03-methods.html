@@ -63,16 +63,26 @@ Payment method required</pre>
 </div>
 
 <p><code>string.IsNullOrEmpty(...)</code> is the idiomatic C# way to check a string for both <code>null</code> and <code>""</code> in one call — reaching for <code>method == null || method == ""</code> instead is a tell that someone hasn't seen this yet.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string.isnullorempty"><code>String.IsNullOrEmpty</code> reference</a> confirms it's exactly that shorthand, nothing more: <em>"IsNullOrEmpty is a convenience method that enables you to simultaneously test whether a String is null or its value is String.Empty. It is equivalent to the following code: <code>result = s == null || s == string.Empty;</code>"</em>
+</div>
+<div class="callout warn">
+<span class="callout-title">What if you skip the check entirely and call a member directly? A null string throws, an empty one doesn't</span>
+The same reference distinguishes the two failure shapes precisely: <em>"attempting to call one if its members throws a NullReferenceException"</em> — for a genuinely <code>null</code> string, <code>method.Length</code> crashes the program. An empty string is a real, valid object (<em>"An empty string has a Length of 0"</em>) — <code>"".Length</code> returns <code>0</code> without error. This is exactly why <code>IsNullOrEmpty</code> checks for both together: a validation that only checks <code>method == null</code> still lets an empty string slip through, and vice versa.
+</div>
 
 <div class="callout tip">
 <span class="callout-title">This is where naming conventions start to matter</span>
 Reload's real methods (<code>TerminalService.Login</code>, <code>TerminalProvider.GetTerminalSummaryByTransNo</code>, and so on) follow exactly this shape — a verb-ish name, a typed parameter list, an explicit return type. The <a href="conv-01-naming.html">Fiuu C# Conventions → Naming</a> lesson is where you'll see the real, sometimes inconsistent, naming patterns this codebase actually uses.
 </div>
+<p class="code-cite">reload/class-library/Reloads/TNG/Services/TerminalService.cs:8; reload/class-library/Reloads/TNG/Providers/TerminalProvider.cs:60</p>
 
 <h2>Best practice</h2>
 <ul>
-<li>Keep a method's parameter list short — beyond three or four parameters, a small parameter object or the caller's own object usually reads better than a long, easy-to-misorder argument list.</li>
-<li>Validate at the top of a method and return/throw immediately, before doing any real work — mirroring <code>ValidateReload</code>'s early-return shape means a reader never has to hold "but what if amount was invalid" in their head past the first few lines.</li>
+<li><strong>Keep a method's parameter list short.</strong> Beyond three or four parameters, a small parameter object or the caller's own object usually reads better than a long, easy-to-misorder argument list.</li>
+<li><strong>Validate at the top of a method and return/throw immediately, before doing any real work.</strong> Mirroring <code>ValidateReload</code>'s early-return shape means a reader never has to hold "but what if amount was invalid" in their head past the first few lines.</li>
+<li><strong>Reach for <code>string.IsNullOrEmpty</code> (or <code>IsNullOrWhiteSpace</code> for a stricter check) instead of a hand-written <code>== null || == ""</code> comparison.</strong> It's the documented, idiomatic shorthand — and it's easy to accidentally check only one of the two cases by hand.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -85,6 +95,15 @@ Reload's real methods (<code>TerminalService.Login</code>, <code>TerminalProvide
 <li data-correct="true" data-explain="C# is statically typed: the compiler checks every return statement in the method actually returns that declared type, and every call site knows exactly what type it gets back — none of that exists in JavaScript." >It commits, at compile time, to exactly what type the method will hand back to its caller.</li>
 <li data-correct="false" data-explain="Return type has nothing to do with performance directly.">It makes the method run faster.</li>
 <li data-correct="false" data-explain="A method can be called regardless of its return type being used or not — return type doesn't gate callability.">It determines whether the method can be called from another class.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A method checks <code>if (method == null) return "Payment method required";</code> but omits an empty-string check. A caller passes <code>""</code> instead of <code>null</code>. What happens?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Microsoft's own String.IsNullOrEmpty reference confirms an empty string is a real, valid object with Length 0 — it is not null. A check that only compares against null lets an empty string slip straight through, which is exactly why IsNullOrEmpty tests for both together." >The check passes — <code>""</code> is not <code>null</code>, so this validation lets an empty payment method through undetected.</li>
+<li data-correct="false" data-explain="An empty string is a real object, not null — comparing it to null with == does not throw. The actual problem is that the check simply doesn't catch it, not that it crashes." >It throws a <code>NullReferenceException</code>, since <code>""</code> behaves like <code>null</code> in comparisons.</li>
+<li data-correct="false" data-explain="== null only ever tests for null specifically — it has no special handling that would also catch an empty string." >The check correctly catches this too, since <code>== null</code> also matches empty strings in C#.</li>
 </ul>
 </div>
 
