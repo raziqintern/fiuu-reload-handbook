@@ -99,6 +99,11 @@
 </table>
 <p>Only three connection-string aliases were confirmed directly in application code: <code>RMS_Offline</code>, <code>LOGGING</code>, and <code>Notification</code> — corresponding to three of the 20 databases. How the other 17 databases' connections are resolved wasn't traced in this pass; treat it as an open question rather than assuming the same three-alias mechanism covers everything.</p>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+The "cached in-process" detail on the partner-credential side isn't an incidental implementation choice — AWS's own <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/best-practices.html">Secrets Manager best practices</a> guide states it directly: <em>"To use your secrets most efficiently, we recommend you use one of the following supported Secrets Manager caching components to cache your secrets and update them only when required."</em> Fetching a fresh secret from Secrets Manager on every single transaction would work correctly but add real, avoidable latency and API cost to every reload — caching once per process and reusing it is the documented, recommended shape, not a shortcut this codebase happened to take.
+</div>
+
 <h2>The estate is still being actively corrected</h2>
 <div class="callout real">
 <span class="callout-title">Two whole databases were missing from the team's own documentation</span>
@@ -106,7 +111,10 @@ The original internal vault claimed "16 separate databases." Tracing the live <c
 </div>
 
 <h2>Best practice</h2>
-<p>Cross-check an internal architecture doc against the live <code>MAINT/</code> folders before trusting it as current — the team's own 260KB schema vault was missing two entire live databases (<code>EINVOICE</code>, <code>SAP</code>) until this handbook's own tracing found them. "Official" documentation lagging reality is a real, demonstrated risk in this specific codebase, not a hypothetical caution.</p>
+<ul>
+<li><strong>Cross-check an internal architecture doc against the live <code>MAINT/</code> folders before trusting it as current.</strong> The team's own 260KB schema vault was missing two entire live databases (<code>EINVOICE</code>, <code>SAP</code>) until this handbook's own tracing found them — "official" documentation lagging reality is a real, demonstrated risk in this specific codebase, not a hypothetical caution.</li>
+<li><strong>Don't assume an unconfirmed connection-string mechanism generalizes from the three aliases that were actually traced.</strong> "RMS_Offline, LOGGING, and Notification use this file-based mechanism" is a verified fact about three databases, not a verified fact about all 20.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -115,6 +123,15 @@ The original internal vault claimed "16 separate databases." Tracing the live <c
 <li data-correct="false" data-explain="No connection strings section was found anywhere under the reload repo — this codebase doesn't use that mechanism for SQL connection strings.">In web.config's &lt;connectionStrings&gt; section.</li>
 <li data-correct="true" data-explain="DBConnectionHelper resolves SQL Server connection strings by reading a plain text file named after the database alias (e.g. LOGGING.txt) from a hardcoded local directory (d:\\db\\ or c:\\db\\) on the deployed machine — a real, if fragile, mechanism confirmed directly in code." >In a plain text file named LOGGING.txt in a hardcoded local directory (d:\db or c:\db) on the deployed machine.</li>
 <li data-correct="false" data-explain="AWS Secrets Manager is used for partner/integration credentials in this codebase, not for the SQL Server connection strings themselves — that's a separate, unrelated mechanism.">In AWS Secrets Manager, alongside partner API credentials.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Partner API credentials are fetched from AWS Secrets Manager once and cached in-process for the life of the application, rather than being fetched fresh on every reload transaction. Why does this match AWS's own guidance, not just this codebase's convenience?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="AWS's own Secrets Manager best practices guide states directly: 'we recommend you use one of the following supported Secrets Manager caching components to cache your secrets and update them only when required.' Fetching fresh on every transaction would work but add avoidable latency and API cost." >AWS's own Secrets Manager best practices guide explicitly recommends caching secrets and updating them only when required — fetching fresh on every use adds avoidable latency and cost.</li>
+<li data-correct="false" data-explain="Secrets Manager doesn't rate-limit reads this aggressively — the reason to cache is efficiency and recommended practice, not avoiding an outright request failure." >Because Secrets Manager only allows a secret to be fetched once per day.</li>
+<li data-correct="false" data-explain="Caching a secret in process memory doesn't rotate or encrypt it differently than a fresh fetch would — rotation is a separate, unrelated Secrets Manager feature." >Because caching automatically rotates the secret to a more secure encrypted form.</li>
 </ul>
 </div>
 
