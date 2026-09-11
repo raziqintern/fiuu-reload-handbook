@@ -119,6 +119,40 @@ When there are only one or two hardcoded values to exclude — not a runtime lis
 This doesn't scale past two or three values (each new exclusion is another <code>AndAlso</code> clause) — the moment a third or fourth exclusion shows up, or the excluded set might change without a code change, that's the signal to switch to a real list and <code>Where(Function(x) Not excludeList.Contains(x))</code> instead.
 </div>
 
+<h2>Reducing overhead: the same exclusion filter, made structurally faster</h2>
+<p>The dominant exclusion idiom above — <code>Where(Function(b) Not otherList.Contains(b))</code> — has a real cost hiding in it once the lists get large: <code>List(Of T).Contains</code> scans the list from the start until it finds a match (or reaches the end). Run inside a <code>Where</code> over every element of the first list, that's a scan of the second list <em>for every single element</em> of the first — the total work grows with the size of <strong>both</strong> lists multiplied together, not just added.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+This is exactly the gap <a href="vb-01-syntax.html"><code>Dictionary(Of TKey, TValue)</code>'s own reference</a> (covered in Syntax, Types &amp; Option Strict) describes — key lookup "close to O(1), because the class is implemented as a hash table." Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.hashset-1">HashSet&lt;T&gt; reference</a> confirms the same underlying mechanism applies to membership testing specifically: <em>"The HashSet&lt;T&gt; class is based on the model of mathematical sets and provides high-performance set operations similar to accessing the keys of the Dictionary&lt;TKey,TValue&gt;... collections."</em> <code>HashSet(Of T).Contains</code> gets the same near-constant-time lookup a <code>Dictionary</code> key lookup gets — it just checks membership instead of retrieving an associated value.
+</div>
+<p>This codebase already uses exactly this optimization — just not, currently, in the repeated exclusion-diff idiom above:</p>
+<pre class="code-block">Dim disallowedServiceTypes As New HashSet(Of ServiceProviderType) From {...}
+...
+If disallowedServiceTypes.Contains(row.SalesCommissionMarginRates?.ServiceTypeId) Then</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/CommissionEdit.aspx.vb:193,202 (HashSet also used for status-transition validation in StockAllocation.aspx.vb and deduplication in StockAllocationCreate.aspx.vb:344)</p>
+<div class="callout real">
+<span class="callout-title">The same fix applied to the real exclusion pattern</span>
+The repeated idiom from earlier — <code>stores.Where(Function(b) Not UserStore.Contains(b))</code>, and the identical shape in CompanyEdit.aspx.vb, DealerEdit.aspx.vb, SupplierEdit.aspx.vb, RoleEdit.aspx.vb, and ProductEdit.aspx.vb — all call <code>.Contains</code> against a plain <code>List(Of Integer)</code>. Converting just the list being checked into a <code>HashSet(Of Integer)</code> first, with no other change to the logic, turns every one of those <code>.Contains</code> calls from a linear scan into a near-constant-time lookup:
+<pre class="code-block">' Same result, same readability — one extra step before the filter runs.
+Dim userStoreSet As New HashSet(Of Integer)(UserStore)
+Dim addedStore = stores.Where(Function(b) Not userStoreSet.Contains(b)).ToList()</pre>
+For a handful of items the difference is invisible either way — this only becomes worth doing once the lists genuinely get large (hundreds or thousands of stores/dealers/users), which is exactly the kind of change worth making the next time one of these six files is touched anyway, not necessarily a change worth making in isolation today.
+</div>
+
+<h2>Join and Group Join: combining two collections by a shared key, not filtering one</h2>
+<p>Filtering (above) asks "which elements of this one collection survive a condition." <code>Join</code> asks a different question: "for each element of one collection, what's the matching element of a completely different collection." Real, verified production usage — combining stores with the dealer each one belongs to:</p>
+<pre class="code-block">stores = stores.Join(dealers, Function(s) s.DealerId, Function(d) d.Id,
+                      Function(Store, Dealer) New With {Store, Dealer})</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/OfflineSalesList.aspx.vb:100</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.join">Enumerable.Join reference</a> names the SQL parallel directly: <em>"A join refers to the operation of correlating the elements of two sources of information based on a common key... In relational database terms, the Join method implements an inner equijoin."</em> <code>Function(s) s.DealerId</code> and <code>Function(d) d.Id</code> are the two key selectors — one per side — and <code>Function(Store, Dealer) New With {Store, Dealer}</code> is the result selector, building one combined anonymous object (see above) per matching pair. Only stores with a matching dealer appear in the result at all — an "inner" join, exactly like SQL's default <code>JOIN</code>, not a <code>LEFT JOIN</code>.
+</div>
+<p>Query syntax has the same operation spelled differently, and this codebase uses that form even more — combining a user with their company-level role assignment, keeping every user even when no match exists (the query-syntax <code>Group Join ... Into Group</code> shape, not plain <code>Join</code>):</p>
+<pre class="code-block">Group Join compUser In companyUsers On user.Id Equals compUser.UserId Into Group</pre>
+<p class="code-cite">Module: BackOffice/Web · File: WebForms/CompanyEdit.aspx.vb:202 (the identical shape repeats in Dealer.aspx.vb, DealerEdit.aspx.vb, ProductEdit.aspx.vb, PurchaseOrderEdit.aspx.vb, PaymentEnquiry.aspx.vb)</p>
+<p><code>Into Group</code> is what makes this a <em>group</em> join rather than a plain one: instead of producing one flat result row per matching pair, each <code>user</code> gets a <code>Group</code> — the (possibly empty) collection of every <code>compUser</code> that matched. This is the query-syntax route to what <code>Join</code>'s inner-only behavior can't do on its own: keeping every element from the first collection even when zero matches exist on the second.</p>
+
 <h2>The Array/IEnumerable trap: why <code>[Enum].GetValues(...).Where(...)</code> doesn't compile</h2>
 <p><code>[Enum].GetValues(GetType(T))</code> returns the non-generic <code>System.Array</code> type — and <code>Array</code> only implements the non-generic <code>IEnumerable</code>, not <code>IEnumerable(Of T)</code>. <code>Where</code>, like every LINQ method, is written against <code>IEnumerable(Of T)</code>, so it simply isn't visible on a plain <code>Array</code>-typed variable — this is a real, easy compile error to hit, not a hypothetical one.</p>
 <div class="callout tip">
@@ -147,6 +181,8 @@ Dim arrAllocationActions As Array = [Enum].GetValues(GetType(EnumAllocateAction)
 <li><strong>Reach for method syntax</strong> for a single operation (one <code>.Where(...)</code>, one <code>.Any(...)</code>) — query syntax's <code>From</code>/<code>Select</code> ceremony isn't worth it for one clause.</li>
 <li><strong>Keep lambda bodies to one expression.</strong> A lambda that needs several statements and local variables to express its logic is a sign the logic deserves a real, named method instead, referenced with <code>AddressOf</code>.</li>
 <li><strong>Promote an anonymous type to a real class</strong> the moment it needs to leave the method it was created in — as a return type, a field, or a parameter.</li>
+<li><strong>Convert the "other" side of a <code>Where(Function(x) Not other.Contains(x))</code> exclusion filter into a <code>HashSet(Of T)</code> once the lists involved are large enough for it to matter.</strong> The filter logic and its readability don't change at all — only the collection type the repeated <code>.Contains</code> calls run against, turning a linear scan into a near-constant-time lookup.</li>
+<li><strong>Reach for <code>Join</code> when you need one combined result per matching pair from two collections, and query-syntax <code>Group Join ... Into Group</code> when you need to keep every element from the first collection even without a match.</strong> Plain <code>Join</code> silently drops unmatched elements — exactly like a SQL inner join — which is the right behavior sometimes and a real, easy-to-miss bug other times.</li>
 </ul>
 
 <h2>Check your understanding</h2>
@@ -192,6 +228,24 @@ Dim arrAllocationActions As Array = [Enum].GetValues(GetType(EnumAllocateAction)
 <li data-correct="true" data-explain=".Cast(Of T)() returns IEnumerable(Of T), which is not a System.Array — they're unrelated types. With Option Strict On this is a compile error; with it Off (BackOffice's real default), it compiles but throws InvalidCastException at runtime. Either way, the variable is back to not supporting .Where for the same reason as before." >It breaks — <code>IEnumerable(Of T)</code> and <code>Array</code> are unrelated types, so this is either a compile error or a runtime <code>InvalidCastException</code>, and <code>.Where</code> stops working on it again either way.</li>
 <li data-correct="false" data-explain="This is exactly backwards — re-typing it As Array undoes the .Cast(Of T)() fix rather than confirming it." >Nothing changes — <code>Array</code> and <code>IEnumerable(Of T)</code> are interchangeable in VB.NET.</li>
 <li data-correct="false" data-explain="VB.NET doesn't auto-correct a declared type based on a variable's name — the compiler only looks at the actual declared/inferred type, never the identifier text." >VB.NET silently keeps it working because the variable name still starts with <code>arr</code>.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A repeated real pattern in this codebase — <code>stores.Where(Function(b) Not UserStore.Contains(b))</code> — checks <code>UserStore.Contains(b)</code> once per element of <code>stores</code>, where <code>UserStore</code> is a plain <code>List(Of Integer)</code>. Why does converting <code>UserStore</code> to a <code>HashSet(Of Integer)</code> first make this faster, without changing the filter's logic at all?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Per Microsoft's own HashSet<T> reference, it provides 'high-performance set operations similar to accessing the keys of the Dictionary<TKey,TValue>' collection — near-constant-time membership testing via a hash table, versus List(Of T).Contains scanning from the start every single call." >A <code>List(Of T).Contains</code> call scans the list linearly every time; a <code>HashSet(Of T).Contains</code> call uses the same near-constant-time hash-table lookup a <code>Dictionary</code> key lookup gets.</li>
+<li data-correct="false" data-explain="HashSet doesn't change what Where itself does or how many times the lambda runs — it changes how expensive each .Contains call inside that lambda is." >It changes how many times the <code>Where</code> lambda itself executes.</li>
+<li data-correct="false" data-explain="A HashSet doesn't guarantee any particular order — the opposite of a List, which does preserve insertion order. Order isn't the reason for this optimization." >It makes the results come back in a guaranteed sorted order.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Real code joins <code>stores</code> to <code>dealers</code> with <code>stores.Join(dealers, Function(s) s.DealerId, Function(d) d.Id, ...)</code>. A store's <code>DealerId</code> doesn't match any dealer in the <code>dealers</code> collection. What happens to that store in the result, per Microsoft's own Join documentation?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Microsoft's own Enumerable.Join reference states plainly: 'In relational database terms, the Join method implements an inner equijoin.' An inner join includes only elements with a match in the other sequence — an unmatched store simply doesn't appear in the result at all." >It's silently excluded from the result entirely — <code>Join</code> implements an inner join, which only includes elements that have a match on the other side.</li>
+<li data-correct="false" data-explain="Plain Join never fills in Nothing for the unmatched side — that behavior belongs to Group Join, which Microsoft's own docs point to specifically for this case ('A left outer join operation has no dedicated standard query operator, but can be performed by using the GroupJoin method')." >It appears in the result with the dealer fields set to <code>Nothing</code>.</li>
+<li data-correct="false" data-explain="Join doesn't throw for an unmatched key — it's a normal, silent exclusion from the result, not an error condition." >It throws a runtime exception, since every store is expected to have a matching dealer.</li>
 </ul>
 </div>
 
