@@ -52,9 +52,13 @@ WHERE TerminalId = 2;
 SELECT * FROM Terminals;</pre>
 </div>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/update-transact-sql">UPDATE (Transact-SQL) reference</a> defines <code>WHERE</code>'s actual job precisely: <em>"WHERE Specifies the conditions that limit the rows that are updated."</em> It's a limiting clause, not a required one — its own first example, "Using a simple UPDATE statement," has no <code>WHERE</code> at all, and Microsoft's own description of what it does says plainly: it <em>"updates a single column for all rows in the Person.Address table."</em> No <code>WHERE</code> means no limit, which means every row.
+</div>
 <div class="callout warn">
 <span class="callout-title">Always have a WHERE on UPDATE and DELETE</span>
-Leave off the <code>WHERE</code> clause on an <code>UPDATE</code> or <code>DELETE</code> and it applies to <em>every row in the table</em> — one of the most common, most damaging mistakes in SQL. Try removing the <code>WHERE TerminalId = 2</code> line above and re-running to see every terminal get deactivated at once.</p>
+Leave off the <code>WHERE</code> clause on an <code>UPDATE</code> or <code>DELETE</code> and it applies to <em>every row in the table</em> — one of the most common, most damaging mistakes in SQL. Try removing the <code>WHERE TerminalId = 2</code> line above and re-running to see every terminal get deactivated at once.
 </div>
 
 <h2>Try it yourself</h2>
@@ -66,8 +70,8 @@ SELECT * FROM Terminals WHERE MStatusId = 1;</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Never write <code>UPDATE</code> or <code>DELETE</code> without a <code>WHERE</code> clause already typed — some teams enforce this by running ad hoc updates inside a transaction you can roll back if the affected-row count looks wrong, before committing.</li>
-<li>Name columns explicitly in a real <code>SELECT</code> instead of <code>*</code> — it documents exactly what the query actually needs, and doesn't silently break if someone adds a new column later.</li>
+<li><strong>Never write <code>UPDATE</code> or <code>DELETE</code> without a <code>WHERE</code> clause already typed.</strong> Some teams enforce this by running ad hoc updates inside a transaction you can roll back if the affected-row count looks wrong, before committing.</li>
+<li><strong>Name columns explicitly in a real <code>SELECT</code> instead of <code>*</code>.</strong> It documents exactly what the query actually needs, and doesn't silently break if someone adds a new column later.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -80,6 +84,15 @@ SELECT * FROM Terminals WHERE MStatusId = 1;</pre>
 <li data-correct="false" data-explain="Without a WHERE clause, SQL has no condition to filter by — it applies to every row, not none." >Nothing — SQL requires a WHERE clause to run an UPDATE.</li>
 <li data-correct="true" data-explain="A WHERE clause is what limits which rows are affected. Without one, every row in the table matches, so every terminal's MStatusId is set to 0." >It sets MStatusId to 0 on every single row in the Terminals table.</li>
 <li data-correct="false" data-explain="SQL doesn't guess which row you meant — omitting WHERE means 'apply to everything', not 'apply to the first match'.">It only updates the first row it finds.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Per Microsoft's own T-SQL reference, what is the actual role of the <code>WHERE</code> clause in an <code>UPDATE</code> statement?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Microsoft's own reference is clear that WHERE limits which rows are affected — it never controls which columns get changed. The SET clause is what names the columns." >It specifies which columns get updated.</li>
+<li data-correct="true" data-explain="Microsoft's own UPDATE (Transact-SQL) reference states this directly: 'WHERE Specifies the conditions that limit the rows that are updated.' It's a filter on rows, not a required part of the statement's grammar." >It limits which rows are affected by the update — omitting it means no limit applies, so every row is updated.</li>
+<li data-correct="false" data-explain="SQL Server doesn't require a WHERE clause to execute an UPDATE — the statement is syntactically valid and runs without one, exactly as Microsoft's own first example shows." >It's required syntax — SQL Server won't run an <code>UPDATE</code> without one.</li>
 </ul>
 </div>
 
