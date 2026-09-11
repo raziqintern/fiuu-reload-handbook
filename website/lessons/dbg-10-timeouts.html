@@ -24,6 +24,10 @@ When <code>SqlCommand.CommandTimeout</code> elapses, ADO.NET on the .NET side gi
 </div>
 
 <h2>Why <code>CommandTimeout = 0</code> is not "a generous timeout"</h2>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.data.sqlclient.sqlcommand.commandtimeout">SqlCommand.CommandTimeout reference</a> states this exactly, in its Remarks section: <em>"A value of 0 indicates no limit (an attempt to execute a command will wait indefinitely)."</em> The default is 30 seconds — <code>0</code> isn't a bigger number on the same scale, it's the removal of the scale entirely. (The same reference's own example even proves the timeout mechanism with a <code>WAITFOR DELAY</code> test, the same isolated-harness technique used below.)
+</div>
 <p><code>0</code> doesn't mean "wait a long time." It means <strong>no timeout — wait as long as the server takes, with no upper bound at all.</strong> For a call sitting in the synchronous path of a live payment request (a real customer's HTTP call blocked on it), that's a specific, considered trade-off, not a safe default:</p>
 <ul>
 <li>A genuinely bounded slow query (the kind the ticket was actually about) now succeeds instead of timing out — which is the intended fix.</li>
@@ -64,7 +68,11 @@ During this investigation, the stored procedure under test was found to contain 
 <p>While validating this fix through Postman, an early test "went through" — HTTP <code>200</code> — and was treated as confirmation the fix worked. It wasn't: with <code>CommandTimeout = 0</code>, the call was <em>never going to time out no matter what</em>, so a <code>200</code> proved nothing about whether the changed code path had even executed. Worse, this codebase's own response contract makes HTTP status doubly unreliable as a signal on its own — a <code>respCode</code> field inside a <code>200</code> body still distinguishes success (<code>"00"</code>) from a specific failure reason (every other value). A request can complete, return <code>200</code>, and still represent a failed transaction. <strong>Never treat "the HTTP call went through" as equivalent to "the operation succeeded" — check the actual assertion the test needs, not just that a response arrived.</strong></p>
 
 <h2>Best practice</h2>
-<p>When a synchronous, request-blocking database call needs a longer timeout: pick a bounded number justified by the query's normal running time plus margin, not <code>0</code>. Prove the timeout mechanism itself in an isolated harness (a bare <code>SqlCommand</code> and <code>WAITFOR DELAY</code>) before wiring the real fix into business logic — it's faster to test and it separates "does the timeout mechanism work at all" from "does this specific call site use it correctly." And before calling any test a pass, confirm it actually exercised the failing condition — a request that "went through" isn't confirmation of anything if the change you made couldn't possibly have caused it to fail either way.</p>
+<ul>
+<li><strong>When a synchronous, request-blocking database call needs a longer timeout, pick a bounded number justified by the query's normal running time plus margin, not <code>0</code>.</strong> Per Microsoft's own docs, <code>0</code> means wait indefinitely — it removes the failure path entirely, it doesn't just make it more generous.</li>
+<li><strong>Prove the timeout mechanism itself in an isolated harness (a bare <code>SqlCommand</code> and <code>WAITFOR DELAY</code>) before wiring the real fix into business logic.</strong> It's faster to test and it separates "does the timeout mechanism work at all" from "does this specific call site use it correctly."</li>
+<li><strong>Before calling any test a pass, confirm it actually exercised the failing condition.</strong> A request that "went through" isn't confirmation of anything if the change you made couldn't possibly have caused it to fail either way.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
