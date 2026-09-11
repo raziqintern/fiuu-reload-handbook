@@ -64,6 +64,10 @@ public class StockAdjustment
 </div>
 
 <h2>Judging whether a fix actually matches the reported bug</h2>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Google's published <a href="https://google.github.io/eng-practices/review/reviewer/looking-for.html">Engineering Practices — What to Look For in a Code Review</a> names this as the reviewer's first and most important question, ahead of style: <em>"Does this CL do what the developer intended? Is what the developer intended good for the users of this code?"</em> The reload MR history quoted throughout this lesson is a real, local instance of exactly that question — every "does this actually fix the issue" judgment call below is applying this same general reviewer responsibility, not a codebase-specific quirk.
+</div>
 <p>Reviewing an existing MR against its linked issue is a different skill from spotting a style nit — it's about whether the diff really addresses the <em>exact</em> reported symptom, not a paraphrase of the MR title. Working from MR !1906 against issue #2461 (a search filter throwing <code>Object variable or With block variable not set</code> for every status except "All"/"Approved"): the fix wraps the crashing line in a null guard, which directly neutralizes the exact <code>file:line</code> from the issue's own stack trace — a small diff, and a <strong>complete</strong> fix, not a partial one just because it's short.</p>
 <div class="callout tip">
 <span class="callout-title">Three verdicts, not two</span>
@@ -72,7 +76,10 @@ Grade a fix against its issue as <strong>fixes it completely</strong> (the exact
 <p>Reading the file around the diff (not just the diff hunk) in that same review turned up a second call site with the identical unguarded pattern, reachable only via grid paging/sorting — not the button the issue reported. That's a real finding, but it belongs in its own section, explicitly labelled as <strong>out of scope for this MR</strong> and worth its own ticket — not folded into the verdict on whether this MR fixes issue #2461, and not treated as evidence the MR is deficient.</p>
 
 <h2>Best practice</h2>
-<p>Run through the checklist in §C of the real source doc — datatype prefixes, blank-line discipline, no double-logging, merchant timestamp, keyed log lines, bounded queries, dead-code removal, right-fit models on the human side; type-widening call sites, null checks, stale parameter references, duplicated logic, renamed-variable leftovers, secrets handling on the automated side — as a self-review pass <em>before</em> requesting review, not after receiving comments about them.</p>
+<ul>
+<li><strong>Run through the checklist in §C of the real source doc as a self-review pass before requesting review, not after receiving comments about them.</strong> Datatype prefixes, blank-line discipline, no double-logging, merchant timestamp, keyed log lines, bounded queries, dead-code removal, right-fit models on the human side; type-widening call sites, null checks, stale parameter references, duplicated logic, renamed-variable leftovers, secrets handling on the automated side.</li>
+<li><strong>When judging whether an MR fixes its linked issue, grade against the exact reported symptom, not the diff's size or your own broader read of the surrounding code.</strong> A small, narrowly-scoped diff that neutralizes the exact stack-trace line is a complete fix; unrelated findings from reading nearby code belong in their own out-of-scope note, not folded into that verdict.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 
