@@ -21,6 +21,10 @@
 <p>Of 626 <code>.cs</code> files under class-library, only 62 contain an XML doc comment (<code>///</code>) anywhere at all. Public <code>*Service</code>/<code>*Provider</code> classes are overwhelmingly undocumented at the member level — method and parameter names (<code>GetTerminalSummaryByTransNo(string transNo)</code>) are expected to carry the meaning on their own, and mostly do. There's no IntelliSense-visible description of edge cases or failure modes for a consumer of the shared library.</p>
 
 <div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/xmldoc/">XML documentation comments reference</a> defines the mechanism: <em>"You create documentation for your code by writing special comment fields indicated by triple slashes... Tools like Visual Studio provide IntelliSense for many common XML elements used in documentation comments."</em> It also documents an opt-in enforcement mechanism this codebase evidently doesn't use: <em>"When you enable this option [GenerateDocumentationFile], the compiler generates the CS1591 warning for any publicly visible member declared in your project without XML documentation comments."</em> If that flag were set here, 9 out of 10 files would be generating build warnings — the fact that they aren't is itself a real signal this setting is off project-wide.
+</div>
+<div class="callout tip">
 <span class="callout-title">What this means for you as a reader</span>
 Don't go looking for doc comments to understand what a method does — you likely won't find them. Read the method name, its parameter names, and (per the Naming lesson) the layer suffix on its class. That's the primary documentation this codebase actually has.
 </div>
@@ -56,8 +60,8 @@ break; // TODO: might not be correct. Was : Exit For</pre>
 
 <h2>Best practice — for working inside this specific codebase</h2>
 <ul>
-<li>Write an inline comment when you're encoding a genuine business rule or a non-obvious magic number — not to restate what well-named code already says. That's the actual pattern this codebase's better comments follow, even though most methods have none at all.</li>
-<li>Don't expect to find XML doc comments on a Service/Provider method — read the method name, parameters, and layer suffix instead, and don't spend time writing doc comments nobody else in this codebase currently reads via IntelliSense either.</li>
+<li><strong>Write an inline comment when you're encoding a genuine business rule or a non-obvious magic number.</strong> Not to restate what well-named code already says. That's the actual pattern this codebase's better comments follow, even though most methods have none at all.</li>
+<li><strong>Don't expect to find XML doc comments on a Service/Provider method.</strong> Read the method name, parameters, and layer suffix instead, and don't spend time writing doc comments nobody else in this codebase currently reads via IntelliSense either.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -70,6 +74,15 @@ break; // TODO: might not be correct. Was : Exit For</pre>
 <li data-correct="false" data-explain="Only about 1 in 10 files has any XML doc comments at all, and coverage within those is sparse — this isn't a reliable primary source here.">Search the rest of the file for XML doc comments on similar methods.</li>
 <li data-correct="true" data-explain="With comments this sparse, the method name, parameter names, and the class's layer suffix (Service/Provider/Model, per the Naming lesson) are the documentation this codebase actually relies on — and they're deliberately written to carry that meaning." >The method's name, its parameter names, and its class's layer suffix (Service/Provider/Model) — that's what carries the meaning here.</li>
 <li data-correct="false" data-explain="This codebase's inline comments are sparse and reserved for genuinely non-obvious business-magic details, not general behavior explanations — most methods won't have one at all.">Every method is expected to have an inline comment explaining its behavior.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Per Microsoft's own XML documentation comments reference, what would happen if this codebase's projects enabled the <code>GenerateDocumentationFile</code> MSBuild option, given that only 62 of 626 <code>.cs</code> files have any <code>///</code> comments?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Microsoft's own reference states: 'When you enable this option, the compiler generates the CS1591 warning for any publicly visible member declared in your project without XML documentation comments.' With XML comments this sparse, enabling it would surface a large number of these warnings across the codebase." >The build would start emitting a large number of CS1591 warnings, one for every publicly visible member missing a doc comment.</li>
+<li data-correct="false" data-explain="GenerateDocumentationFile doesn't retroactively write documentation for you — it only controls whether the compiler emits an XML doc file and warns about missing comments on public members." >The compiler would automatically write XML doc comments for every undocumented public member.</li>
+<li data-correct="false" data-explain="This setting affects build-time warnings and XML file generation, not test execution — it has no relationship to a test suite." >It would cause the codebase's unit tests to fail.</li>
 </ul>
 </div>
 
