@@ -55,6 +55,10 @@ banana</pre>
 </div>
 
 <p><code>where T : IComparable&lt;T&gt;</code> is a <strong>generic constraint</strong> — it tells the compiler "only allow types that can actually be compared," so <code>a.CompareTo(b)</code> is guaranteed to exist. Without it, the compiler couldn't verify <code>CompareTo</code> is callable on an arbitrary <code>T</code>. The same one method body works for <code>int</code> and <code>string</code> here, and would work for any other comparable type — no copy-pasted overload needed.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/generics/constraints-on-type-parameters">Constraints on type parameters reference</a> explains exactly why the constraint is required here, not optional: <em>"Without any constraints, the type argument could be any type. The compiler can only assume the members of System.Object."</em> <code>CompareTo</code> isn't a member of <code>System.Object</code> — without <code>where T : IComparable&lt;T&gt;</code>, the compiler has no way to know <code>a.CompareTo(b)</code> is even callable, so it simply refuses to compile the method body at all.
+</div>
 
 <h2>What's actually inside List&lt;T&gt; and Dictionary&lt;TKey,TValue&gt;</h2>
 <table>
@@ -63,13 +67,21 @@ banana</pre>
 <tr><td><code>Dictionary&lt;TKey,TValue&gt;</code></td><td>A hash table — each key is run through a hash function to compute roughly where it lives</td><td>This is <em>why</em> lookups are close to O(1) — see <a href="algo-01-big-o.html">Big O Notation</a> and <a href="algo-06-stacks-queues.html">Stacks, Queues &amp; Dictionaries</a>.</td></tr>
 </table>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.dictionary-2"><code>Dictionary&lt;TKey,TValue&gt;</code> reference</a> states the rule as a hard requirement, not a suggestion: <em>"As long as an object is used as a key in the Dictionary&lt;TKey,TValue&gt;, it must not change in any way that affects its hash value."</em>
+</div>
 <div class="callout warn">
 <span class="callout-title">A hash table needs a good, stable key</span>
 <code>Dictionary</code>'s O(1) lookup depends on the key type having a correct <code>GetHashCode()</code>/<code>Equals()</code> pair. Using a mutable object as a dictionary key, then changing a field that affects its hash code after inserting it, can make that entry unfindable — the dictionary is still looking in the bucket for the <em>old</em> hash. Strings (as reload's real <code>Dictionary&lt;string,string&gt;</code> secrets cache uses) are immutable, which sidesteps this entirely — one more reason immutable keys are the safe default.
 </div>
+<p class="code-cite">reload/class-library/AWSCore/Helpers/SecretsHelper.cs; reload/class-library/Reloads/TNG/Cryptography/LocalKeyStoreProvider.cs</p>
 
 <h2>Best practice</h2>
-<p>Default to <code>List&lt;T&gt;</code> and <code>Dictionary&lt;TKey,TValue&gt;</code> for almost everything. Reach for a different collection only when you specifically need its distinguishing behavior — <code>Stack&lt;T&gt;</code>/<code>Queue&lt;T&gt;</code> for strict LIFO/FIFO order, <code>HashSet&lt;T&gt;</code> when you only care about unique membership, not order or key-value pairing.</p>
+<ul>
+<li><strong>Default to <code>List&lt;T&gt;</code> and <code>Dictionary&lt;TKey,TValue&gt;</code> for almost everything.</strong> Reach for a different collection only when you specifically need its distinguishing behavior — <code>Stack&lt;T&gt;</code>/<code>Queue&lt;T&gt;</code> for strict LIFO/FIFO order, <code>HashSet&lt;T&gt;</code> when you only care about unique membership, not order or key-value pairing.</li>
+<li><strong>Never use a mutable object as a dictionary key unless you can guarantee its hash-relevant fields never change while it's a key.</strong> Prefer an immutable type (a string, a record, a value type) as the safe default.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -78,6 +90,15 @@ banana</pre>
 <li data-correct="true" data-explain="Without the constraint, the compiler has no guarantee that an arbitrary T supports .CompareTo(...) — the constraint is what makes calling it inside the method valid and type-checked at compile time." >Without it, the compiler can't guarantee an arbitrary type T actually supports .CompareTo(...).</li>
 <li data-correct="false" data-explain="Generic constraints don't control the collection's growth behavior — List<T>'s resizing is unrelated to this method's own type constraint." >It controls how much memory the method is allowed to allocate.</li>
 <li data-correct="false" data-explain="Constraints are a compile-time, type-system feature — they don't change anything about runtime performance for a method that already type-checks correctly." >It makes the method run faster at runtime.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A mutable class is used as a <code>Dictionary&lt;TKey,TValue&gt;</code> key. After inserting it, one of its fields that <code>GetHashCode()</code> depends on is changed. What happens when the code later tries to look up that same key?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Microsoft's own Dictionary<TKey,TValue> reference states this as a hard rule: a key 'must not change in any way that affects its hash value' while it's in use. Violating it means the dictionary looks in the bucket matching the object's current (new) hash, but the entry is still stored in the bucket for its original hash — the lookup misses even though the object is technically still in the dictionary." >The lookup can fail to find the entry — the dictionary is still looking in the bucket for the key's <em>original</em> hash code, not its current one.</li>
+<li data-correct="false" data-explain="Dictionary doesn't automatically re-bucket an entry when a key object's fields change after insertion — it has no way to know the mutation happened at all." >The dictionary automatically re-indexes the entry to its new hash bucket.</li>
+<li data-correct="false" data-explain="This doesn't throw at insertion or mutation time — the failure mode is a silent, hard-to-diagnose missed lookup, not an exception." >It throws an exception the moment the key's field is changed.</li>
 </ul>
 </div>
 
