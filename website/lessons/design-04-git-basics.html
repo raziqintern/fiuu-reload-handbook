@@ -19,6 +19,10 @@
 
 <h2>The core mental model</h2>
 <p>Git tracks <strong>snapshots</strong> of your entire project over time, called <strong>commits</strong>. Each commit points to the commit before it, forming a history. A <strong>branch</strong> is just a movable label pointing at one commit — creating a branch doesn't copy any files, it just gives you a new label to move independently of <code>master</code>/<code>main</code> while you work.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Git's own <a href="https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell">Pro Git book</a> defines a branch in exactly these terms: <em>"A branch in Git is simply a lightweight movable pointer to one of these commits."</em> That's why it's essentially free to create: <em>"a branch in Git is actually a simple file that contains the 40 character SHA-1 checksum of the commit it points to, branches are cheap to create and destroy... in sharp contrast to the way most older VCS tools branch, which involves copying all of the project's files into a second directory."</em> Nothing about the project's files is duplicated — only a small pointer is created.
+</div>
 
 <h2>The everyday command loop</h2>
 <pre class="code-block">git status                  # what's changed since the last commit?
@@ -43,6 +47,24 @@ git push -u origin fix/duplicate-transaction-race # push the branch to the remot
 
 <h2>Merge conflicts: two changes to the same lines</h2>
 <p>If two branches both modify the same lines of the same file, Git can't automatically decide which version wins — that's a <strong>merge conflict</strong>. Resolving one means manually choosing (or combining) the correct final content for those lines before the merge can complete. This isn't a Git failure; it's Git correctly refusing to silently discard someone's work.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Git's own <a href="https://git-scm.com/docs/git-merge#_how_conflicts_are_presented">git-merge reference</a> states exactly when this happens: <em>"When both sides made changes to the same area... Git cannot randomly pick one side over the other, and asks you to resolve it by leaving what both sides did to that area."</em> It marks the conflicting section directly in the file, using the RCS-style markers:
+<pre class="code-block">&lt;&lt;&lt;&lt;&lt;&lt;&lt; yours:sample.txt
+Conflict resolution is hard;
+let's go shopping.
+=======
+Git makes conflict resolution easy.
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; theirs:sample.txt</pre>
+<p>Everything above the <code>=======</code> is your branch's version of those lines; everything below is the other branch's. Resolving the conflict means editing the file down to the single correct version and removing all three marker lines, before the merge can be committed.</p>
+</div>
+
+<h2>Best practice</h2>
+<ul>
+<li><strong>Stage deliberately, never with <code>git add .</code> as a reflex.</strong> Review <code>git status</code> first so you know exactly what's about to be committed.</li>
+<li><strong>Name a branch after the actual change, not a placeholder like <code>my-branch</code> or <code>fix</code>.</strong> A descriptive name is what makes the project's history readable six months later.</li>
+<li><strong>When resolving a merge conflict, remove every one of the three marker lines, not just pick a side.</strong> Leaving a stray <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>/<code>=======</code>/<code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> in committed code is a real, if embarrassing, mistake — it compiles as garbage or breaks the build outright.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -51,6 +73,24 @@ git push -u origin fix/duplicate-transaction-race # push the branch to the remot
 <li data-correct="false" data-explain="Branching doesn't run tests for you — that's a separate CI/testing concern, not what branches are for." >Branches automatically run tests before allowing a commit.</li>
 <li data-correct="true" data-explain="A branch isolates work-in-progress from the stable master branch, and gives reviewers a specific, reviewable diff (the merge/pull request) before those changes become part of the shared history everyone builds on." >It isolates your in-progress work from the stable shared history, and gives reviewers a clear diff to review before it's merged.</li>
 <li data-correct="false" data-explain="Branches don't create separate physical copies of the repository — that's what a full clone does, an unrelated concept." >It creates a separate copy of the entire repository on disk.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why is creating a new Git branch essentially instantaneous, even in a huge repository, per Git's own documentation?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This is exactly what Git's own documentation says older VCS tools do, and explicitly contrasts Git's approach against -- Git does NOT copy project files when branching." >It copies every project file into a new directory in the background.</li>
+<li data-correct="true" data-explain="Git's own Pro Git book states this directly: a branch 'is actually a simple file that contains the 40 character SHA-1 checksum of the commit it points to' -- creating one is just writing 41 bytes, regardless of how large the actual project is." >A branch is just a small file holding a 40-character commit checksum — creating one only writes that tiny pointer, regardless of the project's actual size.</li>
+<li data-correct="false" data-explain="Branch creation doesn't involve compressing anything — it's not copying data at all, compressed or otherwise." >Git compresses the whole repository before creating the branch.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A merged file still contains a line reading exactly <code>=======</code> in the middle of otherwise normal code. What does this indicate?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Per Git's own git-merge documentation, ======= is one of the three RCS-style conflict markers Git inserts into a file when it can't automatically decide between two conflicting changes. Leaving it in means the conflict was never actually resolved -- both versions are still sitting in the file, unmerged." >A merge conflict marker was left behind unresolved — both conflicting versions are still present in the file.</li>
+<li data-correct="false" data-explain="=== is not valid syntax in C#, VB.NET, or SQL — this is specifically Git's own conflict-marker syntax, unrelated to any programming language's comment or divider convention." >It's a normal code comment separator, harmless to leave in.</li>
+<li data-correct="false" data-explain="Git doesn't insert this as documentation — it's an artifact of an incompletely resolved merge conflict that needs to be removed before committing." >It's Git automatically documenting where a merge happened, safe to keep.</li>
 </ul>
 </div>
 
