@@ -95,6 +95,11 @@ Nested loop, n=100: 10000</pre>
 </div>
 </div>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation — Big O isn't just theory, .NET's own docs state it directly</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1.add"><code>List&lt;T&gt;.Add</code> reference</a> states the method's actual complexity in its own Remarks, in Big O notation, no different from a textbook: <em>"If Count is less than Capacity, this method is an O(1) operation. If the capacity needs to be increased to accommodate the new element, this method becomes an O(n) operation, where n is Count."</em> This is exactly the "amortized O(1), occasionally O(n) on resize" behavior <a href="theory-06-generics-collections.html">Generics &amp; Collections Internals</a> describes for <code>List&lt;T&gt;</code> — stated by Microsoft itself, in these same terms, for real production code you already use.
+</div>
+
 <h2>The classes you'll actually encounter</h2>
 <table>
 <tr><th>Notation</th><th>Meaning</th><th>Example</th></tr>
@@ -107,8 +112,9 @@ Nested loop, n=100: 10000</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Know the Big O of any loop you write over data whose size isn't fixed and small — "this runs fine in testing" doesn't tell you how it behaves at 100x the data.</li>
-<li>Watch for accidental nesting: calling an O(n) method (like <code>.FirstOrDefault(predicate)</code>) inside a loop that already runs n times silently creates an O(n²) operation.</li>
+<li><strong>Know the Big O of any loop you write over data whose size isn't fixed and small.</strong> "This runs fine in testing" doesn't tell you how it behaves at 100x the data.</li>
+<li><strong>Watch for accidental nesting.</strong> Calling an O(n) method (like <code>.FirstOrDefault(predicate)</code>) inside a loop that already runs n times silently creates an O(n²) operation.</li>
+<li><strong>Check a collection type's own documentation for its actual complexity before assuming.</strong> Microsoft's API docs often state Big O directly in the Remarks section, as with <code>List&lt;T&gt;.Add</code> above — no need to guess or benchmark from scratch.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -126,6 +132,15 @@ Code that's "obviously correct" and works fine in testing with 10 rows can becom
 <li data-correct="false" data-explain="O(1) means the work doesn't grow with input size at all — looping through every item means it does grow, directly." >O(1) — it's fast.</li>
 <li data-correct="true" data-explain="One pass through n items, constant work per item, is the textbook definition of O(n): the total work scales directly and linearly with the input size." >O(n) — the work scales directly with the number of transactions.</li>
 <li data-correct="false" data-explain="O(n²) would mean a loop nested inside another loop over the same data — a single pass through the list doesn't do that.">O(n²) — because there's a loop involved.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Per Microsoft's own <code>List&lt;T&gt;.Add</code> documentation, when does calling <code>.Add(item)</code> become an O(n) operation instead of O(1)?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="List<T>.Add always adds at the end — it's Insert(index, item) that's O(n) for shifting elements. Add's O(n) case is specifically about resizing, not shifting." >Whenever the item is added anywhere other than the very end of the list.</li>
+<li data-correct="true" data-explain="Microsoft's own reference states this exactly: 'If Count is less than Capacity, this method is an O(1) operation. If the capacity needs to be increased to accommodate the new element, this method becomes an O(n) operation.' The O(1) case is the common one; the O(n) case only happens on the occasional resize." >Only when the list's internal array is already full and needs to be resized to fit the new element.</li>
+<li data-correct="false" data-explain="List<T>.Add's complexity has nothing to do with the element's own type or size — it's about whether the internal array needs to grow, regardless of what's being added." >Whenever the element being added is a large object.</li>
 </ul>
 </div>
 
