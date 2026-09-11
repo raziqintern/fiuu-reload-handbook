@@ -104,13 +104,20 @@ Binary search steps: 5</pre>
 
 <p>Try changing <code>32</code> to <code>2</code> (the first element) and re-tracing by hand — linear search gets lucky and takes just 1 step, but binary search still takes roughly the same number of steps either way. That's the real trade-off: binary search's worst case is consistently good; linear search's worst case is genuinely bad.</p>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.array.binarysearch"><code>Array.BinarySearch</code> reference</a> states both facts directly in its own Remarks: <em>"array must be sorted before calling this method"</em> and <em>"This method is an O(log n) operation, where n is the Length of array."</em> The requirement and the payoff are both documented as plainly as this lesson states them — not extra caution added on top.
+</div>
 <div class="callout warn">
 <span class="callout-title">The one non-negotiable requirement</span>
 Binary search only works correctly on already-sorted data. Run it on an unsorted array and it will silently give you wrong answers sometimes — not an error, a wrong result, which is far more dangerous. Never reach for binary search without confirming the data is actually sorted first.
 </div>
 
 <h2>Best practice</h2>
-<p>Don't hand-write binary search in real code unless you're building the teaching example — use <code>Array.BinarySearch(arr, target)</code> in C#/VB.NET, which does exactly this, correctly, with edge cases already handled.</p>
+<ul>
+<li><strong>Don't hand-write binary search in real code unless you're building the teaching example.</strong> Use <code>Array.BinarySearch(arr, target)</code> in C#/VB.NET, which does exactly this, correctly, with edge cases already handled.</li>
+<li><strong>Never call <code>Array.BinarySearch</code> on data you haven't verified is actually sorted.</strong> The method has no way to check this for you — it's documented as a precondition, not something it defends against.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -119,6 +126,15 @@ Binary search only works correctly on already-sorted data. Run it on an unsorted
 <li data-correct="true" data-explain="Binary search's O(log n) growth means doubling the data barely increases the number of steps needed, while linear search's O(n) steps grow directly with size — the gap widens dramatically as the array gets larger." >Its number of steps grows much more slowly as the array gets bigger — O(log n) versus O(n).</li>
 <li data-correct="false" data-explain="Binary search works on any sorted data type that supports ordering comparisons — it's not limited to numbers." >It only works correctly on arrays of numbers, never strings.</li>
 <li data-correct="false" data-explain="Binary search specifically requires sorted data to work correctly — it doesn't remove that requirement." >It doesn't require the data to be sorted, unlike linear search.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Code calls <code>Array.BinarySearch(arr, target)</code> on an array that was never actually sorted. What does the method do?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Array.BinarySearch doesn't check whether the array is sorted — Microsoft's own documentation states 'array must be sorted before calling this method' as a precondition the caller is responsible for, not something the method verifies or throws for." >It throws an exception, since the array isn't sorted.</li>
+<li data-correct="true" data-explain="The array must be sorted before calling this method' is documented as a precondition, not a checked requirement — there's no verification step. On unsorted data, the algorithm's halving logic can eliminate the wrong half and return an incorrect index (or a false 'not found'), silently." >It may silently return an incorrect result — the method has no way to detect the array isn't sorted, and its algorithm assumes it is.</li>
+<li data-correct="false" data-explain="Array.BinarySearch doesn't fall back to a linear scan when the data isn't sorted — it always runs the same binary-search algorithm, which simply produces wrong answers on unsorted input." >It automatically falls back to a linear search instead.</li>
 </ul>
 </div>
 
