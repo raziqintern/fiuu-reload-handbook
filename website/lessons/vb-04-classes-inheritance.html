@@ -82,6 +82,45 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/langu
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/modifiers/shadows">Shadows reference</a> defines the mechanism precisely: <em>"Specifies that a declared programming element redeclares and hides an identically named element... in a base class."</em> Critically, it also documents that a shadowing member doesn't even need a compatible signature: <em>"If you shadow a property or procedure with another property or procedure, the parameters and the return type do not have to match those in the base class property or procedure."</em> This is the real difference from <code>Overrides</code>: an <code>Overrides</code> member must honor the base member's contract (same signature, substitutable via polymorphism); a <code>Shadows</code> member is simply a new, independent member that reuses the name — calling code that holds a reference typed as the <em>base</em> class still reaches the base member, not the shadowed one.
 </div>
 
+<h2>A fuller worked example: <code>RestrictedPage</code>'s whole inheritance chain, not just the abstract members</h2>
+<p><code>RestrictedPage</code> is worth reading end-to-end once, because it demonstrates every inheritance keyword this lesson covers inside one real, shipped class — not <code>MustOverride</code> alone.</p>
+<pre class="code-block">Public MustInherit Class RestrictedPage
+    Inherits System.Web.UI.Page
+
+    Protected Overrides Sub OnInit(e As System.EventArgs)
+        ViewStateUserKey = Session.SessionID
+        MyBase.OnInit(e)
+    End Sub
+
+    Protected Overrides Sub OnLoad(e As System.EventArgs)
+        ...
+        OnAuthenticate(args)
+        ...
+        MyBase.OnLoad(e)
+    End Sub
+
+    Protected Overridable Sub OnAuthenticate(e As RestrictedPageEventArgs)
+        Profiles.CheckAccessRight(e.FunctionId, e.Action)
+        ...
+    End Sub
+End Class</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/RestrictedPage.vb:11-88 (excerpted)</p>
+<p>Four distinct inheritance relationships, all in this one class:</p>
+<ul>
+<li><strong><code>Inherits System.Web.UI.Page</code></strong> — <code>RestrictedPage</code> itself is a subclass of ASP.NET's own <code>Page</code> class. Every real BackOffice page that inherits <code>RestrictedPage</code> is therefore two levels deep: <code>Page</code> → <code>RestrictedPage</code> → <code>TerminalFirmwareVersionList</code> (or whichever page).</li>
+<li><strong><code>Protected Overrides Sub OnInit</code>/<code>OnLoad</code></strong> — these already exist on <code>Page</code> with real behavior; <code>RestrictedPage</code> replaces them, but calls <code>MyBase.OnInit(e)</code>/<code>MyBase.OnLoad(e)</code> to still run the original <code>Page</code> behavior afterward, rather than discarding it entirely.</li>
+<li><strong><code>Protected Overridable Sub OnAuthenticate</code></strong> — unlike <code>ModuleName</code>/<code>PageAction</code> (<code>MustOverride</code>, covered above), this one has a real default implementation (checking access rights, then SAP-tab visibility) — a derived page <em>may</em> override it for custom authentication logic, but most pages don't need to and simply inherit the default behavior unchanged.</li>
+<li><strong>The two <code>MustOverride</code> properties from before</strong> — no default at all, every derived page must supply its own.</li>
+</ul>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/program-structure/me-my-mybase-and-myclass">Me, My, MyBase, and MyClass reference</a> names exactly this pattern: <em>"The MyBase keyword behaves like an object variable referring to the base class of the current instance of a class. MyBase is commonly used to access base class members that are overridden or shadowed in a derived class."</em> <code>MyBase.OnInit(e)</code> is precisely this — <code>RestrictedPage</code>'s own <code>OnInit</code> adds session-key setup <em>on top of</em> whatever <code>System.Web.UI.Page</code>'s own <code>OnInit</code> already does, rather than replacing it outright. Skipping the <code>MyBase</code> call would silently drop whatever the base <code>Page</code> class needs its own <code>OnInit</code> to do — a real, easy-to-miss way an <code>Overrides</code> method can break its base class's contract.
+</div>
+<div class="callout real">
+<span class="callout-title">Why this specific chain matters for BackOffice's actual access control</span>
+This is the mechanism behind every "you don't have permission" redirect in BackOffice: <code>OnLoad</code> (which every page inherits, unmodified) calls the <code>Overridable</code> <code>OnAuthenticate</code>, which calls <code>Profiles.CheckAccessRight(...)</code> using the <code>MustOverride</code> <code>ModuleName</code>/<code>PageAction</code> values the concrete page was forced to supply. A page author never has to remember to call a permission check manually — it runs automatically as part of the page lifecycle every derived page already participates in, purely because it inherits from <code>RestrictedPage</code>. This is what "the compiler enforces it" (from the <code>MustOverride</code> section above) actually buys in production: the permission check isn't something a developer could forget to wire up, because it's baked into a lifecycle method nobody overrides.
+</div>
+
 <h2>Implements — written on the class, then again on every member</h2>
 <p>The biggest real syntax difference from C# interfaces: VB.NET makes you say <code>Implements</code> twice — once declaring the class implements the interface, and again on each member that satisfies it, naming exactly which interface member it fulfills:</p>
 <pre class="code-block">Public Interface ITerminalService
@@ -110,6 +149,7 @@ Unlike C#, a VB.NET method's <em>name</em> doesn't have to match the interface m
 <li><strong>Reach for <code>MustInherit</code>/<code>MustOverride</code> when every subclass genuinely needs to supply its own answer and there's no sensible shared default.</strong> Like <code>RestrictedPage</code> forcing every page to declare its own module and permission action. Reach for <code>Overridable</code> with a real default implementation when most subclasses would want the same behavior and only a few need to customize it.</li>
 <li><strong>Keep an implementing method's name matching the interface member name, even though VB.NET doesn't require it.</strong> A mismatched name (<code>DoLogin</code> implementing <code>ITerminalService.Login</code>) is technically legal but makes the code harder to search and reason about for no real benefit.</li>
 <li><strong>Reach for <code>Shadows</code> only when deliberately breaking the inheritance relationship for one member, and say why in a comment.</strong> Because a <code>Shadows</code> member isn't reachable through a base-typed reference, using it by accident (instead of <code>Overrides</code>) silently produces two independent members with the same name — a real, hard-to-spot bug source.</li>
+<li><strong>When overriding a lifecycle method that already has real base-class behavior (like <code>OnInit</code>/<code>OnLoad</code>), call <code>MyBase.MethodName(...)</code> unless you specifically intend to replace that behavior entirely.</strong> <code>RestrictedPage</code>'s own <code>OnInit</code>/<code>OnLoad</code> both do this — skipping the <code>MyBase</code> call is a real, easy way to silently break whatever the base class needed that method to do.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -149,6 +189,24 @@ Unlike C#, a VB.NET method's <em>name</em> doesn't have to match the interface m
 <li data-correct="false" data-explain="Microsoft's own Implements Statement reference is explicit that this is not a warning: 'Omitting any member is considered to be a syntax error.'">It compiles with a warning about the missing event.</li>
 <li data-correct="true" data-explain="The official reference states this directly: 'When you implement an interface, you must implement all the members declared in the interface. Omitting any member is considered to be a syntax error.' There's no partial-implementation mode." >It's a compile error — every member declared in the interface must be implemented, with no exceptions for events specifically.</li>
 <li data-correct="false" data-explain="VB.NET does not supply a default no-op implementation for a missing interface member — an omitted member is a compile error, not a silently-inserted stub.">It compiles fine — VB.NET supplies a default no-op implementation for any interface member the class doesn't define.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>RestrictedPage</code>'s real <code>OnInit</code> override calls <code>MyBase.OnInit(e)</code> after setting <code>ViewStateUserKey</code>. What would break if that <code>MyBase.OnInit(e)</code> call were removed?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="MyBase.OnInit(e) is a normal method call, not something that only matters for error handling — its purpose is running the base class's own OnInit logic, not catching exceptions." >Nothing — <code>MyBase</code> calls are only needed for error handling.</li>
+<li data-correct="true" data-explain="Per Microsoft's own docs, MyBase 'is commonly used to access base class members that are overridden or shadowed in a derived class' — precisely because Overrides fully replaces the base implementation unless you explicitly call back into it. Skipping MyBase.OnInit(e) means System.Web.UI.Page's own OnInit logic never runs at all for this page." >Whatever <code>System.Web.UI.Page</code>'s own <code>OnInit</code> implementation does would never run — <code>Overrides</code> fully replaces the base method unless the derived method explicitly calls back into it via <code>MyBase</code>.</li>
+<li data-correct="false" data-explain="MustOverride members and the OnInit/OnLoad Overrides chain are separate, unrelated mechanisms in this class — removing a MyBase call doesn't touch the MustOverride requirement at all.">The <code>MustOverride</code> properties (<code>ModuleName</code>/<code>PageAction</code>) would stop being required.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>RestrictedPage</code>'s <code>OnAuthenticate</code> is declared <code>Protected Overridable</code>, unlike <code>ModuleName</code>/<code>PageAction</code> which are <code>MustOverride</code>. What does a derived BackOffice page actually have to do about each one?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="MustOverride has no default implementation at all — every derived class is compiler-forced to supply one. Overridable already has a real default (the access-right/SAP-tab-visibility check) that most pages inherit unchanged — overriding it is optional, for the rare page that needs custom authentication logic." >It must supply its own <code>ModuleName</code>/<code>PageAction</code> (no default exists), but overriding <code>OnAuthenticate</code> is entirely optional — most pages just use <code>RestrictedPage</code>'s own default authentication logic unchanged.</li>
+<li data-correct="false" data-explain="MustOverride and Overridable are opposite in exactly this respect — MustOverride has no default and is mandatory to override; Overridable has a real default and overriding it is optional." >It must override all three, since inheriting from a MustInherit class requires overriding every member.</li>
+<li data-correct="false" data-explain="ModuleName and PageAction are MustOverride specifically because RestrictedPage supplies no implementation for them at all — there's no default to inherit unchanged." >It can leave all three at their inherited defaults, since <code>RestrictedPage</code> is <code>MustInherit</code>.</li>
 </ul>
 </div>
 
