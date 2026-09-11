@@ -157,7 +157,10 @@ Whenever a boolean condition mixes <code>Not</code> with <code>Or</code>/<code>A
 </div>
 
 <h2>Best practice</h2>
-<p>Treat every pattern on this page as a checklist item when reviewing a diff in an unfamiliar part of this codebase, not just trivia — a dropdown reset to its placeholder, a value crossing a partner boundary, an unused function about to be deleted. Recognising the shape is what turns "this looks fine to me" into "wait, isn't this the same thing that broke in #2190?"</p>
+<ul>
+<li><strong>Treat every pattern on this page as a checklist item when reviewing a diff in an unfamiliar part of this codebase, not just trivia.</strong> A dropdown reset to its placeholder, a value crossing a partner boundary, an unused function about to be deleted — recognising the shape is what turns "this looks fine to me" into "wait, isn't this the same thing that broke in #2190?"</li>
+<li><strong>When a boolean condition mixes <code>Not</code> with <code>Or</code>/<code>And</code>, or a method has a return path that's easy to overlook (empty-result, exception, early return), trace it by hand for at least one passing and one failing case before trusting it by inspection alone.</strong> Every "spot the bug" scenario above passed a first read; none of them survived being traced.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
