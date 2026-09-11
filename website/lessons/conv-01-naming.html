@@ -62,8 +62,8 @@ param.Add("@MTransStatusId", DbType.Int32, activity.TransStatus);</pre>
 
 <h2>Best practice — for working inside this specific codebase</h2>
 <ul>
-<li>Match the file, not a textbook rule. If the file you're editing uses Hungarian prefixes, use them for your new variables too; if it doesn't, don't introduce them. Consistency <em>within a file</em> matters more here than consistency with an external standard.</li>
-<li>Always apply the <code>M</code>-prefix to a new foreign-key-into-a-lookup-table column or parameter — it's the one naming rule that's genuinely universal across this codebase, not module-local.</li>
+<li><strong>Match the file, not a textbook rule.</strong> If the file you're editing uses Hungarian prefixes, use them for your new variables too; if it doesn't, don't introduce them. Consistency <em>within a file</em> matters more here than consistency with an external standard.</li>
+<li><strong>Always apply the <code>M</code>-prefix to a new foreign-key-into-a-lookup-table column or parameter.</strong> It's the one naming rule that's genuinely universal across this codebase, not module-local.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -86,6 +86,15 @@ param.Add("@MTransStatusId", DbType.Int32, activity.TransStatus);</pre>
 <li data-correct="false" data-explain="M doesn't signal mutability — C# doesn't even have a mutability marker in naming like this." >The column is mutable/nullable.</li>
 <li data-correct="true" data-explain="The M-prefix convention marks any column that's a foreign key into a lookup/master/status table — genuinely consistent across every module sampled, on both the C# and SQL sides.">It's a foreign key into a lookup/master/status table.</li>
 <li data-correct="false" data-explain="M has no connection to module scoping in this codebase's actual convention.">The column belongs to a specific module named starting with M.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">TNG's code uses Hungarian notation heavily; InComm/Secure mostly doesn't, despite both being architecturally identical peer modules. What does this tell you about predicting a file's naming style before opening it?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The naming style split doesn't track module age in this codebase — the actual driver is which author(s) wrote the file, not when the module was created." >Older modules always use Hungarian notation; newer ones don't.</li>
+<li data-correct="true" data-explain="This is the real, verified finding: naming style here tracks the author, not the module, layer, or age. Two architecturally identical peer modules (TNG and InComm/Secure) differ sharply in style purely because different people wrote them — there's no reliable way to predict a file's style without opening it." >You can't reliably predict it from the module alone — naming style here tracks the author, not the architecture layer or module identity.</li>
+<li data-correct="false" data-explain="The M-prefix convention is a separate, narrower rule about foreign-key columns specifically — it doesn't explain the broader Hungarian-notation-or-not split across entire modules." >It's determined by whether the module uses the M-prefix convention.</li>
 </ul>
 </div>
 
