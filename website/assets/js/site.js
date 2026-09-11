@@ -128,9 +128,49 @@
     });
   }
 
+  // Assigns id="" anchors to every h2/h3 in the lesson content, using the
+  // exact same slug algorithm website/scripts/build_search_index.py uses
+  // when building search-index.js — so a search result's "file.html#slug"
+  // link always lands on the right section. Skips headings that already
+  // carry a real id (none currently do, but this keeps a manual id safe).
+  function slugify(text, seen) {
+    let s = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    s = s.slice(0, 60).replace(/-+$/, "") || "section";
+    let base = s, n = 2;
+    while (seen.has(s)) {
+      s = base + "-" + n;
+      n++;
+    }
+    seen.add(s);
+    return s;
+  }
+
+  function assignHeadingAnchors() {
+    const main = document.getElementById("site-main");
+    if (!main) return;
+    const seen = new Set();
+    main.querySelectorAll("h2, h3").forEach((h) => {
+      if (h.id) {
+        seen.add(h.id);
+        return;
+      }
+      const text = h.textContent.trim();
+      if (!text) return;
+      h.id = slugify(text, seen);
+    });
+    // The browser's own scroll-to-#hash-on-load already ran and found
+    // nothing, since these ids didn't exist yet at that point — now that
+    // they do, finish the job ourselves.
+    if (location.hash.length > 1) {
+      const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+      if (target) target.scrollIntoView();
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     renderHeader();
     renderSidebar();
     renderFooter();
+    assignHeadingAnchors();
   });
 })();
