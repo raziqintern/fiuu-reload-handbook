@@ -23,6 +23,11 @@
 Shared code lives in three different places that overlap incompletely: <code>reload/web/DEV/NET/Components/*</code> (source, inside the reload repo), <code>reload/class-library</code> (a separate submodule — plus prebuilt <code>.dll</code> files committed at its own root), and <code>reload/web/Libraries/NET/*</code> (an older, per-version vendored DLL drop, still referenced by some apps in parallel). An IDE's "find usages" only sees source it can index — a consumer that references a prebuilt <code>.dll</code> from tier 3 instead of the tier-2 source won't show up in a source-level search at all. "App X depends on module Y" needs a specific <code>ProjectReference</code>/<code>HintPath</code> citation, not a guess by module name.
 </div>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=visualstudio">Common MSBuild Project Items reference</a> defines exactly the two mechanisms this codebase mixes: a <code>Reference</code> item's <code>HintPath</code> metadata is the <em>"relative or absolute path of the assembly"</em> — a direct file-path pointer to a prebuilt DLL — while <code>ProjectReference</code> <em>"represents a reference to another project"</em> and gets resolved through the actual project's own build output. Two consumers of "the same" shared module can use either mechanism side by side, and only the <code>ProjectReference</code> one is visible to a source-level IDE search or a plain grep of project files for the module's namespace.
+</div>
+
 <h2>Technique 1 — grep the exact symbol, then grep its neighbors</h2>
 <p>Start with the literal name (a method, a class, a stored procedure, a table), but don't stop at the first hit. Real example: fixing the CSV-escaping anti-pattern (see <a href="conv-08-csv-export-escaping.html">Fiuu Code Conventions &rarr; CSV Export Escaping</a>) meant finding every caller of the existing <code>ToCSVDisplayString</code> helper before deciding whether it was safe to change its behavior. Grepping the exact name across the whole repo — not just the one file the bug report pointed at — surfaced four separate BackOffice report pages already calling it, each one a page that would be affected by any change to what the helper does, not just the page the original ticket was about.</p>
 <div class="callout tip">
@@ -45,10 +50,10 @@ For a shared helper, also grep for the class/namespace it lives in — a caller 
 
 <h2>Best practice</h2>
 <ul>
-<li>For a shared method: grep the exact name across the <em>whole</em> repo (not just the app you're changing), then check each caller's own project file for how it actually references the module (source vs. prebuilt DLL) before assuming a source-level search caught everyone.</li>
-<li>For a database object: check the handbook's known vault gaps before trusting a schema tool's silence, and grep both the bare name and the fully-qualified cross-database form.</li>
-<li>For a shared UI control or config-gated behavior: check every page/app it appears on individually — this codebase has enough small-per-page differences (postback wiring, which <code>EventAppName</code> branch applies) that "it's the same control everywhere" is not a safe assumption.</li>
-<li>Write down what you checked and what you found nothing in, not just what you found — "grepped X, no other callers" is useful information for the next person (including future you), even when the answer is "nothing else uses this."</li>
+<li><strong>For a shared method, grep the exact name across the <em>whole</em> repo, then check each caller's own project file for how it actually references the module (source vs. prebuilt DLL) before assuming a source-level search caught everyone.</strong> A <code>HintPath</code>-referenced prebuilt DLL consumer is invisible to "find usages" no matter how thorough the search feels.</li>
+<li><strong>For a database object, check the handbook's known vault gaps before trusting a schema tool's silence, and grep both the bare name and the fully-qualified cross-database form.</strong></li>
+<li><strong>For a shared UI control or config-gated behavior, check every page/app it appears on individually.</strong> This codebase has enough small-per-page differences (postback wiring, which <code>EventAppName</code> branch applies) that "it's the same control everywhere" is not a safe assumption.</li>
+<li><strong>Write down what you checked and what you found nothing in, not just what you found.</strong> "Grepped X, no other callers" is useful information for the next person (including future you), even when the answer is "nothing else uses this."</li>
 </ul>
 
 <h2>Check your understanding</h2>
