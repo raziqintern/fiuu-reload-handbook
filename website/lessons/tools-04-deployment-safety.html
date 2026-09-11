@@ -40,13 +40,18 @@ Mid-deploy, the active RDP connection in use was named <code>rmsq-sg-backoffice-
 <h2>Step 4 — stage before you promote</h2>
 <p>Upload the new release into a separate, dated staging folder (e.g. <code>C:\00-Updates\&lt;date&gt;\</code>) — not the live application path directly. This lets you confirm the files actually transferred correctly (right contents, no partial copy) before they touch anything a real user or terminal is currently hitting. Only once that's confirmed do you copy from staging into the live path, overwriting the previous version.</p>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation — the same principle, at platform scale</span>
+This manual copy-to-a-staging-folder-first discipline is a smaller-scale version of a pattern Microsoft's own <a href="https://learn.microsoft.com/en-us/azure/app-service/deploy-staging-slots">Azure App Service deployment slots reference</a> builds directly into the platform: <em>"You can validate app changes before you swap the slot into production."</em> Azure's version automates the swap and warm-up; this codebase's manual server deploy achieves the same underlying goal — a new release exists somewhere real before it touches live traffic — with a dated folder and a deliberate copy step instead of a platform feature. The principle doesn't change just because the mechanism is manual.
+</div>
+
 <h2>The generalizable lesson</h2>
 <p>The whole sequence is one repeatable shape: <strong>strip anything environment-specific from your release → confirm the target → back up current → stage the new version → promote staging to live.</strong> Every step exists to make a mistake at that step non-destructive — a wrong config gets stripped before it can be copied, a wrong server gets caught before it's touched, a bad release gets caught in staging before it's live, and a live break is recoverable from the backup. None of these steps are unique to this codebase; they apply to any manual deploy onto a shared, stateful server.</p>
 
 <h2>Best practice</h2>
 <ul>
-<li>Never assume a remote connection or environment name matches the task just because it's the one you were already using, or the one that looks similar to what you used last time — read the actual label before you act on a shared server.</li>
-<li>If a deploy runbook doesn't already separate "stage" from "promote to live" as two distinct steps, treat that as a gap worth raising, not something to work around by being extra careful during a single combined step.</li>
+<li><strong>Never assume a remote connection or environment name matches the task just because it's the one you were already using, or the one that looks similar to what you used last time.</strong> Read the actual label before you act on a shared server.</li>
+<li><strong>If a deploy runbook doesn't already separate "stage" from "promote to live" as two distinct steps, treat that as a gap worth raising, not something to work around by being extra careful during a single combined step.</strong></li>
 </ul>
 
 <h2>Check your understanding</h2>
