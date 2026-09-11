@@ -57,6 +57,9 @@ This is the pattern's real cost, called out in the source doc itself: the caller
 <p class="code-cite">reload/class-library/Reloads/TNG/Providers/TerminalProvider.cs:109-124</p>
 
 <p>This is the one place in the sampled codebase where "catch broadly, but rethrow anything you didn't specifically expect" is done correctly. Worth knowing the two magic numbers: <code>2601</code> and <code>2627</code> are both SQL Server unique-constraint-violation error numbers.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/sql/relational-databases/errors-events/database-engine-events-and-errors-2000-to-2999">Database Engine events and errors reference</a> confirms both numbers' exact meaning: error <strong>2601</strong>'s message text is <em>"Cannot insert duplicate key row in object '%.*ls' with unique index '%.*ls'. The duplicate key value is %ls."</em>; error <strong>2627</strong>'s is <em>"Violation of %ls constraint '%.*ls'. Cannot insert duplicate key in object '%.*ls'."</em> — 2601 fires for a duplicate on a unique <em>index</em> specifically, 2627 for a violated <code>PRIMARY KEY</code> or <code>UNIQUE</code> <em>constraint</em>. Checking both is why the real code above needs two numbers, not one.</div>
 
 <div class="callout warn">
 <span class="callout-title">Even here, consistency slips</span>
@@ -75,8 +78,8 @@ catch
 
 <h2>Best practice — for working inside this specific codebase</h2>
 <ul>
-<li>When adding a new catch block, check whether the caller already logs the same exception — if so, don't add a second log call here too (the double-exception-logging complaint from <a href="dbg-01-logs.html">Debugging Reload → Reading the Logs First</a>).</li>
-<li>Prefer the named <code>SqlExceptionNumber</code> enum over re-inlining raw error numbers like <code>2601</code>/<code>2627</code> when you're the one writing the check — even though existing code sometimes does the opposite.</li>
+<li><strong>When adding a new catch block, check whether the caller already logs the same exception.</strong> If so, don't add a second log call here too (the double-exception-logging complaint from <a href="dbg-01-logs.html">Debugging Reload → Reading the Logs First</a>).</li>
+<li><strong>Prefer the named <code>SqlExceptionNumber</code> enum over re-inlining raw error numbers like <code>2601</code>/<code>2627</code> when you're the one writing the check.</strong> Even though existing code sometimes does the opposite.</li>
 </ul>
 
 <h2>Better ways</h2>
