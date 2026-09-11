@@ -42,7 +42,11 @@ End Sub</pre>
 Private Sub LoadWalletType(Optional dealer As IDealer = Nothing)
 Private Function GetCSVContents(stockReinstateList As List(Of Reinstate), stockProvisionList As List(Of IStockProvision), Optional iStartIndex As Integer = 0, Optional iEndIndex As Integer = 0) As String</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/UserControls/MessageBox.vb:273; .../WebForms/DealerEdit.aspx.vb:1902; .../WebForms/ReportStockAllocation.aspx.vb:277</p>
-<p><code>Optional</code> parameters must come after every required parameter, and every <code>Optional</code> parameter must specify a default value (<code>= ""</code>, <code>= Nothing</code>, <code>= 0</code>) — there's no way to mark a parameter optional without also giving it a fallback. A caller can omit any trailing optional argument and the default fills in automatically.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/procedures/optional-parameters">Optional Parameters guide</a> states the grammar rules directly: <em>"Every optional parameter in the procedure definition must specify a default value... Every parameter following an optional parameter in the procedure definition must also be optional."</em> There's no way to mark a parameter optional without also giving it a fallback, and no way to follow an optional parameter with a required one — both are compile errors, not conventions.
+</div>
+<p>A caller can omit any trailing optional argument and the default fills in automatically. What if you need to know whether the caller actually supplied the value, versus silently got the default? The same guide is explicit that VB.NET cannot tell you this directly: <em>"A procedure cannot detect at run time whether a given argument has been omitted or the calling code has explicitly supplied the default value."</em> Its documented workaround is a sentinel default unlikely to occur naturally — the guide's own example defaults an <code>office</code> parameter to the string <code>"QJZ"</code> specifically so the body can check <code>If office = "QJZ" Then</code> and treat that as "not supplied."</p>
 <div class="callout tip">
 <span class="callout-title">When to reach for Optional vs. a genuine method overload</span>
 <code>Optional</code> parameters are the right tool when omitting an argument means "use this one sensible default" — <code>id</code> defaulting to an empty string, a start index defaulting to <code>0</code>. Reach for <code>Overloads</code> instead (below) when the different call shapes represent genuinely different <em>behavior</em>, not just a default value for the same behavior — e.g. one overload that looks up a record by ID vs. one that takes the record object directly, rather than the same lookup with a parameter defaulted.
@@ -50,33 +54,67 @@ Private Function GetCSVContents(stockReinstateList As List(Of Reinstate), stockP
 
 <h2>ByRef — the same keyword you'd ask about in code review</h2>
 <p><code>ByRef</code> passes a variable by reference instead of by value — the callee can reassign it and the caller sees the new value after the call returns. It's VB's version of C#'s <code>ref</code>/<code>out</code>, and it's the historical VB default before VB.NET made <code>ByVal</code> the default (unlike VB6, where <code>ByRef</code> was implicit if you wrote nothing):</p>
-<pre class="code-block">Sub Increment(ByRef x As Integer)
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/procedures/passing-arguments-by-value-and-by-reference">Passing Arguments by Value and by Reference guide</a> confirms the default explicitly — <em>"The default in Visual Basic is to pass arguments by value"</em> — and states the actual decision rule as one of intent, not habit: <em>"If the procedure has a genuine need to change the underlying element in the calling code, declare the corresponding parameter ByRef... The advantage of passing an argument ByVal is that it protects a variable from being changed by the procedure."</em>
+</div>
+<p>Two versions of the same idea, differing only in the parameter modifier — proving the effect is entirely about that one keyword, not about <code>Integer</code> specifically:</p>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Sub Increment(ByRef x As Integer)
     x = x + 1
 End Sub
 
 Dim n As Integer = 5
 Increment(n)
-Console.WriteLine(n)   ' 6 — the caller's variable was mutated</pre>
-<p>The main real use is a "hand back more than one value" pattern — a <code>Function</code> returns one value directly, but a <code>Sub</code> (or a <code>Function</code> that also needs a second output) can use one or more <code>ByRef</code> parameters to hand back additional results. Prefer a genuine <code>Function</code> return value when there's only one thing to hand back — a <code>ByRef</code> parameter existing purely to fake a return value on a <code>Sub</code> is a sign it should be a <code>Function</code> instead.</p>
+Console.WriteLine(n)</pre>
+<pre class="tryit-output-src">6 — the caller's own variable was mutated by the call.</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Sub Increment(ByVal x As Integer)
+    x = x + 1
+End Sub
 
-<h2>Overloads — VB requires the keyword; C# doesn't</h2>
-<p>A real, easy-to-miss difference: C# lets you overload a method just by giving it a different parameter list, no keyword needed. VB.NET requires every overloaded version to explicitly say <code>Overloads</code>:</p>
-<pre class="code-block">Public Overloads Function FindDealer(dealerId As String) As IDealer
-    ' look up by ID
+Dim n As Integer = 5
+Increment(n)
+Console.WriteLine(n)</pre>
+<pre class="tryit-output-src">5 — ByVal copies the value in; the reassignment inside the Sub
+only changes the local copy, and the caller never sees it.</pre>
+</div>
+</div>
+<p>The main real use is a "hand back more than one value" pattern — a <code>Function</code> returns one value directly, but a <code>Sub</code> (or a <code>Function</code> that also needs a second output) can use one or more <code>ByRef</code> parameters to hand back additional results. Prefer a genuine <code>Function</code> return value when there's only one thing to hand back — a <code>ByRef</code> parameter existing purely to fake a return value on a <code>Sub</code> is a sign it should be a <code>Function</code> instead.</p>
+<div class="callout warn">
+<span class="callout-title">ByRef on a reference type doesn't mean what it looks like it means</span>
+<code>ByRef</code> vs <code>ByVal</code> on a <code>String</code> or object parameter is a genuinely separate question from mutating the object's own contents — with <code>ByVal obj As SomeClass</code>, the caller's reference is copied, but it still points at the <em>same object</em>, so calling a method that mutates that object's internal state (e.g. setting one of its properties) is still visible to the caller. What <code>ByVal</code> actually protects here is only the caller's variable being <em>reassigned to point at a different object entirely</em> — <code>ByRef</code> is needed only if the callee should be able to make the caller's variable reference a new object.</div>
+
+<h2>Overloads — plain same-class overloading doesn't need it; shadowing a base member does</h2>
+<p>It's tempting to assume VB.NET requires an explicit keyword everywhere C# infers overloading automatically — it doesn't, for the ordinary case. Real, verified same-class overloading with no <code>Overloads</code> keyword anywhere:</p>
+<pre class="code-block">Private Function GetDataRowIndex(ByVal sender As Object,
+                                 ByVal e As System.Web.UI.WebControls.GridViewUpdateEventArgs) As Integer
+    Dim grv As GridView = CType(sender, GridView)
+    Return e.RowIndex + (grv.PageIndex * grv.PageSize)
 End Function
 
-Public Overloads Function FindDealer(dealer As IDealer) As IDealer
-    ' already have the object — just validate/refresh it
+Private Function GetDataRowIndex(ByVal sender As Object,
+                             ByVal e As System.Web.UI.WebControls.GridViewDeleteEventArgs) As Integer
+    Dim grv As GridView = CType(sender, GridView)
+    Return e.RowIndex + (grv.PageIndex * grv.PageSize)
 End Function</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/Supplier.aspx.vb:307-321 (same pattern repeats in SupplierEdit.aspx.vb)</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/modifiers/overloads">Overloads modifier reference</a> is explicit about this: <em>"You do not have to use the Overloads modifier when you are defining multiple overloaded properties or procedures in the same class. However, if you use Overloads in one of the declarations, you must use it in all of them."</em> The keyword's real, documented purpose is different: <em>"Overloads can also be used to shadow an existing member, or set of overloaded members, in a base class."</em> The one genuine, verified use of the keyword anywhere in this codebase is exactly that case — <code>Friend Overloads Function [GetType]() As Global.System.Type</code> in <code>My Project/MyExtensions/MyWebExtension.vb:110</code>, deliberately shadowing <code>Object.GetType()</code> from the base class.
+</div>
 <div class="callout warn">
-<span class="callout-title">Miss the keyword and VB doesn't overload — it errors</span>
-If one procedure with a given name specifies <code>Overloads</code>, every other procedure sharing that name in the same class must specify it too — VB won't silently treat a same-named, different-signature method as a normal overload the way C# does. Forgetting <code>Overloads</code> on a second same-named method (instead of on purpose using <code>Shadows</code> to hide the base one entirely) is a real compile-time error waiting to happen when porting overloaded C# methods into VB.NET by hand.
+<span class="callout-title">The keyword only becomes mandatory once one overload uses it</span>
+Two same-named, different-signature procedures in the same class compile as ordinary overloads with no keyword at all, as the real example above shows. The rule that actually bites: the moment <em>any one</em> of them declares <code>Overloads</code>, every other procedure sharing that name in the class must declare it too, or it's a compile error. This matters most when a file already has an <code>Overloads</code>-shadowed base member (like the real <code>GetType()</code> example) and a later same-named addition forgets to match it.
 </div>
 
 <h2>Best practice</h2>
 <ul>
-<li>If a <code>Sub</code> starts needing to hand information back to its caller (beyond a <code>ByRef</code> parameter), that's a sign it should probably be a <code>Function</code> instead — trying to bolt a return value onto a <code>Sub</code> after the fact usually means reworking every call site anyway.</li>
-<li>Reach for <code>Optional</code> when a missing argument means "use this sensible default"; reach for <code>Overloads</code> when different call shapes mean genuinely different behavior, not just a different default.</li>
+<li><strong>If a <code>Sub</code> starts needing to hand information back to its caller (beyond a <code>ByRef</code> parameter), make it a <code>Function</code> instead.</strong> Trying to bolt a return value onto a <code>Sub</code> after the fact usually means reworking every call site anyway.</li>
+<li><strong>Reach for <code>Optional</code> when a missing argument means "use this sensible default"; reach for a genuine overload when different call shapes mean genuinely different behavior.</strong> Not a different default for the same behavior.</li>
+<li><strong>Default to <code>ByVal</code>; reach for <code>ByRef</code> only when the callee has a genuine need to reassign the caller's variable.</strong> Remember <code>ByVal</code> on an object parameter still lets the callee mutate the object's own contents — it only blocks reassigning the caller's variable to a different object.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -93,11 +131,29 @@ If one procedure with a given name specifies <code>Overloads</code>, every other
 </div>
 
 <div class="quiz" data-type="mcq">
-<p class="quiz-q">A VB.NET class already has one <code>Public Function FindDealer(dealerId As String) As IDealer</code>. A second method with the same name but a different parameter list is added, without the <code>Overloads</code> keyword on either one. What happens?</p>
+<p class="quiz-q">A VB.NET class already has one <code>Public Function FindDealer(dealerId As String) As IDealer</code>. A second method with the same name but a different parameter list is added, without the <code>Overloads</code> keyword on either one. What happens? (Real, verified pattern — <code>GetDataRowIndex</code> in <code>Supplier.aspx.vb</code> does exactly this.)</p>
 <ul class="quiz-options">
-<li data-correct="false" data-explain="Unlike C#, VB.NET does not treat two same-named, different-signature procedures as automatic overloads just because the signatures differ — the Overloads keyword is how you opt into that." >It compiles fine — VB.NET infers they're overloads from the different parameter lists, same as C#.</li>
-<li data-correct="true" data-explain="If any procedure with a shared name specifies Overloads, every procedure sharing that name in the class must specify it too. Without the keyword on either one, VB.NET does not treat this as a normal overload — it's a compile error, not silent, incorrect behavior." >It's a compile error — VB.NET requires every procedure sharing a name to declare <code>Overloads</code> explicitly if any of them do.</li>
+<li data-correct="true" data-explain="Microsoft's own Overloads reference confirms this: 'You do not have to use the Overloads modifier when you are defining multiple overloaded properties or procedures in the same class.' The requirement only kicks in once one of the declarations uses Overloads itself — with neither using it, this is a normal, working overload, exactly like Supplier.aspx.vb's real GetDataRowIndex pair." >It compiles fine as a normal overload — VB.NET, like C#, only requires the keyword once one of the declarations uses it.</li>
+<li data-correct="false" data-explain="This would be true only if one of the two declarations already used Overloads — then the other would need it too. With neither using the keyword, there's no error at all." >It's a compile error — VB.NET always requires every procedure sharing a name to declare <code>Overloads</code> explicitly.</li>
 <li data-correct="false" data-explain="Shadows is for a derived class hiding a base class member of the same name — it's unrelated to two methods in the same class sharing a name, and isn't what's needed here." >It compiles, but the second method silently shadows the first using an implicit <code>Shadows</code>.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A method has <code>Optional office As String = "QJZ"</code>. The caller doesn't pass a value for <code>office</code>. Can the method body tell the difference between "caller omitted it" and "caller explicitly passed <code>&quot;QJZ&quot;</code>"?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Microsoft's own Optional Parameters guide states this plainly: 'A procedure cannot detect at run time whether a given argument has been omitted or the calling code has explicitly supplied the default value.' There is no built-in way to distinguish the two." >Yes — VB.NET provides an <code>IsMissing()</code>-style check for this.</li>
+<li data-correct="true" data-explain="This is documented directly: VB.NET genuinely cannot distinguish 'omitted' from 'explicitly passed the default value' at run time. The only workaround is choosing an unlikely sentinel default and checking for it, exactly as Microsoft's own example does." >No — both cases look identical inside the method; there's no runtime way to distinguish them.</li>
+<li data-correct="false" data-explain="This has nothing to do with Option Strict — it's a language-level limitation of Optional parameters that applies regardless of the Option Strict setting." >Only if <code>Option Strict</code> is <code>On</code> for the file.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>Sub Increment(ByVal x As Integer)</code> reassigns <code>x</code> inside the method. What does the caller's own variable look like after the call returns?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="ByVal copies the value into the parameter — the method's x is a separate local copy. Reassigning it never reaches back to the caller's variable. Only ByRef would let the callee's reassignment be visible after the call." >Unchanged — <code>ByVal</code> copies the value in, so the reassignment inside the method only affects the local copy.</li>
+<li data-correct="false" data-explain="This is exactly what ByRef would do, not ByVal. ByVal specifically protects the caller's variable from being reassigned by the callee." >Changed to whatever the method reassigned <code>x</code> to.</li>
+<li data-correct="false" data-explain="Passing an argument ByVal vs ByRef doesn't throw at compile or run time — it's a normal, common pattern with well-defined behavior." >It throws a compile error, since <code>ByVal</code> parameters can't be reassigned at all inside the method body.</li>
 </ul>
 </div>
 

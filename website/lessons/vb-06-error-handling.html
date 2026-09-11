@@ -68,6 +68,10 @@ Catch ex As WebException
     Console.WriteLine("Some other network failure: " & ex.Message)
 End Try</pre>
 <div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/try-catch-finally-statement">Try...Catch...Finally statement reference</a> is specific about the filter's evaluation order: <em>"A <code>When</code> clause is applied only after checking the type of the exception."</em> Its own worked example proves what happens when a <code>When</code> condition is <code>False</code> even though the type matched — VB.NET keeps examining later <code>Catch</code> clauses rather than stopping: given <code>Catch e As OverflowException When i = 5</code> (type doesn't match the thrown exception) then <code>Catch e As ArgumentException When i = 4</code> (type matches, but <code>i = 4</code> is <code>False</code>) then a final type-less <code>Catch When i = 5</code>, throwing an <code>ArgumentException</code> with <code>i = 5</code> actually prints <em>"Third handler"</em> — the second <code>Catch</code> matched the type but failed its filter, so control moved on rather than raising an error or re-throwing.
+</div>
+<div class="callout tip">
 <span class="callout-title">When to reach for a When filter vs. checking inside the Catch</span>
 A <code>When</code> filter is worth it specifically when you have <strong>multiple <code>Catch</code> blocks for the same exception type</strong>, each wanting different handling depending on some detail of the exception (a status code, an error number). If there's only one <code>Catch</code> for that type, an <code>If</code> inside the block is equally clear and doesn't need the extra syntax — reach for <code>When</code> once you'd otherwise need nested <code>If</code>s inside a single catch block just to re-dispatch on the same condition a <code>When</code> filter could express in the <code>Catch</code> line itself.
 </div>
@@ -80,6 +84,10 @@ If lstTerminalModel IsNot Nothing And lstTerminalModel.Count > 0 Then ...</pre>
 <pre class="code-block">If Not countries Is Nothing Then ...</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/DealerCreate.aspx.vb:368</p>
 <p><code>IsNot</code> exists specifically so you don't have to write the second, more awkward form — <code>Not x Is Nothing</code> and <code>x IsNot Nothing</code> mean exactly the same thing, but <code>IsNot</code> reads directly instead of needing a mental double-negative. Both forms are real, currently-shipping code in this codebase — a reminder that "the codebase does X" isn't always uniform, and reading the older form correctly matters as much as writing the newer one.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/operators/is-operator">Is operator reference</a> defines the comparison precisely: <em>"The <code>Is</code> operator determines if two object references refer to the same object. However, it does not perform value comparisons."</em> That second sentence is the entire reason it exists as a separate operator from <code>=</code> — a value-comparison operator and a reference-identity operator answer genuinely different questions, and only one of them is safe against being silently redefined by an overloaded <code>=</code>.
+</div>
 <div class="callout warn">
 <span class="callout-title">Why Is/IsNot exist at all instead of just using = and &lt;&gt;</span>
 <code>Is</code> and <code>IsNot</code> are specifically for reference comparison — "do these two variables point at the same object" — and only work on reference types. Using <code>=</code> for this can give incorrect or unintended results because <code>=</code> can be intercepted by an overloaded equality operator that compares by <em>value</em> instead of by reference identity; <code>Is</code>/<code>IsNot</code> always compare identity, with no possibility of being overridden to mean something else. This is exactly why checking for <code>Nothing</code> specifically should always be <code>Is Nothing</code>/<code>IsNot Nothing</code>, never <code>= Nothing</code>.
@@ -87,8 +95,9 @@ If lstTerminalModel IsNot Nothing And lstTerminalModel.Count > 0 Then ...</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Modern VB.NET's <code>Try</code>/<code>Catch</code>/<code>Finally</code> is the one to use in new code — but if you ever encounter VB6-era <code>On Error Goto</code> style error handling in genuinely old code, know that it's a different, older model entirely (a jump target, not structured exception handling) and don't try to mix the two styles in the same procedure.</li>
-<li>Always use <code>Is Nothing</code>/<code>IsNot Nothing</code> for null checks, never <code>= Nothing</code> — treat any <code>= Nothing</code> you find in existing code as worth a second look, not necessarily as broken, but as a pattern not to copy forward.</li>
+<li><strong>Use modern <code>Try</code>/<code>Catch</code>/<code>Finally</code> in all new code.</strong> If you ever encounter VB6-era <code>On Error Goto</code> style error handling in genuinely old code, know that it's a different, older model entirely (a jump target, not structured exception handling) and don't try to mix the two styles in the same procedure.</li>
+<li><strong>Always use <code>Is Nothing</code>/<code>IsNot Nothing</code> for null checks, never <code>= Nothing</code>.</strong> Treat any <code>= Nothing</code> you find in existing code as worth a second look, not necessarily as broken, but as a pattern not to copy forward.</li>
+<li><strong>Order <code>Catch</code> blocks from most specific to least specific, and always finish with a catch-all if you have one.</strong> Once a <code>Catch As Exception</code> (or a bare <code>Catch</code>) appears, every <code>Catch</code> after it is unreachable — the documentation is explicit that control can never reach a later clause.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -110,6 +119,15 @@ If lstTerminalModel IsNot Nothing And lstTerminalModel.Count > 0 Then ...</pre>
 <li data-correct="true" data-explain="= can be intercepted by an overloaded equality operator and compare by value instead of reference identity. Is/IsNot always compare reference identity with no possibility of being overridden — exactly why a Nothing check should always use Is/IsNot, not =." >Is/IsNot always compare reference identity directly, while = can be overloaded to compare by value instead, giving incorrect results for a null check.</li>
 <li data-correct="false" data-explain="Both compile without error for reference types in VB.NET — the issue with = isn't a compile failure, it's a correctness risk from possible operator overloading." >x = Nothing doesn't compile for reference types in VB.NET.</li>
 <li data-correct="false" data-explain="This isn't a performance distinction — both forms are cheap. The real reason is correctness (reference identity vs. possible value comparison), not speed.">IsNot runs faster at runtime than the equivalent = comparison.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">An <code>ArgumentException</code> is thrown into a block with <code>Catch e As OverflowException When i = 5</code> first, then <code>Catch e As ArgumentException When i = 4</code> (with <code>i</code> actually equal to <code>5</code>), then a final <code>Catch When i = 5</code>. Which handler runs?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The first Catch's type (OverflowException) doesn't match the thrown ArgumentException at all — a Catch's type must match before its When filter is even considered." >The first handler — its <code>When i = 5</code> condition is true.</li>
+<li data-correct="false" data-explain="The second Catch's type does match (ArgumentException), but its When filter (i = 4) evaluates to False since i is actually 5 — a type match with a failing filter is skipped, not an error." >The second handler — its exception type matches what was thrown.</li>
+<li data-correct="true" data-explain="This is Microsoft's own documented example. The first Catch's type doesn't match. The second Catch's type matches but its When filter (i = 4) is False, so VB.NET moves on rather than stopping or erroring. The third, type-less Catch has a true When filter (i = 5), so it runs — exactly the 'Third handler' output the official reference shows." >The third handler — a type mismatch or a failed <code>When</code> filter both just move on to the next <code>Catch</code>, and this is the first one that both matches and passes its filter.</li>
 </ul>
 </div>
 

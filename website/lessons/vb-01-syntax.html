@@ -36,13 +36,32 @@ An earlier version of this track claimed reload has "zero VB.NET" because <code>
 <span class="callout-title">Real, verified: BackOffice's own project file runs with Option Strict Off</span>
 <code>Fiuu.App.BackOffice.Web.vbproj</code> sets <code>&lt;OptionExplicit&gt;On&lt;/OptionExplicit&gt;</code>, <code>&lt;OptionStrict&gt;Off&lt;/OptionStrict&gt;</code>, and <code>&lt;OptionInfer&gt;On&lt;/OptionInfer&gt;</code> at the project level — this is the default every hand-written <code>.aspx.vb</code> file in BackOffice inherits unless it declares its own <code>Option Strict On</code> at the top (most don't). The auto-generated <code>*.designer.vb</code> files are the exception: they each explicitly declare <code>Option Strict On</code> + <code>Option Explicit On</code> locally, overriding the project default just for that one generated file.
 </div>
-<p>Practically: in most BackOffice hand-written code, a narrowing conversion that would be a compile error in a stricter project instead either converts silently (sometimes losing data, e.g. a <code>Double</code> truncated into an <code>Integer</code>) or throws an <code>InvalidCastException</code> at runtime — the compiler won't catch it for you ahead of time. This is a real, structural reason bugs here can surface as a runtime type error instead of a build failure; treat any type conversion in this codebase as unverified by the compiler unless you've confirmed the specific file opts into <code>Option Strict On</code>.</p>
+<p>Concretely, what "the compiler won't catch it" actually looks like — the same risky line, compiled twice with the only difference being the <code>Option Strict</code> setting at the top of the file:</p>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Option Strict Off
 
-<h2>The concept: a declaration statement can name a shared type once for a whole list</h2>
+Dim o As Object = "not a number"
+Dim n As Integer = o   ' narrowing Object -> Integer, no CInt/CType written</pre>
+<pre class="tryit-output-src">Compiles fine. Throws System.InvalidCastException at runtime, the moment
+this line actually executes — the compiler had no objection at all.</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Option Strict On
+
+Dim o As Object = "not a number"
+Dim n As Integer = o   ' same line, Option Strict On this time</pre>
+<pre class="tryit-output-src">Does not compile: "Option Strict On disallows implicit conversions from
+'Object' to 'Integer'." Caught before the code ever runs.</pre>
+</div>
+</div>
+<p>Practically: in most BackOffice hand-written code (which runs with <code>Option Strict Off</code>, per the real project file above), this exact shape of mistake compiles and ships, then fails as a runtime <code>InvalidCastException</code> instead of a build error — the compiler simply isn't watching for it. Treat any type conversion in this codebase as unverified by the compiler unless you've confirmed the specific file opts into <code>Option Strict On</code>.</p>
+
+<h2>A declaration statement can name a shared type once for a whole list</h2>
 <p><code>Dim</code>'s grammar isn't "one name, one type" — it's a comma-separated <em>list</em> of variable names, where a name that has no <code>As</code> clause of its own inherits the type of the next one that does. This is a general grammar rule about how the statement parses, not a special case for any particular type.</p>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/dim-statement">Dim Statement reference</a>, "Declaring multiple variables" section, states it exactly: <em>"You can specify different data types for different variables by using a separate <code>As</code> clause for each variable you declare. Each variable takes the data type specified in the first <code>As</code> clause encountered after its <code>variablename</code> part."</code></em> Its own example: <code>Dim a, b, c As Single, x, y As Double, i As Integer</code> — <code>a</code>, <code>b</code>, <code>c</code> are all <code>Single</code>; <code>x</code>, <code>y</code> are both <code>Double</code>.
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/dim-statement">Dim Statement reference</a>, "Declaring multiple variables" section, states it exactly: <em>"You can specify different data types for different variables by using a separate <code>As</code> clause for each variable you declare. Each variable takes the data type specified in the first <code>As</code> clause encountered after its <code>variablename</code> part."</em> Its own example: <code>Dim a, b, c As Single, x, y As Double, i As Integer</code> — <code>a</code>, <code>b</code>, <code>c</code> are all <code>Single</code>; <code>x</code>, <code>y</code> are both <code>Double</code>.
 </div>
 <p>Real, verified applications of this same rule in BackOffice — each is one instance of the identical grammar, just with a different shared type:</p>
 <pre class="code-block">Dim iQty, iMaxQty As Integer
@@ -55,7 +74,7 @@ Dim sM2MServiceProviderColumnName, sM2MSIMCardSerialNoColumnName As String</pre>
 In classic VB6, <code>Dim x, y As Integer</code> only gave <code>Integer</code> to <code>y</code> — <code>x</code> silently became a <code>Variant</code> (VB6's untyped catch-all), with no error and no warning. VB.NET's grammar (quoted above) is what actually changed: every name now resolves to a real type via the next <code>As</code> clause, with no untyped fallback in the language at all. If you ever read genuinely old VB6 code (not VB.NET) side-by-side with this codebase, don't assume identical syntax means identical behavior — the grammar itself was revised, not just cleaned up stylistically.
 </div>
 
-<h2>The concept: an array is a type of its own, built from any other type</h2>
+<h2>An array is a type of its own, built from any other type</h2>
 <p>This is the root idea everything below is one instance of — it's not a <code>String</code>-specific quirk, it's a general rule of the VB.NET type system: <strong>for any type <code>T</code>, <code>T()</code> is a distinct type meaning "an array of <code>T</code>."</strong> This applies uniformly — <code>Integer</code> and <code>Integer()</code>, <code>Boolean</code> and <code>Boolean()</code>, <code>String</code> and <code>String()</code>, even a class you wrote yourself and an array of it, are all the same relationship, every time. A single <code>T</code> holds one value; <code>T()</code> holds a reference to an ordered, indexed collection of them. Learn this once as a general mechanism and you already know how it works for every type in the language — there's nothing extra to learn per-type.</p>
 
 <div class="callout tip">
@@ -98,7 +117,7 @@ Dim arrEmail As String() = Split(sEmailAddress, ";")</pre>
 Passing a <code>String()</code> where a method expects a plain <code>String</code> (or vice versa) is a real type mismatch — with <code>Option Strict On</code>, the compiler catches it. With <code>Option Strict Off</code> (BackOffice's real project default — see above), some of these mismatches compile anyway and either fail at runtime or silently call <code>.ToString()</code> on the array, producing the literal text <code>System.String[]</code> instead of the values you meant. Seeing <code>"System.String[]"</code> anywhere in output or a log is the exact signature of this — reach for <code>String.Join(", ", arr)</code> when you want the array's contents rendered as one string, for any array type, not just <code>String()</code>.
 </div>
 
-<h2>A sub-concept of arrays: sizing — the number in parentheses is the highest index, not the count</h2>
+<h2>Sizing an array: the number in parentheses is the highest index, not the count</h2>
 <p>This only applies once you already have an array type (above) — it's about <em>how big</em> one is, not whether something is an array at all. Per the same <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/arrays/">official Arrays guide</a>: <em>"When you use Visual Basic syntax to define the size of an array, you specify its highest index, not the total number of elements."</em> VB.NET arrays are always zero-based, so <code>Dim scores(9) As Integer</code> creates <strong>10</strong> elements, indices <code>0</code> through <code>9</code> inclusive — this is documented, consistent behavior, not an edge case:</p>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">Dim scores(9) As Integer
@@ -187,8 +206,9 @@ End Module</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Match whatever casing convention the surrounding file already uses. VB.NET is case-insensitive, so <code>amount</code> and <code>Amount</code> are the same identifier to the compiler — but a file mixing both looks like two different variables to a human reader, which is exactly the confusing situation case-insensitivity can quietly create.</li>
-<li>In a new BackOffice file, add <code>Option Strict On</code> at the top yourself if the change is substantial enough to justify it — it turns silent, potentially lossy conversions into compile errors you fix immediately instead of runtime surprises later. Don't retrofit it onto an existing large file casually: turning it on can surface a wave of pre-existing conversion warnings unrelated to your change.</li>
+<li><strong>Match the surrounding file's casing convention.</strong> VB.NET is case-insensitive, so <code>amount</code> and <code>Amount</code> are the same identifier to the compiler — but a file mixing both looks like two different variables to a human reader, which is exactly the confusing situation case-insensitivity can quietly create.</li>
+<li><strong>Opt new BackOffice files into <code>Option Strict On</code> when the change justifies it.</strong> It turns silent, potentially lossy conversions into compile errors you fix immediately instead of runtime surprises later. Don't retrofit it onto an existing large file casually: turning it on can surface a wave of pre-existing conversion warnings unrelated to your change.</li>
+<li><strong>Use <code>String.Join</code> to render an array, never string concatenation.</strong> As shown above, <code>&amp; someArray</code> silently produces <code>System.String[]</code> instead of the values — <code>String.Join(", ", someArray)</code> is the correct, general-purpose fix for any array type.</li>
 </ul>
 
 <h2>Better ways</h2>

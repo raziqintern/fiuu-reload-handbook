@@ -28,6 +28,10 @@ Protected WithEvents applicationTitle As Global.System.Web.UI.HtmlControls.HtmlG
 Protected Sub btnExcel_OnClick(ByVal sender As Object, ByVal e As EventArgs) Handles btnExcel.Click</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:31,321</p>
 <div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/handles-clause">Handles Clause reference</a> confirms the requirement precisely: <em>"The events must be raised by either the base class for the current class, or by an object declared using the <code>WithEvents</code> keyword."</em> The method's own name plays no role in that resolution at all — the reference's own examples wire up handlers named <code>EventHandler</code>, <code>TestEvents</code>, and <code>Button_Click</code> to differently-named events purely via the <code>Handles</code> clause.
+</div>
+<div class="callout tip">
 <span class="callout-title">The method name doesn't matter — the Handles clause does</span>
 <code>btnExcel_OnClick</code> could be renamed to anything at all without breaking the wiring, because <code>Handles btnExcel.Click</code> — not the method's name — is what tells the compiler this method runs when <code>btnExcel</code> raises <code>Click</code>. The <code>_OnClick</code> naming is a strong, near-universal convention in this codebase, purely for human readability; the compiler doesn't need it to work.
 </div>
@@ -37,7 +41,10 @@ Protected Sub btnExcel_OnClick(ByVal sender As Object, ByVal e As EventArgs) Han
 <pre class="code-block">AddHandler My.Application.Shutdown, AddressOf AutoSaveSettings</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/My Project/Settings.Designer.vb:47</p>
 <p><code>My.Application.Shutdown</code> is a shared application-lifecycle event — there's no per-instance <code>WithEvents</code> variable to attach <code>Handles</code> to, so <code>AddHandler</code> (paired with <code>AddressOf</code> to point at the handler method) is the only mechanism that reaches it.</p>
-
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/addhandler-statement">AddHandler Statement reference</a> names the essential difference directly: <em>"The <code>AddHandler</code> statement connects procedures to events at run time,"</em> versus <code>Handles</code>, which is fixed at compile time as part of the method declaration itself. The same reference documents the cleanup requirement mentioned below in its <code>RemoveHandler</code> discussion: a handler attached anonymously (an inline lambda with no name) <em>"cannot be removed later,"</em> which is exactly why a long-lived <code>AddHandler</code> subscription should point at a named method or a variable holding the lambda, not an anonymous inline one, if it will ever need to be removed.
+</div>
 <div class="callout warn">
 <span class="callout-title">When you'd actually need AddHandler in a WebForms page: dynamically created controls</span>
 If a page builds controls in code — a row added to a panel in a loop, a button created at runtime rather than declared in markup — that control was never processed by the designer, so no <code>WithEvents</code> field exists for it and <code>Handles</code> has nothing to attach to. Wiring its click event requires <code>AddHandler dynamicButton.Click, AddressOf HandleDynamicClick</code> at the point the control is created. This is also the one case where you're responsible for cleanup: a handler added with <code>AddHandler</code> keeps the target object alive as long as the event source is alive, so a long-lived event source (not a per-request WebForms control, which dies with the page anyway, but a longer-lived singleton or shared object) needs a matching <code>RemoveHandler</code> to avoid leaking the handler's target — the same shape of leak-by-omission this codebase has seen elsewhere with unreleased resources (see <a href="dbg-04-trace-a-bug.html">Debugging Reload → Worked Example: Tracing a Bug</a>).
@@ -45,8 +52,9 @@ If a page builds controls in code — a row added to a panel in a loop, a button
 
 <h2>Best practice</h2>
 <ul>
-<li>For any control that exists in the page's markup, use <code>Handles</code> — it's what the whole codebase already does, it's compiler-checked (a typo'd control name is a compile error, not a silent no-op), and it needs no manual cleanup.</li>
-<li>Reach for <code>AddHandler</code> only when <code>Handles</code> genuinely can't reach the event — a dynamically created control, a shared/static event, or an event on a type that isn't <code>WithEvents</code>-declared. When you do, track whether the event source outlives the request; if it does, pair every <code>AddHandler</code> with a <code>RemoveHandler</code> at the appropriate cleanup point.</li>
+<li><strong>For any control that exists in the page's markup, use <code>Handles</code>.</strong> It's what the whole codebase already does, it's compiler-checked (a typo'd control name is a compile error, not a silent no-op), and it needs no manual cleanup.</li>
+<li><strong>Reach for <code>AddHandler</code> only when <code>Handles</code> genuinely can't reach the event.</strong> A dynamically created control, a shared/static event, or an event on a type that isn't <code>WithEvents</code>-declared. When you do, track whether the event source outlives the request; if it does, pair every <code>AddHandler</code> with a <code>RemoveHandler</code> at the appropriate cleanup point.</li>
+<li><strong>Name every <code>AddHandler</code> target method (or store a lambda in a variable) if you'll ever need to remove it.</strong> An anonymous inline lambda handler is documented as unremovable later — there's no way to reference it in a later <code>RemoveHandler</code> call.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -68,6 +76,15 @@ If a page builds controls in code — a row added to a panel in a loop, a button
 <li data-correct="true" data-explain="Handles requires a WithEvents variable known at compile time. A control created dynamically in code was never processed by the designer, so no WithEvents field for it exists — AddHandler, wired at the point the control is created, is the only option." >The control was never declared as a <code>WithEvents</code> field by the designer — <code>Handles</code> needs one to attach to, and dynamically created controls don't have one.</li>
 <li data-correct="false" data-explain="Handles works on any WebForms control event, including Click — the limitation here is specifically about compile-time-known WithEvents declarations, not which event type is involved.">Handles only works for Page-level events like Load, never control events like Click.</li>
 <li data-correct="false" data-explain="Access level (Public/Protected/Private) has no bearing on whether Handles can attach to a control's event — the actual requirement is a WithEvents declaration.">The button needs to be declared Public instead of Private for Handles to see it.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">An inline, unnamed lambda is passed directly to <code>AddHandler Obj.Ev_Event, Sub() MsgBox("hi")</code>. Later, the code wants to detach that exact handler with <code>RemoveHandler</code>. What happens?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This is only possible if the lambda was first assigned to a variable — an inline, unnamed lambda passed directly to AddHandler has no reference anywhere else in the code to pass to RemoveHandler." >It works — <code>RemoveHandler</code> can reference the same lambda expression again by writing it out identically.</li>
+<li data-correct="true" data-explain="Microsoft's own AddHandler Statement reference states this directly: a handler added with an explicit, unnamed lambda 'cannot be removed later,' precisely because there's no name or variable to reference it by. The documented workaround is assigning the lambda to a variable first, then adding and later removing the handler through that variable." >It can't be done — an unnamed inline lambda handler has no way to be referenced again, so it can never be removed with <code>RemoveHandler</code>.</li>
+<li data-correct="false" data-explain="AddHandler/RemoveHandler don't require WithEvents at all — that requirement is specific to Handles. AddHandler works on ordinary event-raising objects." >It throws at runtime, because <code>RemoveHandler</code> requires the underlying object to be declared <code>WithEvents</code>.</li>
 </ul>
 </div>
 

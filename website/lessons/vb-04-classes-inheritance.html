@@ -63,6 +63,11 @@ End Class</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:11-19</p>
 
 <div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/modifiers/mustoverride">MustOverride reference</a> ties the two keywords together as one compiler-enforced rule, not just a convention: <em>"The property or procedure that specifies <code>MustOverride</code> must be a member of a class, and the class must be marked <code>MustInherit</code>."</em> It also documents the incomplete-declaration syntax used above: <em>"When you specify <code>MustOverride</code>, you do not supply any additional lines of code for the property or procedure, not even the <code>End Function</code>, <code>End Property</code>, or <code>End Sub</code> statement."</em> — exactly why <code>RestrictedPage</code>'s <code>ModuleName</code>/<code>PageAction</code> properties above end at the declaration line with no body.
+</div>
+
+<div class="callout tip">
 <span class="callout-title">The four related keywords, and when each applies</span>
 <table>
 <tr><th>Keyword</th><th>Means</th><th>When to use it</th></tr>
@@ -71,6 +76,10 @@ End Class</pre>
 <tr><td><code>NotOverridable</code></td><td>Explicitly forbids further overriding (VB.NET methods are <code>NotOverridable</code> by default unless marked <code>Overridable</code> — this keyword is for un-sealing an inherited <code>Overrides</code> chain)</td><td>Rare — you're overriding a member yourself but want to stop any further subclass from overriding it again</td></tr>
 <tr><td><code>Shadows</code></td><td>Hides a base class member of the same name entirely — not a real override, a new, unrelated member that happens to share a name</td><td>Deliberately breaking the inheritance relationship for one member — uncommon, and worth a comment explaining why when you see it</td></tr>
 </table>
+</div>
+<div class="callout tip">
+<span class="callout-title">Official documentation — Shadows is not a weaker Overrides, it's a different relationship entirely</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/modifiers/shadows">Shadows reference</a> defines the mechanism precisely: <em>"Specifies that a declared programming element redeclares and hides an identically named element... in a base class."</em> Critically, it also documents that a shadowing member doesn't even need a compatible signature: <em>"If you shadow a property or procedure with another property or procedure, the parameters and the return type do not have to match those in the base class property or procedure."</em> This is the real difference from <code>Overrides</code>: an <code>Overrides</code> member must honor the base member's contract (same signature, substitutable via polymorphism); a <code>Shadows</code> member is simply a new, independent member that reuses the name — calling code that holds a reference typed as the <em>base</em> class still reaches the base member, not the shadowed one.
 </div>
 
 <h2>Implements — written on the class, then again on every member</h2>
@@ -87,6 +96,10 @@ Public Class TerminalService
         Return True
     End Function
 End Class</pre>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/implements-statement">Implements Statement reference</a> confirms both halves of the double declaration are separately mandatory: <em>"The <code>Implements</code> statement must immediately follow the <code>Class</code> or <code>Structure</code> statement,"</em> and per-member, <em>"To implement an individual member, you specify the <code>Implements</code> keyword (which is separate from the <code>Implements</code> statement) when you declare the member."</em> It also states what happens if a member is skipped: <em>"When you implement an interface, you must implement all the members declared in the interface. Omitting any member is considered to be a syntax error."</em> — there's no equivalent of a C# compile warning here; a missed interface member simply doesn't compile.
+</div>
 <div class="callout warn">
 <span class="callout-title">Why the double declaration exists — and what it buys you</span>
 Unlike C#, a VB.NET method's <em>name</em> doesn't have to match the interface member it implements — <code>Public Function DoLogin(...) Implements ITerminalService.Login</code> is perfectly legal, and the <code>Implements</code> clause is what actually wires it up. This is genuinely more explicit than C# (you can always see exactly which interface member a method satisfies by reading its own signature, not by matching names), but it also means a method can implement an interface member under a completely different name than the interface declares — read the <code>Implements</code> clause, not just the method name, to know what a method actually satisfies.
@@ -94,8 +107,9 @@ Unlike C#, a VB.NET method's <em>name</em> doesn't have to match the interface m
 
 <h2>Best practice</h2>
 <ul>
-<li>Reach for <code>MustInherit</code>/<code>MustOverride</code> when every subclass genuinely needs to supply its own answer and there's no sensible shared default — like <code>RestrictedPage</code> forcing every page to declare its own module and permission action. Reach for <code>Overridable</code> with a real default implementation when most subclasses would want the same behavior and only a few need to customize it.</li>
-<li>When implementing an interface, keep the method name matching the interface member name even though VB.NET doesn't require it — a mismatched name (<code>DoLogin</code> implementing <code>ITerminalService.Login</code>) is technically legal but makes the code harder to search and reason about for no real benefit.</li>
+<li><strong>Reach for <code>MustInherit</code>/<code>MustOverride</code> when every subclass genuinely needs to supply its own answer and there's no sensible shared default.</strong> Like <code>RestrictedPage</code> forcing every page to declare its own module and permission action. Reach for <code>Overridable</code> with a real default implementation when most subclasses would want the same behavior and only a few need to customize it.</li>
+<li><strong>Keep an implementing method's name matching the interface member name, even though VB.NET doesn't require it.</strong> A mismatched name (<code>DoLogin</code> implementing <code>ITerminalService.Login</code>) is technically legal but makes the code harder to search and reason about for no real benefit.</li>
+<li><strong>Reach for <code>Shadows</code> only when deliberately breaking the inheritance relationship for one member, and say why in a comment.</strong> Because a <code>Shadows</code> member isn't reachable through a base-typed reference, using it by accident (instead of <code>Overrides</code>) silently produces two independent members with the same name — a real, hard-to-spot bug source.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -117,6 +131,24 @@ Unlike C#, a VB.NET method's <em>name</em> doesn't have to match the interface m
 <li data-correct="true" data-explain="VB.NET's Implements clause explicitly names which interface member a method fulfills — the method's own name doesn't need to match the interface member's name at all, unlike C# where the method name and the interface member name must be identical." >The <code>Implements</code> clause explicitly states which interface member this method satisfies — VB.NET doesn't require the method's own name to match the interface's member name.</li>
 <li data-correct="false" data-explain="VB.NET interfaces are compiled the same way regardless of naming — there's no relaxed-matching mode being invoked here, just the explicit Implements clause doing real work.">VB.NET interfaces use fuzzy name matching by default.</li>
 <li data-correct="false" data-explain="ITerminalService.Login is a real member being satisfied here, not an optional one — Implements always requires satisfying every member of the interface, named ones included.">This only works for interface members marked as optional.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A base class has <code>Public Sub Notify()</code>. A derived class declares its own <code>Public Shadows Sub Notify()</code> with a completely different parameter list. Code elsewhere holds a variable declared <em>as the base class type</em>, pointing at an instance of the derived class, and calls <code>.Notify()</code>. Which version runs?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Shadows is 'hiding by name', not polymorphism — Microsoft's own reference confirms a shadowed member doesn't even need a matching signature. Resolution happens based on the compile-time type of the reference: a base-typed reference resolves to the base member, not the derived Shadows member." >The base class's <code>Notify()</code> — a base-typed reference resolves to the base member, since <code>Shadows</code> doesn't participate in polymorphism the way <code>Overrides</code> does.</li>
+<li data-correct="false" data-explain="This is what would happen with a true Overrides relationship (true polymorphism) — but Shadows specifically does not behave this way. A base-typed reference stays resolved to the base member." >The derived class's <code>Notify()</code>, because the actual object at runtime is the derived type.</li>
+<li data-correct="false" data-explain="Shadows with a different, incompatible parameter list is explicitly legal per Microsoft's own documentation — it does not require a matching signature the way Overrides does." >It's a compile error — <code>Shadows</code> requires the same parameter list as the base member.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A class declares <code>Implements ICustomerInfo</code>, where the interface defines a property, a procedure, and an event. The class supplies the property and the procedure, but forgets the event. What happens?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Microsoft's own Implements Statement reference is explicit that this is not a warning: 'Omitting any member is considered to be a syntax error.'">It compiles with a warning about the missing event.</li>
+<li data-correct="true" data-explain="The official reference states this directly: 'When you implement an interface, you must implement all the members declared in the interface. Omitting any member is considered to be a syntax error.' There's no partial-implementation mode." >It's a compile error — every member declared in the interface must be implemented, with no exceptions for events specifically.</li>
+<li data-correct="false" data-explain="VB.NET does not supply a default no-op implementation for a missing interface member — an omitted member is a compile error, not a silently-inserted stub.">It compiles fine — VB.NET supplies a default no-op implementation for any interface member the class doesn't define.</li>
 </ul>
 </div>
 

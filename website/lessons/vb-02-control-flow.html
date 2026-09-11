@@ -34,6 +34,10 @@ End If</pre>
 <p>Notice <code>ElseIf</code> is one word (unlike C#'s <code>else if</code>, two words), and the whole block closes with <code>End If</code> instead of a closing brace.</p>
 
 <h2>Comparison and logical operators — and the short-circuit distinction that actually matters</h2>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/operators/andalso-operator">AndAlso Operator reference</a> defines short-circuiting precisely: <em>"A logical operation is said to be short-circuiting if the compiled code can bypass the evaluation of one expression depending on the result of another expression."</em> Its own remarks contrast it directly with the non-short-circuit form: <em>"In a Boolean comparison, the <code>And</code> operator always evaluates both expressions, which could include making procedure calls. The AndAlso Operator performs short-circuiting, which means that if <code>expression1</code> is <code>False</code>, then <code>expression2</code> is not evaluated."</em>
+</div>
 <table>
 <tr><th>C#</th><th>VB.NET</th><th>Notes</th></tr>
 <tr><td><code>==</code></td><td><code>=</code></td><td>Same symbol VB uses for assignment — context (an <code>If</code> condition vs. a <code>Dim</code>/plain statement) tells the compiler which one you mean.</td></tr>
@@ -53,6 +57,10 @@ End If</pre>
 
 <h2>Exit — leaving early, and which keyword matches which block</h2>
 <p>VB.NET's early-exit keyword changes depending on what you're inside — there's no single <code>break</code>/<code>return</code> pair covering every case:</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/exit-statement">Exit Statement reference</a> lists each form as scoped to exactly one kind of block: <em>"<code>Exit For</code> Immediately exits the <code>For</code> loop in which it appears... <code>Exit For</code> can be used only inside a <code>For</code>...<code>Next</code> or <code>For Each</code>...<code>Next</code> loop."</em> and <em>"<code>Exit Sub</code> Immediately exits the <code>Sub</code> procedure in which it appears... In a <code>Sub</code> procedure, the <code>Exit Sub</code> statement is equivalent to the Return Statement."</em> This is exactly why there's no single universal "leave now" keyword — each one is grammatically tied to the specific block type it can appear in, and using the wrong one for your current block is a compile error, not a runtime surprise.
+</div>
 <table>
 <tr><th>Keyword</th><th>Leaves</th><th>C# equivalent</th></tr>
 <tr><td><code>Exit Sub</code></td><td>The current <code>Sub</code>, immediately</td><td><code>return;</code> in a <code>void</code> method</td></tr>
@@ -83,10 +91,36 @@ Attempt 2
 Attempt 3</pre>
 </div>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/for-next-statement">For...Next Statement reference</a>, "Technical Implementation" section, states the loop's stopping condition precisely: <em>"The loop doesn't stop until <code>counter</code> has passed <code>end</code>. If <code>counter</code> is equal to <code>end</code>, the loop continues. The comparison that determines whether to run the block is <code>counter</code> &lt;= <code>end</code> if <code>step</code> is positive."</em> That <code>&lt;=</code> — not <code>&lt;</code> — is the documented reason the upper bound runs.
+</div>
 <div class="callout warn">
 <span class="callout-title">To is inclusive — an easy off-by-one trap</span>
 <code>For i = 1 To 3</code> runs for <code>i = 1, 2, 3</code> — three iterations, including the upper bound. This differs from C#'s more common <code>for (int i = 0; i &lt; 3; i++)</code> idiom, which deliberately excludes its upper bound. Translating a C# loop into VB.NET (or reading the reverse) is a classic place to introduce an off-by-one bug if you're not paying attention to which convention you're in.
 </div>
+<p>Same loop, both conventions side by side, run to prove the count rather than just asserted:</p>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">' VB.NET: To is inclusive on both ends
+Dim count As Integer = 0
+For i As Integer = 0 To 3
+    count += 1
+Next
+Console.WriteLine(count)</pre>
+<pre class="tryit-output-src">4</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">// C#: < excludes the upper bound
+int count = 0;
+for (int i = 0; i < 3; i++) {
+    count++;
+}
+Console.WriteLine(count);</pre>
+<pre class="tryit-output-src">3</pre>
+</div>
+</div>
+<p>A direct, syntax-only port of <code>For i = 0 To 3</code> into C#'s <code>for (int i = 0; i &lt;= 3; i++)</code> is correct — but the far more common mistake is porting the <em>number</em> 3 unchanged into the more idiomatic <code>i &lt; 3</code> form, silently dropping one iteration. This is exactly the trap the callout above names.</p>
 
 <h2>For Each</h2>
 <div class="tryit" data-lang="vbnet">
@@ -117,6 +151,10 @@ Batch valid? False</pre>
         ' no matching command — nothing to do
 End Select</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:309-313</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/select-case-statement">Select...Case Statement reference</a> confirms fall-through is not just absent from this example but structurally impossible: <em>"If <code>testexpression</code> matches any <code>Case</code> <code>expressionlist</code> clause, the statements following that <code>Case</code> statement run up to the next <code>Case</code>, <code>Case Else</code>, or <code>End Select</code> statement. Control then passes to the statement following <code>End Select</code>."</em> There is no syntax in the language for opting back into fall-through, unlike C-style <code>switch</code> where it's the default you opt out of with <code>break;</code>. The same reference also documents the range/comparison forms used below: <em>"Use the <code>To</code> keyword to specify the boundaries of a range... Use the <code>Is</code> keyword with a comparison operator... to specify a restriction on the match values."</em>
+</div>
 <p>Three real differences from a C-style <code>switch</code>: a single <code>Case</code> can list several values comma-separated (<code>Case "Action", "Detail"</code> matches either, no separate case label needed); there's no fall-through at all, ever — each <code>Case</code> implicitly breaks, so there's no VB equivalent of a missing <code>break;</code> bug; and a <code>Case</code> can be a range or comparison, not just an exact match:</p>
 <pre class="code-block">Select Case amount
     Case Is <= 0
@@ -132,7 +170,11 @@ Once you're comparing the <em>same</em> single value against three or more possi
 </div>
 
 <h2>Best practice</h2>
-<p>When translating a loop bound between C# and VB.NET (or reading one written by someone translating the other way), explicitly write out the first and last value each loop actually touches before trusting it — <code>For i = 0 To n - 1</code> is the correct VB.NET translation of C#'s <code>for (int i = 0; i &lt; n; i++)</code>, and it's easy to get subtly wrong under time pressure.</p>
+<ul>
+<li><strong>Default to <code>AndAlso</code>/<code>OrElse</code> in new code, not <code>And</code>/<code>Or</code>.</strong> Reach for the non-short-circuit forms only when you specifically need both sides evaluated regardless of the first result — e.g. two independent method calls with side effects, where you genuinely want both to run.</li>
+<li><strong>Write out the first and last value a translated loop actually touches, not just its shape.</strong> <code>For i = 0 To n - 1</code> is the correct VB.NET translation of C#'s <code>for (int i = 0; i &lt; n; i++)</code> — the <code>- 1</code> is the whole trick, and it's easy to drop under time pressure.</li>
+<li><strong>Reach for <code>Select Case</code> once you're testing one value against three or more possibilities.</strong> A chain of <code>ElseIf</code>s works but hides that every branch is testing the same thing; <code>Select Case</code> makes that structure visible at a glance.</li>
+</ul>
 
 <h2>Better ways</h2>
 <p><code>For Each</code> sidesteps the inclusive/exclusive bound question entirely, since there's no index to get wrong — prefer it over an indexed <code>For</code> loop whenever you don't actually need the index itself, exactly as in C#'s <code>foreach</code>.</p>
