@@ -73,8 +73,8 @@ When you open a module you haven't seen before, look for the Model/Provider/Serv
 
 <h2>Best practice — for working inside this specific codebase</h2>
 <ul>
-<li>When adding a new Service in an existing module, follow that module's existing pattern for cross-Service dependencies (the lazy-resolve property shown above) rather than introducing constructor injection — a mixed style in one module is more confusing than either style used consistently.</li>
-<li>New Providers should be <code>new</code>'d up directly from their owning Service, matching every sampled example — don't route Provider creation through the DI container just because Services already use one.</li>
+<li><strong>When adding a new Service in an existing module, follow that module's existing pattern for cross-Service dependencies (the lazy-resolve property shown above) rather than introducing constructor injection.</strong> A mixed style in one module is more confusing than either style used consistently.</li>
+<li><strong>New Providers should be <code>new</code>'d up directly from their owning Service, matching every sampled example.</strong> Don't route Provider creation through the DI container just because Services already use one.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -87,6 +87,15 @@ When you open a module you haven't seen before, look for the Model/Provider/Serv
 <li data-correct="false" data-explain="Constructor injection is the modern default elsewhere, but it's not what this codebase's Services actually use for cross-service dependencies." >Through a constructor parameter, injected when the Service is created.</li>
 <li data-correct="true" data-explain="This exact _field ?? (_field = EngineContext.Current.Resolve<T>()) idiom, behind a private property, is the consistent real pattern for cross-Service dependencies across the sampled codebase." >Through a lazily-resolved property backed by EngineContext.Current.Resolve&lt;IAccountService&gt;().</li>
 <li data-correct="false" data-explain="new is how Providers are created, not how cross-Service dependencies are wired — Services go through the locator instead." >By directly calling new AccountService() the same way Providers are created.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">You need to make two related writes stay consistent (both succeed, or neither does) inside a single logical operation. Where does that atomicity live in this codebase's real pattern?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="There's no repository/unit-of-work abstraction in this codebase's real pattern, and no transaction spanning multiple Provider calls — a C#-side transaction wrapper isn't how atomicity is achieved here." >In a C#-level transaction wrapping both Provider calls in the Service layer.</li>
+<li data-correct="true" data-explain="Confirmed real pattern: 'Each Provider method opens a connection, executes exactly one stored procedure, and returns... that atomicity is expected to live inside the stored procedure itself — not orchestrated in C#.' A single stored procedure doing both writes, wrapped in its own SQL transaction, is the actual mechanism." >Inside a single stored procedure that performs both writes itself — atomicity is the database's job, not C#'s.</li>
+<li data-correct="false" data-explain="There's no generic IRepository<T>/unit-of-work abstraction anywhere in this codebase's real, sampled pattern." >Through a shared <code>IRepository&lt;T&gt;</code> unit-of-work object.</li>
 </ul>
 </div>
 
