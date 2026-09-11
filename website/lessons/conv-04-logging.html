@@ -43,8 +43,9 @@ Full request/response bodies get logged as <a class="term" data-term="json">JSON
 
 <h2>Best practice — for working inside this specific codebase</h2>
 <ul>
-<li>When adding a new outbound integration, follow the real <code>&gt;&gt;&gt;</code>/<code>&lt;&lt;&lt;</code> bracket-and-correlation-key convention — it's the closest thing to a genuine house standard, and it's what makes a future incident traceable by search.</li>
-<li>Check which <code>LogHelper</code> the file you're editing already imports before writing a log call — don't assume a method signature from a different module's helper will compile or behave the same way.</li>
+<li><strong>When adding a new outbound integration, follow the real <code>&gt;&gt;&gt;</code>/<code>&lt;&lt;&lt;</code> bracket-and-correlation-key convention.</strong> It's the closest thing to a genuine house standard, and it's what makes a future incident traceable by search.</li>
+<li><strong>Check which <code>LogHelper</code> the file you're editing already imports before writing a log call.</strong> Don't assume a method signature from a different module's helper will compile or behave the same way.</li>
+<li><strong>Never assume sensitive fields are redacted before logging in this codebase.</strong> Treat any full-payload log line as containing real account numbers and amounts, both when reading logs and when adding new ones.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -57,6 +58,15 @@ Full request/response bodies get logged as <a class="term" data-term="json">JSON
 <li data-correct="false" data-explain="With full payloads logged and a searchable correlation key, there's a much faster path than reading everything in order.">Read the entire log file from the start of the day, in order.</li>
 <li data-correct="true" data-explain="The >>>/<<< bracket convention tags both the outgoing and incoming log lines with the business reference id as the correlation key — searching for it directly finds both the request and response payloads." >Search the log file for \"TXN-1002\" as the correlation key, and read the surrounding >>> / <<< lines.</li>
 <li data-correct="false" data-explain="This codebase's sampled logging doesn't redact by default, and there's no confirmed structured log store described here to query that way — the practical mechanism is the file/bracket convention above.">Query a structured logging database by transaction ID field.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A code snippet using TNG's <code>LogHelper</code> is copy-pasted into an AWSCore file to add a quick log line. What's the real risk, based on how this codebase's logging actually works?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="There's no single shared LogHelper facade in this codebase — each module defines its own, with a different method surface, so this assumption doesn't hold." >Nothing — every module shares the same LogHelper, so it always works identically.</li>
+<li data-correct="true" data-explain="At least three modules each define their own static LogHelper wrapping the shared framework primitives differently, with different method surfaces (Write/Error/Trace/Warn in one, just Write in another) -- code that logs correctly in TNG will not compile, or will compile but call the wrong thing, if pasted into AWSCore." >It may not compile at all, or may compile but silently call a different method than intended — each module's <code>LogHelper</code> has its own distinct method surface.</li>
+<li data-correct="false" data-explain="This isn't a runtime performance concern — the actual risk is a compile-time or logical mismatch between modules' different LogHelper implementations." >It will log correctly but run slightly slower.</li>
 </ul>
 </div>
 
