@@ -66,9 +66,16 @@ Whether that wholesale overwrite is actually <em>safe</em> depends on whether AS
 <span class="callout-title">A visibility check and a logic guard are not the same line of code</span>
 Hiding a field or tab — with CSS, or with a server-side <code>Visible = False</code> — only changes what the user sees. It does nothing on its own to whatever validation, save, or business logic runs afterward, unless that code <em>explicitly</em> checks the same condition used to hide the UI. Whenever a field or tab is gated by a role or permission, search for every validator, every save-path field read, and every downstream write that touches it — each one needs its own copy of that same guard, not just the markup.
 </div>
+<div class="callout tip">
+<span class="callout-title">Official documentation — the same principle, from the security side</span>
+OWASP's <a href="https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html">Input Validation Cheat Sheet</a> states the client/server split for the same reason: <em>"Input validation must be implemented on the server-side before any data is processed by an application's functions, as any JavaScript-based input validation performed on the client-side can be circumvented by an attacker who disables JavaScript or uses a web proxy."</em> Case 2's finding is this exact principle from the other direction: it's not just that a determined attacker could bypass client-side hiding — <code>ValidateEditDealer()</code> and <code>SaveDealer()</code> run their unconditional checks on the server itself, for every ordinary Finance-only user, with no attacker involved at all. If server-side code doesn't independently re-check the same permission the UI used to hide a field, the hiding was never a guard to begin with.
+</div>
 
 <h2>Best practice</h2>
-<p>When a page conditionally hides fields based on role or state, treat "is this visible" and "is this validated/saved" as two separate questions that both need an answer — don't assume one implies the other. If you find a duplicated toggle function like Case 1's three copies, that's a signal worth investigating on its own: duplicated logic is exactly where one copy quietly ends up incomplete relative to the others.</p>
+<ul>
+<li><strong>When a page conditionally hides fields based on role or state, treat "is this visible" and "is this validated/saved" as two separate questions that both need an answer.</strong> Don't assume one implies the other — the hiding mechanism and the guard need to be two separate, deliberate checks.</li>
+<li><strong>If you find a duplicated toggle function like Case 1's three copies, treat that duplication as a signal worth investigating on its own.</strong> Duplicated logic is exactly where one copy quietly ends up incomplete relative to the others.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
