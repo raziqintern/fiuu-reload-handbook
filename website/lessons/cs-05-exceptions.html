@@ -66,16 +66,26 @@ Cleanup: closing connection</pre>
 </div>
 
 <p>A <code>finally</code> block runs whether or not an exception was thrown, and whether or not it was caught — it's the right place for cleanup (closing a connection, releasing a lock) that must happen either way.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/exception-handling-statements">Exception-handling statements reference</a> lists every way control can reach a <code>finally</code> block, not just the exception case: <em>"Control might leave the try block as a result of normal execution, execution of a jump statement (that is, return, break, continue, or goto), or propagation of an exception out of the try block."</em> When a <code>catch</code> does handle the exception, the same reference confirms the order: <em>"the finally block runs after the catch block finishes."</em>
+</div>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation — why catch order matters when you have several</span>
+The same reference is explicit about how multiple <code>catch</code> clauses are actually evaluated: <em>"When an exception occurs, the runtime checks catch clauses in the specified order, from top to bottom. At most, only one catch block runs for any thrown exception."</em> And: <em>"A catch clause without any specified exception type matches any exception and, if present, must be the last catch clause."</em> Put a broad <code>catch (Exception ex)</code> before a specific one and the specific clause becomes unreachable — the broad one always matches first.
+</div>
 <div class="callout warn">
 <span class="callout-title">Catching Exception is a code smell, not a best practice</span>
 <code>catch (Exception ex)</code> catches literally everything, including bugs you'd rather see crash loudly (like a null reference from your own typo). Catch the most specific exception type you're actually expecting to handle. Reload's own code has plenty of blanket <code>catch (Exception)</code> blocks that just log and swallow — that's a real, documented pattern in this codebase, not a theoretical anti-pattern. See <a href="conv-03-error-handling.html">Fiuu C# Conventions → Error Handling</a>.
 </div>
+<p class="code-cite">reload/class-library/Reloads/TNG/Providers/TerminalProvider.cs:114</p>
 
 <h2>Best practice</h2>
 <ul>
-<li>Catch the most specific exception type you actually know how to handle — <code>catch (DivideByZeroException ex)</code> above, not a blanket <code>catch (Exception ex)</code> that would also silently swallow a bug you'd rather see fail loudly.</li>
-<li>Put cleanup that must always happen (closing a connection, releasing a resource) in <code>finally</code> — or better, in a <code>using</code> block, which you'll meet properly in <a href="theory-07-garbage-collection.html">C#/.NET Deep Dives → Garbage Collection &amp; Object Lifetime</a>.</li>
+<li><strong>Catch the most specific exception type you actually know how to handle.</strong> <code>catch (DivideByZeroException ex)</code> above, not a blanket <code>catch (Exception ex)</code> that would also silently swallow a bug you'd rather see fail loudly.</li>
+<li><strong>Order multiple <code>catch</code> clauses from most specific to least specific, always.</strong> A broad clause placed before a specific one makes the specific one unreachable — the runtime checks them top to bottom and stops at the first match.</li>
+<li><strong>Put cleanup that must always happen (closing a connection, releasing a resource) in <code>finally</code>.</strong> Or better, in a <code>using</code> block, which you'll meet properly in <a href="theory-07-garbage-collection.html">C#/.NET Deep Dives → Garbage Collection &amp; Object Lifetime</a>.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -88,6 +98,15 @@ Cleanup: closing connection</pre>
 <li data-correct="false" data-explain="Console.WriteLine itself isn't the problem — the code never reaches that line at all." >Console.WriteLine can't print doubles without a format string.</li>
 <li data-correct="true" data-explain="Divide(10, 0) throws before it ever returns a value — execution jumps directly from the throw statement to the matching catch block, so the line assigning/printing 'result' never runs." >Divide throws before it returns anything, so execution jumps straight to the catch block and skips that line entirely.</li>
 <li data-correct="false" data-explain="The variable is declared correctly — the issue is that the line assigning it is never reached because of the earlier throw.">result is declared with the wrong type.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A <code>try</code> block is followed by <code>catch (Exception ex)</code> first, then <code>catch (DivideByZeroException ex)</code> second. A <code>DivideByZeroException</code> is thrown. Which <code>catch</code> block runs?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Microsoft's own reference confirms clauses are checked 'in the specified order, from top to bottom,' and 'at most, only one catch block runs.' catch (Exception ex) matches everything, including DivideByZeroException, so it wins simply by being listed first — the more specific clause below it never even gets checked." >The first one — <code>catch (Exception ex)</code> — since it's checked first and matches everything, including this specific exception type.</li>
+<li data-correct="false" data-explain="This would be true if the order were reversed, or if C# picked the most specific match regardless of order — but it checks clauses top to bottom and stops at the first match, so order is what decides this, not specificity." >The second one — <code>catch (DivideByZeroException ex)</code> — since it's the more specific match.</li>
+<li data-correct="false" data-explain="Multiple catch blocks never both run for one thrown exception — the reference is explicit that at most one catch block runs per exception." >Both run, one after the other.</li>
 </ul>
 </div>
 
