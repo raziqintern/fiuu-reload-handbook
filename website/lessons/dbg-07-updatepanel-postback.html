@@ -46,6 +46,11 @@ End If</pre>
 <p class="code-cite">Reconstructed from StockAllocationEdit.aspx.vb's btnExcel_OnClick</p>
 <p>When there's data to export, <code>SuppressContent = True</code> tells ASP.NET to discard everything the rest of the page's <code>Render</code> phase would have produced — the browser gets a file download, and the on-screen page never changes at all. The true, already-disabled dropdown state stays invisible again. Only the <strong>no-results</strong> branch skips suppression entirely: no <code>Response.Clear()</code>, no <code>SuppressContent</code>, just a normal full-page render — which is the one and only path on this page that ever shows the dropdown's real state.</p>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.web.httpresponse.suppresscontent">HttpResponse.SuppressContent reference</a> confirms exactly what this property does, stated as plainly as an API can be: <em>"Gets or sets a value indicating whether to send HTTP content to the client."</em> Set to <code>true</code>, nothing the rest of that response's render pass produces — dropdown state, info messages, anything else destined for the page — ever reaches the browser. It's a page-wide switch, not something scoped to the file-download portion of the response alone.
+</div>
+
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">Based on the mechanism above, would clicking Export on a search that <em>does</em> return results ever visibly lock the dropdown?</p>
 <ul class="quiz-options">
@@ -64,7 +69,10 @@ Make <code>Response.SuppressContent = True</code> run unconditionally, and the "
 <p>The actual fix left the suppression logic alone and instead moved <code>ddlStockType.Enabled = True</code> into <code>Page_Load</code>'s existing unconditional reset block — the same block that already resets several other controls on every postback, before any button's own event handler runs. Because <code>Page_Load</code> always executes before that postback's control event handler in the WebForms lifecycle, this reset-then-redisable ordering (reset in <code>Page_Load</code>, redisable in <code>SearchStock()</code> if a search actually ran) reliably reproduces "enabled by default, disabled only right after a real search" without adding a new mechanism or touching the suppression logic at all.</p>
 
 <h2>Best practice</h2>
-<p>When a control's server-side state seems to change unpredictably on screen, don't assume the state itself is wrong — check the postback boundary first. Is the triggering control inside an <code>UpdatePanel</code> that's actually targeted by an async postback, or does it live outside every one of them? And separately: does the response ever call <code>Response.SuppressContent</code> or otherwise short-circuit the normal <code>Render</code> phase? Either one can make a perfectly correct server-side change invisible, and the two combine in exactly the confusing way this page did — invisible on the common path, then visible only on one narrow, easy-to-miss path.</p>
+<ul>
+<li><strong>When a control's server-side state seems to change unpredictably on screen, don't assume the state itself is wrong — check the postback boundary first.</strong> Is the triggering control inside an <code>UpdatePanel</code> that's actually targeted by an async postback, or does it live outside every one of them?</li>
+<li><strong>Separately, check whether the response ever calls <code>Response.SuppressContent</code> or otherwise short-circuits the normal <code>Render</code> phase.</strong> Either mechanism alone can make a perfectly correct server-side change invisible, and the two combined in exactly the confusing way this page did — invisible on the common path, visible only on one narrow, easy-to-miss path.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
