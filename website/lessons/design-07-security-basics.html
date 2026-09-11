@@ -28,14 +28,18 @@ SELECT * FROM Terminals WHERE MerchantName = '' OR '1'='1';</pre>
 
 <p>Run it. You get <em>every row in the table</em>, not zero rows — because <code>'1'='1'</code> is always true, the attacker's input turned a "find one specific merchant" query into "return everything," entirely through the text of the query itself. This is SQL injection: user input being interpreted as <em>code</em> instead of as <em>data</em>.</p>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/sql/relational-databases/security/sql-injection">SQL Injection reference</a> defines the attack in the same terms demonstrated above: <em>"SQL injection is an attack in which malicious code is inserted into strings that are later passed to an instance of the SQL Server Database Engine for parsing and execution."</em>
+</div>
 <div class="callout warn">
 <span class="callout-title">A common misconception, corrected</span>
-"We use stored procedures, so we're safe from SQL injection" is not quite true. A stored procedure that itself builds a dynamic SQL string by concatenating a parameter (<code>EXEC('SELECT * FROM Terminals WHERE MerchantName = ''' + @Name + '''')</code>) is exactly as vulnerable as the raw query above. The actual defense is <strong>parameterization</strong> — passing the value as a typed parameter that's never interpreted as SQL syntax, regardless of whether it's wrapped in a stored procedure or not.
+"We use stored procedures, so we're safe from SQL injection" is not quite true. Microsoft's own reference confirms this directly: <em>"Stored procedures might be susceptible to SQL injection if they use unfiltered input,"</em> and its own vulnerable example is exactly this shape — building a dynamic SQL string by concatenating a parameter (<code>EXEC('SELECT * FROM Terminals WHERE MerchantName = ''' + @Name + '''')</code>) is exactly as vulnerable as the raw query above. The actual defense is <strong>parameterization</strong> — passing the value as a typed parameter that's never interpreted as SQL syntax, regardless of whether it's wrapped in a stored procedure or not: <em>"If you use stored procedures, you should use parameters as their input."</em>
 </div>
 
 <div class="callout real">
 <span class="callout-title">This is genuinely how reload defends against it</span>
-Recall from <a href="conv-05-data-access.html">Fiuu C# Conventions → Data Access</a>: every parameter reload sends to a stored procedure goes through <code>ParameterCollection.Add("@Name", DbType.String, value)</code> — the value is bound as typed data, never concatenated into query text. Combined with "no inline dynamic SQL, no string-built SELECT/UPDATE statements... anywhere," this is a real, consistently-applied defense — not just "we use stored procedures so we're fine."</p>
+Recall from <a href="conv-05-data-access.html">Fiuu C# Conventions → Data Access</a>: every parameter reload sends to a stored procedure goes through <code>ParameterCollection.Add("@Name", DbType.String, value)</code> — the value is bound as typed data, never concatenated into query text. Combined with "no inline dynamic SQL, no string-built SELECT/UPDATE statements... anywhere," this is a real, consistently-applied defense — not just "we use stored procedures so we're fine."
 </div>
 
 <h2>Secrets: never in source code, never fully trust logs</h2>
@@ -44,6 +48,13 @@ Recall from <a href="conv-05-data-access.html">Fiuu C# Conventions → Data Acce
 <h2>Least privilege</h2>
 <p>Give code (and people) only the access they actually need, not the broadest access that happens to be convenient. A background job that only ever reads from <code>REPORTSUMMARY</code> shouldn't run with a database credential that also has write access to <code>CEPP</code> — if that job is ever compromised or has a bug, the blast radius is limited to what it actually needed.</p>
 
+<h2>Best practice</h2>
+<ul>
+<li><strong>Always pass user input as a typed parameter, never concatenate it into SQL text — inside a stored procedure or out.</strong> Per Microsoft's own guidance, the wrapper doesn't matter; the mechanism does.</li>
+<li><strong>Never commit a secret to source control, even temporarily.</strong> Git history keeps it even after a later commit deletes it — treat any secret that touched a commit as compromised and rotate it.</li>
+<li><strong>Scope every credential to the minimum access the job actually needs.</strong> A read-only job should hold a read-only credential, full stop.</li>
+</ul>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">A teammate says "this stored procedure is safe from SQL injection because it's a stored procedure." Based on what you just saw, what's the accurate correction?</p>
@@ -51,6 +62,15 @@ Recall from <a href="conv-05-data-access.html">Fiuu C# Conventions → Data Acce
 <li data-correct="false" data-explain="Stored procedures aren't inherently unsafe either — the real answer is more precise than a blanket yes/no about stored procedures themselves." >That's correct — stored procedures are always immune to SQL injection.</li>
 <li data-correct="true" data-explain="A stored procedure that builds its own dynamic SQL by concatenating a parameter into a query string is just as vulnerable as raw inline SQL. The actual defense is parameterization — passing values as typed parameters that are never interpreted as SQL syntax — which is what reload's ParameterCollection.Add(...) calls actually do." >Only if the procedure itself uses parameterized values rather than concatenating input into a dynamic SQL string — the defense is parameterization, not the stored procedure wrapper itself.</li>
 <li data-correct="false" data-explain="SQL injection risk isn't about which programming language is used to call the database — it's about how the query text itself is constructed.">It depends on which programming language calls the stored procedure.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A secret is accidentally committed to a Git repository, then deleted in a follow-up commit an hour later. Is the secret still safe?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Deleting a file in a later commit only removes it from the current working tree — the original commit that added the secret is still in the repository's history and can be checked out or viewed by anyone with access." >Yes — deleting it in a later commit removes it from the repository entirely.</li>
+<li data-correct="true" data-explain="Git's whole design is to preserve history — a deleted-in-a-later-commit secret is still reachable in the earlier commit, which anyone with repository access (or a clone made before the deletion) can view. The only real fix is treating the secret as compromised and rotating it." >No — Git history preserves the original commit, so the secret is still recoverable from history even after being deleted in a later commit. It should be treated as compromised and rotated.</li>
+<li data-correct="false" data-explain="Making the repository private after the fact doesn't undo exposure that already happened -- anyone who already had access, cloned it, or viewed it before the change could still have the secret." >Yes, as long as the repository is private.</li>
 </ul>
 </div>
 
