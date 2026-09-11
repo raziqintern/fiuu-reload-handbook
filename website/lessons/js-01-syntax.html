@@ -31,6 +31,40 @@ amount = amount + 10;
 console.log("New amount:", amount);</pre>
 </div>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let"><code>let</code> reference</a> names the concrete difference from <code>var</code>: <em>"Compared with <code>var</code>, <code>let</code> declarations have the following differences: <code>let</code> declarations are scoped to blocks as well as functions."</em> Its own example shows exactly what that means in practice — a variable re-declared inside a nested block with <code>var</code> silently overwrites the outer one; the same code with <code>let</code> keeps them genuinely separate. MDN also states the reasoning behind preferring <code>const</code> specifically: <em>"Many style guides... recommend using <code>const</code> over <code>let</code> whenever a variable is not reassigned in its scope. This makes the intent clear that a variable's type... can never change."</em>
+</div>
+<div class="callout real">
+<span class="callout-title">Real, verified: <code>var</code> is still genuinely present in production reload code</span>
+<code>var downloadTimer;</code>, <code>var cookieName = "DownloadChecker";</code>, and three more <code>var</code> declarations sit in the same script block on a real BackOffice page — a concrete reminder that "avoid <code>var</code>" is guidance for code you write today, not a claim that it's extinct in this codebase. Older inline <code>&lt;script&gt;</code> blocks predate the <code>let</code>/<code>const</code> convention and were never retrofitted.
+</div>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx:15,23-24</p>
+<p>What "block-scoped" actually changes, side by side — the exact same shape of code, only the keyword different:</p>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">function varTest() {
+  var x = 1;
+  {
+    var x = 2; // same variable — this overwrites the outer one
+    console.log(x); // 2
+  }
+  console.log(x); // 2 — the outer x was silently changed
+}
+
+function letTest() {
+  let x = 1;
+  {
+    let x = 2; // a genuinely different variable, scoped to this block
+    console.log(x); // 2
+  }
+  console.log(x); // 1 — the outer x was never touched
+}
+
+varTest();
+letTest();</pre>
+</div>
+<p>With <code>var</code>, the inner declaration isn't a new variable at all — it's the same one, reused, because <code>var</code> only respects function boundaries, not <code>{ }</code> blocks. With <code>let</code>, the inner <code>x</code> is a distinct variable that happens to share a name; once its block ends, the outer <code>x</code> is exactly as it was. This is the real, structural reason <code>var</code> can silently corrupt a variable a few lines away that looks completely unrelated at a glance.</p>
+
 <h2>The core types</h2>
 <table>
 <tr><th>Type</th><th>Example</th></tr>
@@ -40,6 +74,10 @@ console.log("New amount:", amount);</pre>
 <tr><td>null / undefined</td><td><code>null</code> = intentionally empty. <code>undefined</code> = never assigned.</td></tr>
 </table>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Data_structures">JavaScript data types guide</a> names this behavior directly, not as an edge case: <em>"JavaScript is also a weakly typed language, which means it allows implicit type conversion when an operation involves mismatched types, instead of throwing type errors."</em> It also names exactly why this matters in practice: <em>"Implicit coercions are very convenient, but can create subtle bugs when conversions happen where they are not expected, or where they are expected to happen in the other direction (for example, string to number instead of number to string)."</em> — precisely the form field scenario below.
+</div>
 <div class="callout warn">
 <span class="callout-title">The trap that catches everyone once</span>
 JavaScript will happily let you add a number and a string — and it won't throw, it'll silently convert. <code>5 + "5"</code> is <code>"55"</code> (a string), not <code>10</code>. This "helpful" coercion is a real source of bugs when data arrives from a form field (always a string) and you forget to convert it with <code>Number(...)</code> first.
@@ -61,8 +99,9 @@ console.log(typeof price);</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Default to <code>const</code>; switch to <code>let</code> only when you actually need to reassign. A codebase full of <code>const</code> tells a reader at a glance which values never change.</li>
-<li>Convert data from an external source (a form field, an API response) to its real type explicitly and immediately, right where it enters your code — don't let a "string that's secretly always a number" drift through several functions before something finally breaks on it.</li>
+<li><strong>Default to <code>const</code>; switch to <code>let</code> only when you actually need to reassign.</strong> A codebase full of <code>const</code> tells a reader at a glance which values never change.</li>
+<li><strong>Convert data from an external source (a form field, an API response) to its real type explicitly and immediately, right where it enters your code.</strong> Don't let a "string that's secretly always a number" drift through several functions before something finally breaks on it.</li>
+<li><strong>Never introduce a new <code>var</code> in code you're writing today, even inside a file that already has some.</strong> Match the surrounding file's other conventions, but a brand-new declaration is a place where <code>let</code>/<code>const</code> costs nothing and avoids the exact function-vs-block scoping trap shown above.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -81,6 +120,15 @@ console.log(typeof price);</pre>
 <li data-correct="false" data-explain="var still works but has confusing scoping rules from before let/const existed — avoid it in new code.">var</li>
 <li data-correct="true" data-explain="let is block-scoped and reassignable — the sensible modern default.">let</li>
 <li data-correct="false" data-explain="const is for values that never get reassigned after declaration.">const</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A function declares <code>var x = 1;</code>, then inside a nested <code>{ }</code> block declares <code>var x = 2;</code> and logs it, then logs <code>x</code> again after the block ends. What does the second log show?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This would be true with let, not var — let's block scoping keeps the two x's separate. var doesn't respect block boundaries at all." >1 — the inner block's <code>x</code> is a separate variable that doesn't affect the outer one.</li>
+<li data-correct="true" data-explain="MDN's own let reference demonstrates this exact case: var is scoped to functions, not blocks, so the inner 'var x = 2' is the same variable as the outer one, not a new one — it overwrites it, so the outer x reads 2 afterward too." >2 — <code>var</code> is scoped to the whole function, not the inner block, so both declarations are the same variable.</li>
+<li data-correct="false" data-explain="var doesn't throw for a redeclaration like this — it silently reuses the same variable, which is exactly the trap being illustrated." >It throws an error, because <code>x</code> was already declared.</li>
 </ul>
 </div>
 
