@@ -51,6 +51,24 @@ True
 </div>
 
 <p><code>.HasValue</code> tells you whether there's really a value inside. Reading <code>.Value</code> when <code>HasValue</code> is <code>false</code> throws — so <code>??</code> (C#) / <code>If(x, fallback)</code> (VB.NET) is the safe way to read a nullable with a default.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/nullable-value-types">Nullable value types reference</a> states the exact failure mode: <em>"Nullable&lt;T&gt;.Value gets the value of an underlying type if HasValue is true. If HasValue is false, the Value property throws an InvalidOperationException."</em> It also confirms what an uninitialized nullable actually is: <em>"The default value of a nullable value type represents null. It's an instance whose HasValue property returns false."</em>
+</div>
+<div class="callout warn">
+<span class="callout-title">What if you compare a nullable to null with &lt; or &gt;? Both directions come back false</span>
+This is a genuinely surprising, documented rule — the reference is explicit: <em>"For the comparison operators &lt;, &gt;, &lt;=, and &gt;=, if one or both operands are null, the result is false... Don't assume that because a particular comparison (for example, &lt;=) returns false, the opposite comparison (&gt;) returns false."</em> Its own example proves it: with <code>int? a = 10;</code>, <strong>both</strong> <code>a >= null</code> and <code>a < null</code> print <code>False</code> — <code>null</code> isn't "less than everything" or "greater than everything," it simply makes every relational comparison false. Only <code>==</code>/<code>!=</code> behave the way you'd naturally expect against <code>null</code>.
+</div>
+
+<div class="tryit" data-lang="csharp">
+<pre class="tryit-src">int? a = 10;
+Console.WriteLine(a + " >= null is " + (a >= null));
+Console.WriteLine(a + " < null is " + (a < null));
+Console.WriteLine(a + " == null is " + (a == null));</pre>
+<pre class="tryit-output-src">10 >= null is False
+10 < null is False
+10 == null is False</pre>
+</div>
 
 <h2>Example: the null-conditional operator avoids the crash entirely</h2>
 <div class="tryit" data-lang="dual">
@@ -86,9 +104,13 @@ End Sub</pre>
 <span class="callout-title">This is a real, named pattern in reload's own conventions</span>
 You'll meet this pattern again by name later, in <a href="conv-05-data-access.html">Fiuu Code Conventions → Data Access</a>: a real shared helper, <code>Conversion.DBNullToNullableDecimal</code>, maps a database <code>NULL</code> into exactly this kind of nullable value type, precisely so "the column was NULL" and "the column was zero" stay distinguishable once the data reaches C#.
 </div>
+<p class="code-cite">reload/web/DEV/NET/Components/MasterFramework/Database/Conversion.cs (used from reload/web/DEV/NET/Applications/Restorify/Core/Providers/TransactionProvider.cs and ReportProvider.cs)</p>
 
 <h2>Best practice</h2>
-<p>Reach for <code>T?</code> whenever "no value" is a real, meaningful state for that field — not as a lazy substitute for proper validation. A required amount field should never be nullable; an optional "last synced" timestamp genuinely should be.</p>
+<ul>
+<li><strong>Reach for <code>T?</code> whenever "no value" is a real, meaningful state for that field.</strong> Not as a lazy substitute for proper validation. A required amount field should never be nullable; an optional "last synced" timestamp genuinely should be.</li>
+<li><strong>Never compare a nullable value to <code>null</code> with <code>&lt;</code>/<code>&gt;</code>/<code>&lt;=</code>/<code>&gt;=</code> expecting an intuitive "less/greater than everything" result.</strong> Use <code>.HasValue</code> or <code>== null</code>/<code>!= null</code> to actually test presence — the relational operators just return <code>false</code> against <code>null</code>, in both directions, which answers a different question than it looks like.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -97,6 +119,21 @@ You'll meet this pattern again by name later, in <a href="conv-05-data-access.ht
 <li data-correct="false" data-explain="decimal? doesn't run any faster than decimal — this isn't a performance distinction." ><code>decimal?</code> is faster to read from the database.</li>
 <li data-correct="true" data-explain="A plain decimal can't distinguish 'no discount was set' from 'a discount of exactly 0% was explicitly set' — both would just be 0. decimal? preserves that distinction by allowing a genuine null/no-value state." >A plain decimal defaulting to 0 can't distinguish "no discount was ever set" from "a discount of exactly 0 was explicitly set."</li>
 <li data-correct="false" data-explain="Nullable<T> doesn't remove the need for range/validity checks — it only adds the ability to represent 'no value', a separate concern from valid-value bounds." >decimal? automatically validates the value is a legitimate percentage.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="predict" data-answer="False">
+<p class="quiz-q"><code>int? a = 10;</code> — what does <code>a &lt; null</code> print? (exactly as it would appear, mind the capitalization)</p>
+<textarea class="quiz-blank" rows="1"></textarea>
+<button type="button" class="quiz-submit">Check answer</button>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Reading <code>.Value</code> on an <code>int?</code> variable whose <code>HasValue</code> is <code>false</code> throws which exception?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="NullReferenceException is what you'd get from dereferencing a null reference type — a nullable value type's .Value property is documented to throw a different, specific exception instead." >NullReferenceException.</li>
+<li data-correct="true" data-explain="Microsoft's own Nullable value types reference states this directly: 'If HasValue is false, the Value property throws an InvalidOperationException.'" >InvalidOperationException.</li>
+<li data-correct="false" data-explain="This isn't a cast operation — reading .Value doesn't involve an explicit type cast, so InvalidCastException isn't the exception raised here." >InvalidCastException.</li>
 </ul>
 </div>
 
