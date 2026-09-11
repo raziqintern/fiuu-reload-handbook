@@ -34,8 +34,16 @@ Console.WriteLine(String.Join(", ", nums))</pre>
 </div>
 
 <div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort"><code>Array.prototype.sort()</code> reference</a> names the JS trap precisely: <em>"If compareFn is not supplied, all non-undefined array elements are sorted by converting them to strings and comparing strings in UTF-16 code unit order."</em> Its own example: <code>[1, 30, 4, 21, 100000].sort()</code> produces <code>[1, 100000, 21, 30, 4]</code> — sorted as text, not as numbers. Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.array.sort"><code>Array.Sort</code> reference</a> confirms the C# side has no equivalent default-comparison ambiguity to fall into in the first place — it documents the actual algorithm used (<em>"introspective sort (introsort)... If the partition size is less than or equal to 16 elements, it uses an insertion sort algorithm... Otherwise, it uses a Quicksort algorithm"</em>) and its complexity (<em>"This method is an O(n log n) operation"</em>), both defined in terms of the array's actual, statically-known element type.
+</div>
+<div class="callout tip">
 <span class="callout-title">A trap this codebase's languages don't have</span>
 JavaScript's default <code>.sort()</code> converts numbers to text and compares them alphabetically — <code>[10, 1, 21, 2].sort()</code> gives the surprising <code>[1, 10, 2, 21]</code> unless you pass an explicit numeric comparator. C#/VB.NET don't have this trap: <code>int[]</code> is statically typed, so <code>Array.Sort</code> only ever compares actual integers numerically. The equivalent C#/VB.NET failure mode is different — sorting a custom class without implementing <code>IComparable</code> or supplying a comparer is a compile error, not a silent wrong answer.
+</div>
+<div class="callout warn">
+<span class="callout-title">What if not: two equal elements — does Array.Sort keep their original relative order?</span>
+Microsoft's own reference calls this out specifically: <em>"This implementation performs an unstable sort; that is, if two elements are equal, their order might not be preserved. In contrast, a stable sort preserves the order of elements that are equal."</em> Sorting a list of transactions by amount, where several transactions happen to share the exact same amount, is not guaranteed to leave those tied transactions in their original order — <code>Array.Sort</code> doesn't promise that. If preserving original order among ties actually matters, <code>Enumerable.OrderBy</code> (LINQ) is the one to reach for instead — Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.orderby">reference</a> states plainly: <em>"This method performs a stable sort; that is, if the keys of two elements are equal, the order of the elements is preserved."</em>
 </div>
 
 <h2>How a sort actually works: bubble sort, the simplest one</h2>
@@ -101,7 +109,10 @@ Real language built-ins (<code>Array.Sort</code>, C#'s <code>List&lt;T&gt;.Sort<
 </div>
 
 <h2>Best practice</h2>
-<p>Always use <code>Array.Sort</code>/<code>List&lt;T&gt;.Sort</code>/LINQ's <code>.OrderBy(...)</code> for real code. Hand-rolling a sort in production is almost always a sign something else went wrong (usually: not knowing the built-in existed).</p>
+<ul>
+<li><strong>Always use <code>Array.Sort</code>/<code>List&lt;T&gt;.Sort</code>/LINQ's <code>.OrderBy(...)</code> for real code.</strong> Hand-rolling a sort in production is almost always a sign something else went wrong (usually: not knowing the built-in existed).</li>
+<li><strong>Reach for <code>Enumerable.OrderBy</code> specifically when the original relative order of tied elements matters.</strong> <code>Array.Sort</code>/<code>List&lt;T&gt;.Sort</code> are documented as unstable; LINQ's <code>OrderBy</code> is documented as stable.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -110,6 +121,15 @@ Real language built-ins (<code>Array.Sort</code>, C#'s <code>List&lt;T&gt;.Sort<
 <li data-correct="true" data-explain="C#/VB.NET are statically typed — an int[] can only ever contain integers, so Array.Sort's default numeric comparison for integers is always the correct, unambiguous choice. JavaScript arrays can hold anything, so its default sort falls back to a type-agnostic string comparison instead." >The array's element type is known and fixed at compile time, so the default comparison for that type (numeric, for integers) is always well-defined.</li>
 <li data-correct="false" data-explain="Array.Sort's default behavior for a numeric array type doesn't require you to opt in — it already compares correctly by default.">C# secretly requires you to always pass a comparator; the example above is a special case.</li>
 <li data-correct="false" data-explain="This isn't about performance — it's about what the default comparison actually compares (typed values vs. arbitrary values converted to strings).">Array.Sort is simply a newer, unrelated algorithm to JavaScript's sort.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A list of transactions is sorted by amount using <code>Array.Sort</code>. Two transactions happen to have the exact same amount. What does Microsoft's own documentation say about their relative order after sorting?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Microsoft's own Array.Sort reference states this directly: 'This implementation performs an unstable sort; that is, if two elements are equal, their order might not be preserved.'" >It's not guaranteed — <code>Array.Sort</code> is documented as an unstable sort, so tied elements' original order might not survive.</li>
+<li data-correct="false" data-explain="This is the opposite of what Array.Sort's own documentation states — it explicitly calls itself an unstable sort, meaning ties are NOT guaranteed to keep their original order." >It's guaranteed to be preserved — <code>Array.Sort</code> is a stable sort.</li>
+<li data-correct="false" data-explain="Ties don't cause an exception in Array.Sort — equal elements are handled fine, just without an order guarantee between them." >It throws an exception, since <code>Array.Sort</code> can't handle duplicate values.</li>
 </ul>
 </div>
 
