@@ -106,6 +106,10 @@ End Sub</pre>
 </div>
 
 <p>Trace the <code>visited</code> set by hand: <code>CEPP</code> is a neighbor of <em>three</em> different nodes (<code>TRANSACTION</code>, <code>TNG</code>, <code>BILL_PAYMENT</code>), but it only appears once in the output — the first time it's discovered, it's marked visited, and every later attempt to re-queue it is skipped. Remove the <code>visited</code> check entirely and this exact graph would queue <code>CEPP</code> three times over (and on a graph with actual cycles, it would loop forever) — the check isn't optional bookkeeping, it's what makes graph traversal terminate correctly at all.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+This visited-check is only cheap because of what <code>HashSet&lt;T&gt;</code> specifically guarantees: Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.hashset-1.contains"><code>HashSet&lt;T&gt;.Contains</code> reference</a> states plainly in its Remarks: <em>"This method is an O(1) operation."</em> That's exactly why <code>visited</code> is a <code>HashSet&lt;string&gt;</code> and not a <code>List&lt;string&gt;</code> here — checking membership in a list would be an O(n) scan on every single node visited, from <a href="algo-02-arrays-time.html">Arrays &amp; Time Complexity</a>, turning an already-necessary check into an accidental performance problem too.
+</div>
 
 <h2>BFS vs. DFS</h2>
 <table>
@@ -117,8 +121,9 @@ End Sub</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Always track visited nodes in a graph traversal — unlike a tree, a graph can have cycles, and skipping this check risks an infinite loop, not just repeated work.</li>
-<li>Reach for BFS specifically when you need the <em>shortest</em> path in an unweighted graph — DFS will find <em>a</em> path, not necessarily the shortest one.</li>
+<li><strong>Always track visited nodes in a graph traversal.</strong> Unlike a tree, a graph can have cycles, and skipping this check risks an infinite loop, not just repeated work.</li>
+<li><strong>Use a <code>HashSet&lt;T&gt;</code> for the visited set, never a <code>List&lt;T&gt;</code>.</strong> The whole point of the check is a fast O(1) membership test — a list's O(n) <code>.Contains</code> would silently turn an efficient traversal into a quadratic one.</li>
+<li><strong>Reach for BFS specifically when you need the <em>shortest</em> path in an unweighted graph.</strong> DFS will find <em>a</em> path, not necessarily the shortest one.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -131,6 +136,15 @@ End Sub</pre>
 <li data-correct="false" data-explain="Dictionaries in C#/VB.NET don't deduplicate list values across different keys automatically — nothing about the graph's own structure prevents CEPP from being queued multiple times on its own." >Dictionary keys are automatically deduplicated by the language.</li>
 <li data-correct="true" data-explain="The visited set records CEPP the first time any node discovers it, and every later attempt from TNG or BILL_PAYMENT to enqueue it again is skipped by the 'if not visited' check — that's specifically why the check exists." >The visited set ensures each node is only ever enqueued the first time it's discovered, regardless of how many other nodes point to it.</li>
 <li data-correct="false" data-explain="CEPP genuinely has three separate incoming edges in this graph — the graph's structure isn't being simplified, the traversal's bookkeeping is what prevents the duplicate visits." >CEPP only actually has one real connection; the others are duplicates in the graph definition.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">The BFS example uses <code>HashSet&lt;string&gt; visited</code> instead of <code>List&lt;string&gt; visited</code>. Both would work correctly — why is <code>HashSet</code> the better choice?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Both a HashSet<T> and a List<T> can hold arbitrarily many string values — capacity isn't the distinguishing factor between them here." >A <code>List&lt;T&gt;</code> can't hold more than a fixed number of items.</li>
+<li data-correct="true" data-explain="Microsoft's own HashSet<T>.Contains reference states 'This method is an O(1) operation' — a List<T>.Contains would be an O(n) linear scan (per Arrays & Time Complexity) checked on every single node visited during the traversal, turning what should be an efficient O(nodes + edges) algorithm into something much slower." >Checking membership (<code>.Contains</code>) is a documented O(1) operation on <code>HashSet&lt;T&gt;</code>, versus an O(n) scan on a <code>List&lt;T&gt;</code> — and this check runs on every node the traversal touches.</li>
+<li data-correct="false" data-explain="Enqueue/Dequeue order isn't affected by which type the visited set is — that's controlled entirely by the Queue<T>, a separate structure from visited." >A <code>HashSet&lt;T&gt;</code> preserves insertion order, which a <code>List&lt;T&gt;</code> doesn't.</li>
 </ul>
 </div>
 
