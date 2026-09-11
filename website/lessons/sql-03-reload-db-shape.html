@@ -52,7 +52,10 @@ If a merchant's reload succeeded in <code>TRANSACTION</code> but never showed up
 <p>One consequence worth internalising: a single business change ("add a column, and a stored proc to use it") lands as <strong>two separate files in two separate folders</strong>, tied together only by a shared ticket number in the filename. There's no single commit or PR-diff view that shows you "everything this ticket changed" the way you might expect from an application codebase.</p>
 
 <h2>Best practice</h2>
-<p>Before touching an unfamiliar table, check which database it actually lives in and what else references it — a change that looks locally correct in <code>TRANSACTION</code> can have downstream effects in <code>REPORTSUMMARY</code> or <code>DataWarehouse</code> that aren't visible from that one table alone.</p>
+<ul>
+<li><strong>Before touching an unfamiliar table, check which database it actually lives in and what else references it.</strong> A change that looks locally correct in <code>TRANSACTION</code> can have downstream effects in <code>REPORTSUMMARY</code> or <code>DataWarehouse</code> that aren't visible from that one table alone.</li>
+<li><strong>When a bug spans two databases, look for the hop between them first, not either database in isolation.</strong> A row that exists correctly on both sides of a broken hop can make each database look fine when inspected alone.</li>
+</ul>
 
 <h2>Better ways</h2>
 <p>When a fix genuinely needs to touch both a table and a related stored procedure, note the shared ticket number in both filenames even though MAINT's folder structure keeps them physically apart (see <a href="sql-04-conventions.html">Stored Procs, MAINT &amp; NOLOCK</a>) — it's the only thing that lets a future reader reconstruct "everything this change touched" later.</p>
@@ -64,6 +67,15 @@ If a merchant's reload succeeded in <code>TRANSACTION</code> but never showed up
 <li data-correct="false" data-explain="CEPP is master/reference data (org hierarchy, catalogs, lookups) — it's not part of the transactional settlement pipeline itself." >Inside CEPP, since it's the most cross-referenced database.</li>
 <li data-correct="true" data-explain="The documented flow is TRANSACTION -> provider DB -> REPORTSUMMARY -> DataWarehouse. A transaction that exists at the start but is missing from a report downstream points squarely at one of the hops in that pipeline." >Somewhere in the TRANSACTION -> provider DB -> REPORTSUMMARY hop.</li>
 <li data-correct="false" data-explain="EINVOICE is a separate downstream leg for statutory e-invoicing, not part of the settlement-report pipeline.">Inside EINVOICE, since it's the newest addition to the estate.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A ticket adds a new column to a table and a stored procedure that uses it. Where do these two changes land in reload_db's MAINT structure?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="MAINT is organized by object type (Table, StoredProcedure, Function, ...), not by feature or ticket — the two changes end up in different folders even though they're one logical change." >In the same folder together, since they're part of the same feature.</li>
+<li data-correct="true" data-explain="Every database's MAINT folder is organized by object type — Table/, StoredProcedure/, Function/, and so on — not by feature. A table change and a stored procedure change for the same ticket land in two separate folders, tied together only by a shared ticket number in each filename." >In two separate folders — one under <code>Table/</code>, one under <code>StoredProcedure/</code> — tied together only by a shared ticket number in each filename.</li>
+<li data-correct="false" data-explain="reload_db has no per-database version-controlled diff view of this kind — the folder structure is organized by object type, and there's no single view showing everything one ticket touched." >In a single combined diff view generated automatically per ticket number.</li>
 </ul>
 </div>
 
