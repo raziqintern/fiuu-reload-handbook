@@ -76,6 +76,44 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/langu
 A <code>When</code> filter is worth it specifically when you have <strong>multiple <code>Catch</code> blocks for the same exception type</strong>, each wanting different handling depending on some detail of the exception (a status code, an error number). If there's only one <code>Catch</code> for that type, an <code>If</code> inside the block is equally clear and doesn't need the extra syntax — reach for <code>When</code> once you'd otherwise need nested <code>If</code>s inside a single catch block just to re-dispatch on the same condition a <code>When</code> filter could express in the <code>Catch</code> line itself.
 </div>
 
+<h2>Catching a SQL error specifically, and telling one kind of failure from another</h2>
+<p>A generic <code>Catch ex As Exception</code> tells you something failed but nothing about <em>what kind</em> of failure it was — a network timeout, a duplicate key, a deadlock, and a typo in a stored procedure name all just look like "an exception happened." <code>SqlException</code> carries a <code>Number</code> property specifically so code can react differently depending on which SQL Server error actually occurred.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.data.sqlclient.sqlexception.number">SqlException.Number reference</a> states plainly: <em>"Gets a number that identifies the type of error."</em> Its own VB.NET example is the textbook shape — a typed <code>Catch</code> for the specific exception type, then iterating its <code>Errors</code> collection:
+<pre class="code-block">Try
+    command.Connection.Open()
+    command.ExecuteNonQuery()
+Catch ex As SqlException
+    For i = 0 To ex.Errors.Count - 1
+        Console.WriteLine("Error Number: " & ex.Errors(i).Number)
+    Next i
+End Try</pre>
+The reference also points to Microsoft's own <a href="https://learn.microsoft.com/en-us/sql/relational-databases/errors-events/database-engine-events-and-errors">Database Engine Events and Errors</a> catalog for what each number actually means — e.g. <code>2601</code> and <code>2627</code> are both documented there as unique-index/unique-constraint violations.
+</div>
+<p>This codebase's own real pattern looks different from that textbook shape — it checks the exception's <em>type</em> with <code>TypeOf</code> from <strong>inside</strong> a broad <code>Catch ex As Exception</code>, rather than giving <code>SqlException</code> its own typed <code>Catch</code> clause:</p>
+<pre class="code-block">Catch ex As Exception
+    If TypeOf ex Is OutOfMemoryException OrElse TypeOf ex Is ReportExceedLimitException OrElse
+        (TypeOf ex Is SqlException AndAlso CType(ex, SqlException).Class = SQLExceptionClass.NetworkError AndAlso CType(ex, SqlException).Number = SQLExceptionNumber.TimeoutError) Then
+        ' schedule a background report job instead of failing this request inline
+    End If</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/PaymentEnquiry.aspx.vb:2776-2778 (the same shape repeats in ~12 sibling report pages, e.g. ReportSalesTransaction.aspx.vb:674, ReportEInvoice.aspx.vb:217)</p>
+<div class="callout real">
+<span class="callout-title">What if instead the code used a typed <code>Catch ex As SqlException</code> here?</span>
+It would need a <em>second</em>, separate <code>Catch</code> for every other exception type this code also cares about (<code>OutOfMemoryException</code>, <code>ReportExceedLimitException</code>) — VB.NET has no way to write one <code>Catch</code> clause matching several unrelated types at once. The real code's choice — one broad <code>Catch ex As Exception</code>, then <code>TypeOf</code>/<code>OrElse</code> checks inside it — is how this codebase gets "react differently to three specific, unrelated exception types" without three separate <code>Catch</code> blocks each needing their own duplicate follow-up logic. It's a real, working alternative to the textbook shape, not a mistake — but it does mean <code>ex</code> is typed as the base <code>Exception</code> inside the block, so every SQL-specific member access needs an explicit <code>CType(ex, SqlException)</code> first, exactly as shown above.
+</div>
+<p>The genuine, number-specific dispatch — "is this error a duplicate key, or a timeout, or something else entirely" — does exist in this codebase, just on the C# side of the shared <code>class-library</code>, using the more textbook typed <code>Catch</code>:</p>
+<pre class="code-block">catch (SqlException sqlex)
+{
+    if (sqlex.Number == (int)SqlExceptionNumber.ViolationOfUniqueKeyConstraint ||
+        sqlex.Number == (int)SqlExceptionNumber.ViolationOfUniqueIndexConstraint)
+        return false;
+    else
+        throw sqlex;
+}</pre>
+<p class="code-cite">reload/class-library/Reloads/TNG/Providers/FundTransactionProvider.cs:366-373 (SqlExceptionNumber.cs defines ViolationOfUniqueKeyConstraint = 2601, ViolationOfUniqueIndexConstraint = 2627, ExecutionTimeout = -2)</p>
+<p>Same idea in both languages — react to the specific SQL error number, not just "something failed" — expressed through two different real shapes depending on which part of the codebase you're reading.</p>
+
 <h2>Is Nothing / IsNot Nothing — not just style, a real distinction</h2>
 <p>Real, verified code from this exact codebase, showing both the recommended form and the older, more awkward one still present in production:</p>
 <pre class="code-block">If lstTerminalModel Is Nothing Then ...
@@ -98,6 +136,7 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/langu
 <li><strong>Use modern <code>Try</code>/<code>Catch</code>/<code>Finally</code> in all new code.</strong> If you ever encounter VB6-era <code>On Error Goto</code> style error handling in genuinely old code, know that it's a different, older model entirely (a jump target, not structured exception handling) and don't try to mix the two styles in the same procedure.</li>
 <li><strong>Always use <code>Is Nothing</code>/<code>IsNot Nothing</code> for null checks, never <code>= Nothing</code>.</strong> Treat any <code>= Nothing</code> you find in existing code as worth a second look, not necessarily as broken, but as a pattern not to copy forward.</li>
 <li><strong>Order <code>Catch</code> blocks from most specific to least specific, and always finish with a catch-all if you have one.</strong> Once a <code>Catch As Exception</code> (or a bare <code>Catch</code>) appears, every <code>Catch</code> after it is unreachable — the documentation is explicit that control can never reach a later clause.</li>
+<li><strong>React to a specific SQL error number (<code>ex.Number</code>/<code>ex.Errors(i).Number</code>) when different failures genuinely need different handling — not a generic message-string check.</strong> A duplicate-key violation, a timeout, and a deadlock are different, well-defined problems with their own documented numbers; distinguishing them by parsing <code>ex.Message</code> text is fragile in a way checking <code>Number</code> against a real SQL Server error code isn't.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -128,6 +167,24 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/langu
 <li data-correct="false" data-explain="The first Catch's type (OverflowException) doesn't match the thrown ArgumentException at all — a Catch's type must match before its When filter is even considered." >The first handler — its <code>When i = 5</code> condition is true.</li>
 <li data-correct="false" data-explain="The second Catch's type does match (ArgumentException), but its When filter (i = 4) evaluates to False since i is actually 5 — a type match with a failing filter is skipped, not an error." >The second handler — its exception type matches what was thrown.</li>
 <li data-correct="true" data-explain="This is Microsoft's own documented example. The first Catch's type doesn't match. The second Catch's type matches but its When filter (i = 4) is False, so VB.NET moves on rather than stopping or erroring. The third, type-less Catch has a true When filter (i = 5), so it runs — exactly the 'Third handler' output the official reference shows." >The third handler — a type mismatch or a failed <code>When</code> filter both just move on to the next <code>Catch</code>, and this is the first one that both matches and passes its filter.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A real BackOffice report page needs to react differently to three unrelated exception types (<code>OutOfMemoryException</code>, <code>ReportExceedLimitException</code>, and a SQL timeout specifically), all inside one method. Why does the real code use one broad <code>Catch ex As Exception</code> with <code>TypeOf</code> checks inside it, rather than three separate typed <code>Catch</code> clauses?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="A typed Catch ex As SqlException would still need entirely separate Catch clauses for OutOfMemoryException and ReportExceedLimitException — TypeOf isn't required for that combination, but a single Catch ex As SqlException alone wouldn't cover all three types either." >Because <code>SqlException</code> can't be caught with a typed <code>Catch</code> clause at all in VB.NET.</li>
+<li data-correct="true" data-explain="This is exactly the real PaymentEnquiry.aspx.vb pattern — three genuinely unrelated exception types (two of which aren't SQL-related at all) need related handling, and a single Catch ex As Exception plus TypeOf/OrElse checks handles all three without three separate Catch blocks each duplicating the same follow-up logic." >One broad <code>Catch</code> plus <code>TypeOf</code>/<code>OrElse</code> checks lets the same follow-up logic apply across three genuinely unrelated exception types without duplicating that logic in three separate <code>Catch</code> blocks.</li>
+<li data-correct="false" data-explain="This isn't about performance — TypeOf checks and multiple Catch clauses have no meaningfully different runtime cost for exception handling that occurs rarely." >Because checking exception types with <code>TypeOf</code> is faster than a typed <code>Catch</code> clause.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Real code in <code>class-library</code>'s <code>FundTransactionProvider.cs</code> checks <code>sqlex.Number == (int)SqlExceptionNumber.ViolationOfUniqueKeyConstraint</code> (2601) after a failed insert. What's the actual benefit of checking the error <em>number</em> instead of just catching that something failed?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Per Microsoft's own SqlException.Number reference, the Number property 'identifies the type of error' — checking it lets code distinguish 'this specific record already exists' (2601/2627) from every other reason an insert could fail, and react accordingly (e.g. return false instead of throwing), rather than treating all SQL failures identically." >It lets the code distinguish "this record is a duplicate" from every other possible SQL failure, and handle that one specific case differently (returning <code>false</code>) instead of treating every failure identically.</li>
+<li data-correct="false" data-explain="Number checking doesn't change SQL's own retry or timeout behavior — it's purely about how the .NET code classifies and reacts to whatever error SQL Server already reported." >It causes the database to automatically retry the insert.</li>
+<li data-correct="false" data-explain="Checking Number is unrelated to closing connections — that's handled separately (Using blocks, Finally, connection pooling), not by inspecting the exception's error number." >It closes the database connection faster than a generic catch would.</li>
 </ul>
 </div>
 
