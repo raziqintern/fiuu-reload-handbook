@@ -25,6 +25,11 @@
 <li><strong>Respond to every comment, not just the ones you agree with.</strong> "Disagree because X" is a valid response; silence isn't — it leaves the reviewer unsure whether you saw the comment at all.</li>
 </ul>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Google's published <a href="https://google.github.io/eng-practices/review/reviewer/standard.html">Engineering Practices — The Standard of Code Review</a> states the core rule reviewers actually follow at scale: <em>"In general, reviewers should favor approving a CL once it is in a state where it definitely improves the overall code health of the system being worked on, even if the CL isn't perfect."</em> And explicitly: <em>"Reviewers should not require the author to polish every tiny piece of a CL before granting approval."</em> The goal is "better," not "perfect" — a real, named principle behind the priority order below, not just personal taste.
+</div>
+
 <h2>As a reviewer: what to actually look for, in priority order</h2>
 <ol>
 <li><strong>Correctness first.</strong> Does it do what it claims to do? Are there edge cases (empty input, null, the boundary values) that aren't handled?</li>
@@ -46,6 +51,13 @@
 It's tempting to treat "this MR needed 10 rounds of revision" as evidence of poor initial work. As you'll see in the real data in <a href="dbg-03-review-checklist.html">What Reviewers Actually Flag</a>, high revision counts in a real project often reflect evolving requirements discovered mid-review, not repeated rejection of the same mistake. Look at what actually changed between revisions before drawing a conclusion from the count.
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li><strong>As a reviewer, approve once the change definitely improves code health, even if it isn't perfect.</strong> Per Google's own published standard — blocking on "polish every tiny piece" trades a real improvement for an indefinitely-delayed one.</li>
+<li><strong>As an author, keep changes small enough that a reviewer can actually hold the whole thing in their head.</strong> A change that's too large to review properly gets rubber-stamped instead, which defeats the point of review entirely.</li>
+<li><strong>Save disagreements about taste for a separate conversation, not the review thread of a specific change.</strong> A recurring style disagreement is a signal to write it down as a team convention once, not to relitigate on every diff.</li>
+</ul>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">As a reviewer, you notice both a genuine null-reference risk and a minor spacing inconsistency in the same diff. What's the right priority?</p>
@@ -53,6 +65,15 @@ It's tempting to treat "this MR needed 10 rounds of revision" as evidence of poo
 <li data-correct="false" data-explain="Correctness/safety issues like a real null-reference risk should take priority over minor style concerns — spacing rarely causes an incident." >Flag the spacing first — style issues are quick to fix and should be cleared before anything else.</li>
 <li data-correct="true" data-explain="Correctness and safety issues come first in review priority — a null-reference risk can cause a real production failure, while a spacing inconsistency is cosmetic and often better left to an automated formatter anyway." >Flag the null-reference risk as the priority — it's a correctness/safety issue, well above a cosmetic nitpick.</li>
 <li data-correct="false" data-explain="Ignoring a genuine correctness issue because a smaller one is more comfortable to raise is exactly the wrong instinct — the more important issue should be surfaced, not avoided.">Only mention the spacing issue, since it's less likely to start an argument.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A merge request definitely improves the overall code health of the system, but a reviewer can think of two or three small stylistic tweaks that would make it even better. Per Google's published code review standard, what should the reviewer do?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Google's own published standard states the opposite: 'Reviewers should not require the author to polish every tiny piece of a CL before granting approval.' Blocking approval on this basis contradicts the documented standard." >Block approval until every one of those tweaks is made, since more polish is always better.</li>
+<li data-correct="true" data-explain="Google's own Standard of Code Review states this directly: 'reviewers should favor approving a CL once it is in a state where it definitely improves the overall code health of the system being worked on, even if the CL isn't perfect.'" >Approve it — the change already improves code health, and the standard explicitly doesn't require perfection before approval.</li>
+<li data-correct="false" data-explain="Silently fixing it yourself bypasses the author and the review process itself — the documented standard is about approving imperfect-but-improving changes, not about reviewers rewriting code unilaterally." >Silently rewrite those parts yourself and merge it without further comment.</li>
 </ul>
 </div>
 
