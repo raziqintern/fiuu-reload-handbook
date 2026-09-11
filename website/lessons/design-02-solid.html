@@ -19,6 +19,10 @@
 
 <h2>S — Single Responsibility</h2>
 <p>A class should have one reason to change. This is exactly why reload splits each module into Model/Provider/Service (<a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>): a <code>Provider</code> changes only when data-access logic changes; a <code>Service</code> changes only when business rules change. Mixing both into one class means a change to either reason touches the same file.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles">Architectural principles reference</a> states the rule in the same terms: <em>"It states that objects should have only one responsibility and that they should have only one reason to change... Following this principle helps to produce more loosely coupled and modular systems, since many kinds of new behavior can be implemented as new classes, rather than by adding additional responsibility to existing classes."</em>
+</div>
 
 <h2>O — Open/Closed</h2>
 <p>Code should be open to extension, closed to modification — you should be able to add new behavior without editing existing, working code. The <code>PaymentMethod</code> hierarchy from <a href="design-01-oop-pillars.html">OOP Pillars</a> demonstrates this: adding a new payment method means writing a new subclass, not editing the loop that calls <code>process()</code>.</p>
@@ -30,10 +34,103 @@
 <p>Don't force a class to implement methods it doesn't need. A bloated <code>IPaymentService</code> with 15 methods, where most implementations only genuinely need 3, pressures every new implementer into writing empty/throwing stubs for the rest. Smaller, focused interfaces (reload's real <code>ITerminalService</code> has exactly the methods a terminal service needs, nothing more) are easier to implement correctly.</p>
 
 <h2>D — Dependency Inversion</h2>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own reference states the direction of the inversion precisely: <em>"The direction of dependency within the application should be in the direction of abstraction, not implementation details... Applying the dependency inversion principle allows A to call methods on an abstraction that B implements, making it possible for A to call B at run time, but for B to depend on an interface controlled by A at compile time (thus, inverting the typical compile-time dependency)."</em> The word "inversion" refers to exactly that flip — without it, the natural compile-time dependency graph would run the same direction as the runtime call graph; the principle deliberately breaks that symmetry.
+</div>
 <div class="callout real">
 <span class="callout-title">You've already seen this in real reload code</span>
 High-level code should depend on abstractions, not concrete implementations. <code>TerminalService</code> depending on <code>IAccountService</code> (an interface) rather than a concrete <code>AccountService</code> class — resolved lazily via <code>EngineContext.Current.Resolve&lt;IAccountService&gt;()</code>, see <a href="conv-02-layering.html">Layering</a> — is dependency inversion in action. The Service layer never needs to know which concrete class actually implements the interface.
 </div>
+<p>What the inversion actually buys you, made concrete — the same <code>TerminalService</code> class, swapped between two different <code>IAccountService</code> implementations with zero changes to <code>TerminalService</code> itself:</p>
+<div class="tryit" data-lang="dual">
+<div class="tryit-variant" data-variant-lang="csharp">
+<pre class="tryit-src">public interface IAccountService
+{
+    double GetBalance(string accountId);
+}
+
+public class RealAccountService : IAccountService
+{
+    public double GetBalance(string accountId) => 100.0; // a real DB lookup, in production
+}
+
+public class FakeAccountService : IAccountService
+{
+    public double GetBalance(string accountId) => 999.0; // a stand-in, e.g. for a test
+}
+
+public class TerminalService
+{
+    private readonly IAccountService _accountService;
+    public TerminalService(IAccountService accountService)
+    {
+        _accountService = accountService; // depends on the interface, never the concrete class
+    }
+    public void ReportBalance(string accountId)
+    {
+        Console.WriteLine("Balance: " + _accountService.GetBalance(accountId));
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        new TerminalService(new RealAccountService()).ReportBalance("A1");
+        new TerminalService(new FakeAccountService()).ReportBalance("A1");
+    }
+}</pre>
+<pre class="tryit-output-src">Balance: 100
+Balance: 999</pre>
+</div>
+<div class="tryit-variant" data-variant-lang="vbnet">
+<pre class="tryit-src">Public Interface IAccountService
+    Function GetBalance(accountId As String) As Double
+End Interface
+
+Public Class RealAccountService
+    Implements IAccountService
+    Public Function GetBalance(accountId As String) As Double Implements IAccountService.GetBalance
+        Return 100.0 ' a real DB lookup, in production
+    End Function
+End Class
+
+Public Class FakeAccountService
+    Implements IAccountService
+    Public Function GetBalance(accountId As String) As Double Implements IAccountService.GetBalance
+        Return 999.0 ' a stand-in, e.g. for a test
+    End Function
+End Class
+
+Public Class TerminalService
+    Private ReadOnly _accountService As IAccountService
+    Public Sub New(accountService As IAccountService)
+        _accountService = accountService ' depends on the interface, never the concrete class
+    End Sub
+    Public Sub ReportBalance(accountId As String)
+        Console.WriteLine("Balance: " & _accountService.GetBalance(accountId))
+    End Sub
+End Class
+
+Module Program
+    Sub Main()
+        Call New TerminalService(New RealAccountService()).ReportBalance("A1")
+        Call New TerminalService(New FakeAccountService()).ReportBalance("A1")
+    End Sub
+End Module</pre>
+<pre class="tryit-output-src">Balance: 100
+Balance: 999</pre>
+</div>
+</div>
+<p><code>TerminalService</code>'s own source code never mentions <code>RealAccountService</code> or <code>FakeAccountService</code> — it was written once, against the interface, and works correctly with either. That's the practical payoff: swapping implementations (a real service in production, a fake one in a test) needs zero changes to the class doing the depending.</p>
+
+<h2>Best practice</h2>
+<ul>
+<li><strong>Split a class the moment it has two genuinely unrelated reasons to change.</strong> Validation rules and persistence logic are the classic pair — reload's own Model/Provider/Service split exists precisely to keep them apart.</li>
+<li><strong>Depend on an interface in a constructor parameter whenever the concrete implementation might reasonably change.</strong> A production/test swap, or a future second provider, becomes a one-line change instead of a rewrite.</li>
+<li><strong>Keep an interface small enough that every real implementer needs every method on it.</strong> A method that most implementations have to stub out or throw from is a sign the interface should be split.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -42,6 +139,15 @@ High-level code should depend on abstractions, not concrete implementations. <co
 <li data-correct="true" data-explain="Validation logic and data-persistence logic are two separate reasons to change this class — a change in validation rules and a change in how data is stored are unrelated concerns bundled into one class. That's exactly the Model/Provider/Service split's reason to exist." >Single Responsibility — the class now has two unrelated reasons to change.</li>
 <li data-correct="false" data-explain="Nothing here is about substituting one type for another — that's Liskov Substitution, a different concern." >Liskov Substitution — the class can't be substituted for its parent.</li>
 <li data-correct="false" data-explain="Interface Segregation is about interfaces being too broad for their implementers — this scenario describes one concrete class doing two jobs, not an interface design issue." >Interface Segregation — the interface has too many methods.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>TerminalService</code> takes an <code>IAccountService</code> in its constructor rather than creating a <code>new RealAccountService()</code> internally. What does this specifically enable, per the Dependency Inversion example above?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This isn't about runtime speed — dependency inversion is an architectural/testability concern, not a performance optimization." >It makes <code>TerminalService</code> run faster.</li>
+<li data-correct="true" data-explain="Because TerminalService depends only on the IAccountService interface, swapping RealAccountService for FakeAccountService (or any other implementation) requires zero changes to TerminalService's own source code -- exactly what the tryit example demonstrates by producing different output from the same TerminalService class." >Swapping which concrete <code>IAccountService</code> implementation is used (real vs. fake, for example) without changing <code>TerminalService</code>'s own code at all.</li>
+<li data-correct="false" data-explain="Dependency inversion doesn't change what an interface method returns — GetBalance's return type is the same regardless of which implementation is plugged in." >It changes <code>GetBalance</code>'s return type based on which implementation is used.</li>
 </ul>
 </div>
 
