@@ -26,6 +26,10 @@ private IAccountService AccountCompo
 }</pre>
 <p class="code-cite">reload/class-library/Reloads/TNG/Services/TerminalService.cs:35-39</p>
 <p>Instead of receiving <code>IAccountService</code> as a constructor parameter (the more modern <strong>Dependency Injection</strong> approach you'll see recommended almost everywhere today), <code>TerminalService</code> asks a central registry (<code>EngineContext.Current</code>) for it, lazily, the first time it's actually used. This is the <strong>Service Locator</strong> pattern — a real, working, if somewhat dated, alternative to constructor injection. You saw this first in <a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>; the callout there is worth re-reading now that you know the pattern's name: don't "fix" it to constructor injection unless that's the actual scope of your change.</p>
+<div class="callout warn">
+<span class="callout-title">Official documentation — the real, named critique of Service Locator</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles">Architectural principles reference</a> doesn't name Service Locator directly, but its <strong>Explicit Dependencies Principle</strong> describes exactly the shape of what's wrong with it: <em>"Methods and classes should explicitly require any collaborating objects they need in order to function correctly... If you define classes that can be constructed and called, but that will only function properly if certain global or infrastructure components are in place, these classes are being dishonest with their clients. The constructor contract is telling the client that it only needs the things specified... but then at runtime it turns out the object really did need something else."</em> That's precisely what <code>TerminalService</code>'s constructor does — its public signature doesn't reveal that it actually needs <code>IAccountService</code> to be registered in <code>EngineContext</code> to work correctly. This is a real, principled reason Dependency Injection is preferred in new code, not just current fashion.
+</div>
 
 <h2>Template Method</h2>
 <p><strong>The problem it solves:</strong> several related operations share the same overall sequence of steps, but a couple of the steps need to vary per case.</p>
@@ -44,6 +48,13 @@ protected override int ValidateParameters(ContractRequest appReq) { ... }</pre>
 "This should use the Repository pattern" is a much faster, more precise code-review comment than re-explaining "you should separate data access from business logic" from scratch every time. Learning the vocabulary is a communication tool, not just trivia.
 </div>
 
+<h2>Best practice</h2>
+<ul>
+<li><strong>Recognize Service Locator when you see it, but don't introduce new instances of it in new code.</strong> Prefer constructor injection so a class's real dependencies are visible in its own signature, per the Explicit Dependencies Principle above.</li>
+<li><strong>Reach for Template Method only when the shared steps genuinely outnumber the varying ones.</strong> If most of the "algorithm" varies per case, a flat, no-inheritance style (like TNG/Game use) communicates the variability more honestly than a base class with mostly-overridden hooks.</li>
+<li><strong>Name the pattern explicitly in a code review comment instead of re-explaining the underlying idea from scratch.</strong> "This should use the Repository pattern" is faster and more precise than "you should separate data access from business logic."</li>
+</ul>
+
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
 <p class="quiz-q">You see a class resolve a dependency via <code>EngineContext.Current.Resolve&lt;ISomeService&gt;()</code> inside a lazily-evaluated property, instead of receiving it through the constructor. What pattern is this?</p>
@@ -51,6 +62,15 @@ protected override int ValidateParameters(ContractRequest appReq) { ... }</pre>
 <li data-correct="false" data-explain="Template Method is about a base class defining an algorithm's shape with overridable steps — this is about how a dependency gets obtained, a different concern entirely." >Template Method.</li>
 <li data-correct="true" data-explain="Asking a central registry/container for a dependency at the point of use, rather than having it handed in via the constructor, is the defining shape of the Service Locator pattern — exactly what TerminalService does for its cross-Service dependencies." >Service Locator.</li>
 <li data-correct="false" data-explain="Repository/Provider is about isolating data-access logic behind a dedicated class — unrelated to how a dependency is obtained." >Repository.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Per Microsoft's own Explicit Dependencies Principle, what's the actual problem with a class whose constructor takes no parameters, but which secretly requires a global registry to have a dependency already registered before it will work?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="The Explicit Dependencies Principle isn't about runtime performance — it's about whether a class's constructor honestly represents what the class actually needs to function." >It makes the class slower at runtime than constructor injection would.</li>
+<li data-correct="true" data-explain="Microsoft's own reference states this directly: such a class is 'being dishonest with their clients. The constructor contract is telling the client that it only needs the things specified... but then at runtime it turns out the object really did need something else.' The parameterless constructor implies no real dependencies, which is false." >The constructor's signature implies the class needs nothing external to function, but that's false — it's dishonest about what the class actually requires.</li>
+<li data-correct="false" data-explain="This isn't a compile-time issue at all — a parameterless constructor compiles fine regardless of what the class secretly needs at runtime from a registry." >The code won't compile without the registry being registered first.</li>
 </ul>
 </div>
 
