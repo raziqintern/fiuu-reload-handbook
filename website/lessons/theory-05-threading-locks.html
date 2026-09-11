@@ -76,6 +76,14 @@ End Sub</pre>
 </div>
 
 <p><code>lock</code> (C#) / <code>SyncLock</code> (VB.NET) guarantees only one thread can be inside the block touching <code>counter</code> at a time — any other thread that arrives has to wait its turn. That's what makes concurrent increments safe instead of racy.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/lock">lock statement reference</a> defines exactly what it guarantees: <em>"Any other thread is blocked from acquiring the lock and waits until the lock is released. The lock statement ensures that at most only one thread executes its body at any moment in time."</em> It also names something worth knowing before combining this with the previous lesson: <em>"You can't use the await expression in the body of a lock statement."</em> A lock and an <code>await</code> don't mix in the same block — awaiting can hand the thread to a different piece of work entirely, which defeats the whole point of holding an exclusive lock.
+</div>
+<div class="callout warn">
+<span class="callout-title">What if you lock on the wrong kind of object? Deadlock risk, not a syntax error</span>
+The same reference's own guidelines section warns specifically against three common choices: <em>"avoid using the following instances as lock objects: this, as callers might also lock this. Type instances, as they might be obtained by the typeof operator or reflection. string instances, including string literals, as they might be interned."</em> All three compile without complaint — the real risk is that some other, completely unrelated piece of code might independently lock the exact same object (<code>this</code>, a shared <code>Type</code>, or an interned string with the same text), creating lock contention or a deadlock that has nothing to do with the logic you're protecting. A dedicated, private object created solely to be a lock — exactly like <code>_lockObj</code>/<code>lockObj</code> above — sidesteps this entirely, because nothing else in the program could possibly be locking on it.
+</div>
 
 <h2>The real cost of a lock: it can turn a small slowdown into a queue</h2>
 <div class="callout real">
@@ -87,8 +95,9 @@ This is issue #2592, which gets a full worked-example treatment later in <a href
 
 <h2>Best practice</h2>
 <ul>
-<li>Keep the code inside a <code>lock</code>/<code>SyncLock</code> block as short and fast as possible — nothing that does I/O, calls a network API, or opens a file/certificate should live inside one.</li>
-<li>If you're debugging a "gets slower over time, especially under load, and a restart temporarily fixes it" report, check for exactly this shape: a resource leak sitting inside a lock.</li>
+<li><strong>Keep the code inside a <code>lock</code>/<code>SyncLock</code> block as short and fast as possible.</strong> Nothing that does I/O, calls a network API, or opens a file/certificate should live inside one.</li>
+<li><strong>If you're debugging a "gets slower over time, especially under load, and a restart temporarily fixes it" report, check for exactly this shape.</strong> A resource leak sitting inside a lock.</li>
+<li><strong>Lock only on a dedicated, private object created solely for that purpose.</strong> Never on <code>this</code>, a <code>Type</code> instance, or a string — per Microsoft's own guidance, any of those could be locked by unrelated code elsewhere, causing contention or deadlock that has nothing to do with the resource you're actually protecting.</li>
 </ul>
 
 <h2>Check your understanding</h2>
@@ -98,6 +107,15 @@ This is issue #2592, which gets a full worked-example treatment later in <a href
 <li data-correct="false" data-explain="The certificate/key handle leak was the root cause of the slowdown existing at all — but on its own, that would just make each lookup a bit slower over time, not turn into a compounding backlog." >Because certificate files are always slow to open in .NET.</li>
 <li data-correct="true" data-explain="Because the slow, leaking operation ran inside a per-account lock, every other transaction for that account had to wait for the current one to finish — as the leak made each one slightly slower, the queue behind the lock kept growing." >Because the slow operation ran inside a per-account lock, so every other transaction for that account had to wait its turn behind it.</li>
 <li data-correct="false" data-explain="The incident's own root-cause analysis attributes the compounding effect specifically to the lock, not to garbage collection.">Because the .NET garbage collector paused the whole application periodically.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why does Microsoft's own guidance specifically warn against using <code>lock (this)</code> inside a class?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="lock (this) compiles and runs fine syntactically — the problem isn't a compile error, it's a design risk around who else might lock the same object." >It's a compile error — <code>this</code> can't be used as a lock target.</li>
+<li data-correct="true" data-explain="Microsoft's own lock statement reference states this exactly: avoid locking on 'this, as callers might also lock this.' Any external code that happens to hold a reference to the object could independently lock it too, creating contention or a deadlock unrelated to what your own lock is meant to protect." >Any other code that holds a reference to the same object instance could independently lock <code>this</code> too, creating unexpected contention or deadlock.</li>
+<li data-correct="false" data-explain="lock (this) works the same as any other reference-type lock target at runtime — it isn't slower, the concern is about who else might share the same lock object." ><code>this</code> is slower to lock on than a dedicated object.</li>
 </ul>
 </div>
 
