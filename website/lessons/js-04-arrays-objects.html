@@ -49,6 +49,28 @@ console.log("Over 20:", large);</pre>
 </div>
 
 <p><code>.filter()</code>, <code>.map()</code>, and <code>.reduce()</code> are the three you'll see constantly: filter keeps items matching a condition, map transforms every item into something else, reduce collapses the whole array into one value.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce"><code>Array.prototype.reduce()</code> reference</a> is precise about the role of that <code>0</code> at the end: <em>"The first time that the callback is run there is no 'return value of the previous calculation'. If supplied, an initial value may be used in its place. Otherwise the array element at index 0 is used as the initial value and iteration starts from the next element."</em>
+</div>
+<div class="callout warn">
+<span class="callout-title">What if the array is empty? The initial value stops being optional</span>
+<code>amounts.reduce((sum, a) => sum + a, 0)</code> on an empty array simply returns <code>0</code> — the initial value the code supplied, with the callback never called at all. Drop the <code>0</code> — <code>amounts.reduce((sum, a) => sum + a)</code> — and per the documented fallback rule above, an empty array has no element at index 0 to use instead, so it throws <code>TypeError: Reduce of empty array with no initial value</code>. Always supply an initial value for <code>reduce</code> unless you're certain the array can never be empty.
+</div>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">const noTransactions = [];
+
+// With an initial value: safe on an empty array.
+console.log("With initial value:", noTransactions.reduce((sum, a) => sum + a, 0));
+
+// Without one: throws, because there's no element at index 0
+// to fall back to, and the callback never runs at all.
+try {
+  noTransactions.reduce((sum, a) => sum + a);
+} catch (e) {
+  console.log("Without initial value:", e.message);
+}</pre>
+</div>
 
 <h2>Arrays of objects — the shape of most real data</h2>
 <div class="tryit" data-lang="js">
@@ -72,8 +94,9 @@ When you inspect a Network request in DevTools and see a response body, it's alm
 
 <h2>Best practice</h2>
 <ul>
-<li>Prefer <code>.filter()</code>/<code>.map()</code>/<code>.reduce()</code> over a hand-written loop that builds up a result array — they say what you want (filter, transform, combine) instead of how to loop, and are far harder to get subtly wrong.</li>
-<li>Don't mutate an array/object you don't own (one passed in as a parameter) unless the function's whole job is explicitly to do that — an unexpected mutation is one of the most common "spooky action at a distance" bugs, and you'll see the formal reason why in <a href="theory-01-value-reference-types.html">C#/.NET Deep Dives → Value vs. Reference Types</a>.</li>
+<li><strong>Prefer <code>.filter()</code>/<code>.map()</code>/<code>.reduce()</code> over a hand-written loop that builds up a result array.</strong> They say what you want (filter, transform, combine) instead of how to loop, and are far harder to get subtly wrong.</li>
+<li><strong>Don't mutate an array/object you don't own (one passed in as a parameter) unless the function's whole job is explicitly to do that.</strong> An unexpected mutation is one of the most common "spooky action at a distance" bugs, and you'll see the formal reason why in <a href="theory-01-value-reference-types.html">C#/.NET Deep Dives → Value vs. Reference Types</a>.</li>
+<li><strong>Always supply an initial value to <code>reduce</code> unless the array is provably never empty.</strong> The version without one throws on an empty array instead of returning a sensible default.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -86,6 +109,15 @@ When you inspect a Network request in DevTools and see a response body, it's alm
 <li data-correct="false" data-explain="filter never returns a single value on its own — it always returns an array, even if that array has 0 or 1 items.">The single pending transaction object.</li>
 <li data-correct="true" data-explain="filter always returns a new array containing every item for which the condition was true — even if that means an empty array or exactly one item." >A new array containing every transaction whose status is \"Pending\".</li>
 <li data-correct="false" data-explain="That's what .some() does — filter always returns the matching array, not a boolean.">true or false, depending on whether any transaction is pending.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>[].reduce((sum, a) => sum + a)</code> is called on a genuinely empty array, with no initial value supplied. What happens?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="0 would be the answer if an initial value of 0 were supplied — but none was here, and MDN's own reduce reference is explicit that without one, an empty array has no element at index 0 to fall back to." >It returns <code>0</code>, since there's nothing to sum.</li>
+<li data-correct="true" data-explain="MDN's own reduce() reference documents exactly this: without an initial value, 'the array element at index 0 is used as the initial value' — but an empty array has no index 0, so this throws TypeError: Reduce of empty array with no initial value." >It throws a <code>TypeError</code>, because there's no initial value and no element at index 0 to use instead.</li>
+<li data-correct="false" data-explain="reduce doesn't return undefined for this case — it throws, per its own documented fallback rule." >It returns <code>undefined</code>.</li>
 </ul>
 </div>
 
