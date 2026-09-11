@@ -43,6 +43,11 @@ Once the trail dead-ends at a commit that's provably about something else (a ren
 Checking ancestry directly showed the two commits had <strong>diverged</strong> from a common point — neither was an ancestor of the other. The branch's own reference wasn't even about the same change: it turned out to be a different ticket's class-library revision, carried along incidentally from an earlier merge, not anything the branch's own work had introduced. Resetting the environment's pointer to that value would have moved it <em>backward</em> relative to unrelated fixes that had landed there in the meantime — a real regression a passing build would never catch, since a successful build only proves the referenced API surface still compiles, not that other tickets' changes are still present.
 </div>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Git's own <a href="https://git-scm.com/docs/git-merge-base">git-merge-base reference</a> defines <code>--is-ancestor</code> precisely: <em>"Check if the first &lt;commit&gt; is an ancestor of the second &lt;commit&gt;, and exit with status 0 if true, or with status 1 if not."</em> That's a direct, binary answer to exactly the question that mattered here — not "which commit has a later timestamp," which two diverged commits can answer either way depending on when each line of work happened to be committed, regardless of which one actually descends from the other.
+</div>
+
 <p>The generalizable move: before resetting or aligning any shared reference — a submodule commit, a deployment tag, any pointer more than one team's changes flow through — check ancestry (<code>git merge-base</code>, or <code>git log --graph</code> across both refs) rather than comparing dates or assuming "the one my change needs" is safe to force onto a shared target. Two histories that look related can have quietly diverged, and a confident-looking reset can be the more dangerous action, not the safe default.</p>
 
 <h2>Best practice</h2>
@@ -58,6 +63,15 @@ Checking ancestry directly showed the two commits had <strong>diverged</strong> 
 <li data-correct="true" data-explain="A commit that reintroduces a file wholesale (a rename, move, or bulk refactor) will show up as the 'origin' of every line in that file as far as line-history tools are concerned, regardless of when the behavior was actually decided. Treat this as a dead end for this specific question, not as the real answer." >The commit is very likely just where the file got relocated/rewritten wholesale — it's probably not when this specific behavior was actually decided, and the trail likely can't be followed further back reliably.</li>
 <li data-correct="false" data-explain="Line-history tools attribute lines to whatever commit last touched that exact line at that exact path — a bulk move or rewrite resets that trail, so the timing here says more about the refactor than about the specific logic." >The behavior was definitely introduced specifically for that refactor ticket, since that's what git says.</li>
 <li data-correct="false" data-explain="git log -S and blame are working exactly as designed here — they're just answering a narrower question than 'why does this behavior exist,' not malfunctioning." >This means git blame/log -S is broken and shouldn't be trusted for this file going forward.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Two commits, A and B, both modify the same submodule reference. B has a later commit timestamp than A. What does <code>git merge-base --is-ancestor A B</code> actually tell you that the timestamps alone don't?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Per Git's own reference, --is-ancestor answers exactly this: whether A is actually in B's history, exiting 0 if true and 1 if not. Two commits can have any timestamp relationship at all while having diverged from a common point — a later timestamp on B doesn't establish that A's changes are part of B." >Whether A is genuinely part of B's history — a later timestamp on B doesn't by itself prove B descends from A; the two could have diverged instead.</li>
+<li data-correct="false" data-explain="merge-base --is-ancestor doesn't compare authorship — it answers a pure history/ancestry question, regardless of who committed which one." >Which commit was authored by a more senior engineer.</li>
+<li data-correct="false" data-explain="This command doesn't run or evaluate a build — it only inspects commit ancestry in the repository's history graph.">Whether the code at each commit currently compiles.</li>
 </ul>
 </div>
 
