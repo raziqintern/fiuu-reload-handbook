@@ -27,6 +27,10 @@
 <tr><td><strong>Reference type</strong></td><td><code>class</code>, arrays, <code>string</code>*, <code>List&lt;T&gt;</code></td><td>Copies the reference (a pointer to the object). Both variables point at the <em>same</em> object.</td></tr>
 </table>
 <p>* <code>string</code> is technically a reference type, but it's <strong>immutable</strong> — every operation that looks like it "changes" a string actually creates a new one, so it behaves like a value type in practice. This is worth knowing so it doesn't confuse the mental model below.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/value-types">Value types reference</a> states the core distinction precisely: <em>"A variable of a value type contains an instance of the type. This behavior differs from a variable of a reference type, which contains a reference to an instance of the type."</em> By default, <em>"on assignment, passing an argument to a method, and returning a method result, you copy variable values. In the case of value-type variables, you copy the corresponding type instances."</em> For a reference type, what gets copied is the reference itself, not the object it points to — which is exactly why <code>t1</code> and <code>t2</code> below end up pointing at one shared <code>Terminal</code>.
+</div>
 
 <h2>Example: watch the difference happen</h2>
 <div class="tryit" data-lang="dual">
@@ -78,6 +82,10 @@ t1.Id = TNG-9999, t2.Id = TNG-9999</pre>
 </div>
 
 <p>Changing <code>b</code> never touches <code>a</code> — they're independent copies. But changing <code>t2.Id</code> also changes what <code>t1.Id</code> reports, because <code>t1</code> and <code>t2</code> are two labels pointing at the exact same <code>Terminal</code> object in memory. This is the single most common source of "I didn't even touch that variable, why did it change?" bugs in object-oriented code.</p>
+<div class="callout warn">
+<span class="callout-title">What if a value type itself holds a reference-type field? Copying gets one layer deeper</span>
+The rule above isn't "value type = fully independent, always" — it's specifically about the top-level copy. Microsoft's own reference is precise about this: <em>"If a value type contains a data member of a reference type, you copy only the reference to the instance of the reference type when you copy a value-type instance. Both the copy and original value-type instance have access to the same reference-type instance."</em> Concretely: a <code>struct</code> holding a <code>List&lt;string&gt;</code> field gets copied as a whole struct on assignment, but that copy's list field still points at the exact same list as the original — mutating the list through either copy is visible through both. Copying a value type copies its own fields' values, one level deep; it does not deep-copy an object referenced by one of those fields.
+</div>
 
 <h2>Where they actually live: stack vs. heap</h2>
 <p>As a working simplification: local value-type variables live on the <strong>stack</strong> — a fast, function-call-scoped region that's automatically reclaimed the instant the method returns. Objects created with <code>new</code> (reference types) live on the <strong>heap</strong> — a larger, longer-lived region managed by the garbage collector (see <a href="theory-07-garbage-collection.html">Garbage Collection &amp; Object Lifetime</a>), which can outlive the method that created them. A local variable holding a reference type is itself just a small pointer on the stack, pointing into the heap.</p>
@@ -88,7 +96,10 @@ Value types nested inside a class (a field of type <code>int</code> on a heap-al
 </div>
 
 <h2>Best practice</h2>
-<p>Be deliberate when passing a reference-type object into a method that might mutate it — the caller's object changes too, which is sometimes exactly what you want (mutating a shared cache) and sometimes a bug (an unintended side effect on data the caller still needs unchanged).</p>
+<ul>
+<li><strong>Be deliberate when passing a reference-type object into a method that might mutate it.</strong> The caller's object changes too, which is sometimes exactly what you want (mutating a shared cache) and sometimes a bug (an unintended side effect on data the caller still needs unchanged).</li>
+<li><strong>Remember a value type's independence only goes one level deep.</strong> A struct holding a reference-type field (a list, an array, a class instance) still shares that inner object across every copy — don't assume "it's a struct, so it's fully safe to copy" without checking what's inside it.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -97,6 +108,15 @@ Value types nested inside a class (a field of type <code>int</code> on a heap-al
 <li data-correct="false" data-explain="That would be true if Terminal were a value type (a struct) — but a class is a reference type, so the parameter is a reference to the same object, not a copy." >Nothing — the method only had a copy, so the original is untouched.</li>
 <li data-correct="true" data-explain="Terminal is a class (reference type). Passing it into a method passes a reference to the same object on the heap — changes made through that reference are visible to the caller too, since there's only ever one object." >The caller's object is changed too — the method was working on the same object, not a copy.</li>
 <li data-correct="false" data-explain="C# doesn't ask for permission here — mutating a reference type's fields/properties through any reference to it always affects every reference to that same object, unless you deliberately create a copy first.">It depends on whether the method has explicit permission to mutate it.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A <code>struct PaymentBatch</code> has a field <code>public List&lt;string&gt; TransactionIds;</code>. Code copies one <code>PaymentBatch</code> variable into another, then adds a new ID to the copy's <code>TransactionIds</code> list. Does the original <code>PaymentBatch</code>'s list see the new ID too?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This would be true only if TransactionIds were itself copied as an independent list — but List<T> is a reference type, and copying a struct only copies the reference to it, not the list's contents." >No — copying a struct always produces a fully independent copy, including everything inside it.</li>
+<li data-correct="true" data-explain="Microsoft's own Value types reference states this directly: copying a value type that contains a reference-type field only copies the reference, and 'both the copy and original value-type instance have access to the same reference-type instance.' The List<string> itself is never duplicated." >Yes — <code>List&lt;string&gt;</code> is a reference type, so copying the struct only copies the reference to the same list; both structs share that one list underneath.</li>
+<li data-correct="false" data-explain="This has nothing to do with a compile-time restriction — the code compiles and runs fine; the surprise is purely about which object ends up shared." >It's a compile error — a struct can't contain a reference-type field.</li>
 </ul>
 </div>
 
