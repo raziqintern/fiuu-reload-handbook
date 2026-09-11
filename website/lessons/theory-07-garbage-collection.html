@@ -20,9 +20,17 @@
 <h2>What the GC actually does</h2>
 <p>In C/C++, you manually free memory you allocated. In .NET, the <strong>garbage collector</strong> does this for you: it periodically scans for heap objects nothing references anymore, and reclaims their memory automatically. This is why you don't call <code>delete</code> or <code>free()</code> in C#/VB.NET — and it's genuinely one of the biggest sources of memory bugs in unmanaged languages that .NET mostly eliminates.</p>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/unmanaged">Cleaning up unmanaged resources guide</a> states the limit precisely: <em>"Although the garbage collector is able to track the lifetime of an object that encapsulates an unmanaged resource, it doesn't know how to release and clean up the unmanaged resource."</em> It can tell the wrapper object is unreachable and reclaim <em>that</em> memory — it has no idea the object was also holding a file handle, socket, or crypto key that needs its own separate release step.
+</div>
 <div class="callout warn">
 <span class="callout-title">The critical limit: the GC only knows about .NET memory</span>
 The garbage collector manages <em>managed</em> memory — objects on the .NET heap. It has no idea about, and cannot clean up, unmanaged resources: an open file handle, a network socket, a database connection, a cryptographic key handle from the OS. If your object holds one of those and you don't explicitly release it, the GC eventually collecting the wrapper object does <strong>not</strong> mean the underlying OS resource gets released at the same time — sometimes not for a long while, sometimes not correctly at all.
+</div>
+<div class="callout warn">
+<span class="callout-title">What if you skip Dispose and rely on a finalizer instead? Non-deterministic, and that's the whole problem</span>
+The same reference names the fallback mechanism and its real cost: <em>"Define a finalizer. Finalization enables the non-deterministic release of unmanaged resources when the consumer of a type fails to call IDisposable.Dispose."</em> A finalizer isn't a substitute for calling <code>Dispose</code> — it's a safety net for when someone forgets to, and it runs on the GC's own schedule, not the moment the resource is actually done being used. This is exactly the shape of the real TNG incident: the handle would eventually be released by a finalizer, "eventually" being however long the object happened to survive before a GC pass reached it — nowhere near fast enough once handles were piling up faster than that.
 </div>
 
 <h2>This is exactly what caused a real reload incident</h2>
@@ -83,8 +91,9 @@ Done.</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Anything that opens a file, network connection, database connection, or OS-level handle should implement <code>IDisposable</code> and always be used inside a <code>using</code> block — never rely on the GC for these.</li>
-<li>When reviewing code that opens such a resource, check for the matching release as carefully as you'd check for a missing null check — it's the same class of "easy to miss, expensive when missed" bug.</li>
+<li><strong>Anything that opens a file, network connection, database connection, or OS-level handle should implement <code>IDisposable</code> and always be used inside a <code>using</code> block.</strong> Never rely on the GC for these.</li>
+<li><strong>When reviewing code that opens such a resource, check for the matching release as carefully as you'd check for a missing null check.</strong> It's the same class of "easy to miss, expensive when missed" bug.</li>
+<li><strong>Never treat a finalizer as an acceptable substitute for calling <code>Dispose</code> promptly.</strong> A finalizer is a documented safety net for when someone forgets — its release timing is non-deterministic and tied to the GC's own schedule, not to when the resource actually stopped being needed.</li>
 </ul>
 
 <h2>Check your understanding</h2>
@@ -94,6 +103,15 @@ Done.</pre>
 <li data-correct="false" data-explain="The GC being slow or misconfigured isn't the actual gap here — the real gap is what kind of resource it manages at all." >The garbage collector was running too infrequently in that environment.</li>
 <li data-correct="true" data-explain="The garbage collector only manages .NET-managed memory. An OS-level cryptographic key handle is an unmanaged resource — the GC eventually collecting the .NET wrapper object around it doesn't reliably or promptly release the underlying handle. That's specifically what IDisposable/using exists to guarantee instead." >The GC only manages .NET-managed memory — it doesn't know about or promptly release unmanaged OS-level resources like a crypto key handle.</li>
 <li data-correct="false" data-explain=".NET's garbage collector runs automatically and does not need to be manually triggered for normal managed-memory cleanup — that's not the gap in this incident.">The code needed to call the garbage collector manually.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A class holding a file handle defines a finalizer as its only cleanup mechanism — it never implements <code>IDisposable</code>/<code>Dispose</code>. Is the file handle eventually released?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Microsoft's own guidance is explicit that a finalizer is a real, documented fallback mechanism — it does eventually run. The actual problem is timing, not whether it ever runs at all." >No, never — a finalizer with no <code>Dispose</code> call never actually runs.</li>
+<li data-correct="true" data-explain="Microsoft's own Cleaning up unmanaged resources guide states finalization 'enables the non-deterministic release of unmanaged resources when the consumer of a type fails to call IDisposable.Dispose.' It does eventually release the resource — but 'eventually' is tied to the GC's own schedule, not to when the code is actually finished with it, which is exactly the gap that let the real TNG handle leak compound." >Yes, eventually — but only whenever the GC happens to run a collection that reaches this object, which could be much later than when the resource was actually done being used.</li>
+<li data-correct="false" data-explain="A finalizer with no Dispose implementation compiles and runs fine as a fallback — it's a legitimate, if non-ideal, cleanup mechanism, not a compile error." >It's a compile error — a class can't define a finalizer without also implementing <code>IDisposable</code>.</li>
 </ul>
 </div>
 
