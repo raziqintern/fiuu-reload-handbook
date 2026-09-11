@@ -36,6 +36,44 @@ End Sub</pre>
 <pre class="tryit-output-src">2</pre>
 </div>
 
+<h2>Access modifiers — six levels, not just Public/Private</h2>
+<p>Every procedure declaration so far has quietly included an access modifier (<code>Public</code>, <code>Private</code>) without stopping to name what it does. The underlying question every one of them answers is the same: <strong>"what code, from where, is allowed to see and call this?"</strong> — and VB.NET has six distinct answers, not two.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/declared-elements/access-levels">Access Levels reference</a> defines all six precisely:
+<ul>
+<li><strong><code>Public</code></strong>: <em>"can be accessed from code anywhere in the same project, from other projects that reference the project, and from any assembly built from the project"</em> — unrestricted.</li>
+<li><strong><code>Private</code></strong>: <em>"can be accessed only from within the same module, class, or structure"</em> — the tightest restriction.</li>
+<li><strong><code>Protected</code></strong>: <em>"can be accessed only from within the same class, or from a class derived from this class"</em> — visible to subclasses, invisible to unrelated code, even in the same file.</li>
+<li><strong><code>Friend</code></strong>: <em>"can be accessed from within the same assembly, but not from outside the assembly"</em> — VB's equivalent of C#'s <code>internal</code>.</li>
+<li><strong><code>Protected Friend</code></strong>: <em>"can be accessed either from derived classes or from within the same assembly, or both"</em> — the union of the two, not their intersection.</li>
+<li><strong><code>Private Protected</code></strong> (VB 15.5+): <em>"can be accessed only from within the same class, as well as from derived classes found in the same assembly"</em> — narrower than <code>Protected Friend</code>: it requires <em>both</em> derived-class <em>and</em> same-assembly, not either alone.</li>
+</ul>
+</div>
+<p>All four in real, verified use in the same one file — a shared base class every restricted BackOffice page inherits from:</p>
+<pre class="code-block">Public MustInherit Class RestrictedPage
+    Inherits System.Web.UI.Page
+
+    Protected bIsGlobalApplications As Boolean
+    ...
+    Protected Function FindControlRecursive(id As String) As Control
+    Private Function FindControlRecursiveInternal(...) As Control
+
+    Public Class RestrictedPageEventArgs
+        Friend Sub New(...)
+        Friend Property FunctionId As Integer
+    End Class
+End Class</pre>
+<p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/RestrictedPage.vb:11-221 (line numbers approximate across the excerpted members)</p>
+<div class="callout real">
+<span class="callout-title">Reading the access level tells you who this member is actually for, before you read its body</span>
+<code>RestrictedPage</code> itself is <code>Public</code> — every page in BackOffice needs to inherit from it, including pages in effect from other projects that reference this one. <code>bIsGlobalApplications</code> and <code>FindControlRecursive</code> are <code>Protected</code> — meant for pages that inherit from <code>RestrictedPage</code>, not for arbitrary outside code, which is exactly the relationship a derived <code>.aspx.vb</code> page has with its base class. <code>FindControlRecursiveInternal</code> is <code>Private</code> — an implementation detail of <code>FindControlRecursive</code> itself, not something even a derived page should call directly. The nested <code>RestrictedPageEventArgs</code> class is <code>Public</code>, but its own members are <code>Friend</code> — usable throughout this assembly, but not exposed to a different project that merely references this one. Four modifiers, four different real audiences, all visible in one file without reading a single method body.
+</div>
+<div class="callout warn">
+<span class="callout-title">Protected Friend is a union, not an intersection — an easy misreading</span>
+It's natural to read <code>Protected Friend</code> as "must be both a derived class <em>and</em> in the same assembly" — that's backwards. Per the official definition above, it's satisfied by <em>either</em> condition alone: a derived class in a completely different assembly can access it, and so can unrelated code in the same assembly that isn't derived from anything. <code>Private Protected</code> is the one that actually requires both conditions together — it's the narrower combination, despite reading like it should be the more permissive one from the word order alone. Don't guess from the words; check which one is the union and which is the intersection.
+</div>
+
 <h2>Optional parameters — a default value, right in the signature</h2>
 <p>Real, verified examples from BackOffice — this pattern is common here, not a rarity:</p>
 <pre class="code-block">Public Sub ShowConfirmMessage(ByVal message As String, Optional id As String = "", Optional extField As String = "")
@@ -115,6 +153,7 @@ Two same-named, different-signature procedures in the same class compile as ordi
 <li><strong>If a <code>Sub</code> starts needing to hand information back to its caller (beyond a <code>ByRef</code> parameter), make it a <code>Function</code> instead.</strong> Trying to bolt a return value onto a <code>Sub</code> after the fact usually means reworking every call site anyway.</li>
 <li><strong>Reach for <code>Optional</code> when a missing argument means "use this sensible default"; reach for a genuine overload when different call shapes mean genuinely different behavior.</strong> Not a different default for the same behavior.</li>
 <li><strong>Default to <code>ByVal</code>; reach for <code>ByRef</code> only when the callee has a genuine need to reassign the caller's variable.</strong> Remember <code>ByVal</code> on an object parameter still lets the callee mutate the object's own contents — it only blocks reassigning the caller's variable to a different object.</li>
+<li><strong>Choose the narrowest access level that still lets every real caller reach the member.</strong> <code>Private</code> by default, widen to <code>Protected</code> only for members a derived class genuinely needs, and to <code>Public</code> only for a real external contract — not because widening "might be useful later."</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -154,6 +193,33 @@ Two same-named, different-signature procedures in the same class compile as ordi
 <li data-correct="true" data-explain="ByVal copies the value into the parameter — the method's x is a separate local copy. Reassigning it never reaches back to the caller's variable. Only ByRef would let the callee's reassignment be visible after the call." >Unchanged — <code>ByVal</code> copies the value in, so the reassignment inside the method only affects the local copy.</li>
 <li data-correct="false" data-explain="This is exactly what ByRef would do, not ByVal. ByVal specifically protects the caller's variable from being reassigned by the callee." >Changed to whatever the method reassigned <code>x</code> to.</li>
 <li data-correct="false" data-explain="Passing an argument ByVal vs ByRef doesn't throw at compile or run time — it's a normal, common pattern with well-defined behavior." >It throws a compile error, since <code>ByVal</code> parameters can't be reassigned at all inside the method body.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A member is declared <code>Protected</code> in a real base class like <code>RestrictedPage</code>. What can access it?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="That's Public's definition, not Protected's — Protected is deliberately narrower." >Any code anywhere in the project or in any project that references it.</li>
+<li data-correct="true" data-explain="Per Microsoft's own Access Levels reference: 'can be accessed only from within the same class, or from a class derived from this class.' A derived .aspx.vb page can see it; unrelated code elsewhere in the assembly cannot." >Only code inside the same class, or inside a class that derives from it — such as a BackOffice page that inherits from <code>RestrictedPage</code>.</li>
+<li data-correct="false" data-explain="That's Friend's definition — Protected is about the class-inheritance relationship, not assembly membership." >Any code in the same assembly, regardless of whether it inherits from the class.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A member is declared <code>Protected Friend</code>. Which statement correctly describes who can access it, per Microsoft's own definition?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This describes Private Protected, the narrower combination — Protected Friend is the union of the two conditions, not their intersection." >Only code that is both in a derived class AND in the same assembly — both conditions must hold together.</li>
+<li data-correct="true" data-explain="Microsoft's own reference states Protected Friend grants access 'either from derived classes or from within the same assembly, or both' — a union. A derived class in a different assembly qualifies; so does unrelated same-assembly code that isn't derived from anything." >Code that is either in a derived class OR in the same assembly — satisfying just one of the two conditions is enough.</li>
+<li data-correct="false" data-explain="Protected Friend is more permissive than plain Protected, not less — it's a union, adding same-assembly access on top of the derived-class access Protected already grants." >It's actually more restrictive than plain <code>Protected</code> alone.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">The real <code>RestrictedPage.vb</code> has a nested <code>Public Class RestrictedPageEventArgs</code> whose own members (a constructor, a property) are declared <code>Friend</code>. What does this combination actually achieve?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Public on the class means other code can know the type exists and hold a reference to it. Friend on its members means only code inside this same assembly can actually construct one or read/set its properties — a different project merely referencing this assembly could see the type but couldn't meaningfully use it." >The class itself is visible outside the assembly, but only code within this same assembly can actually construct an instance or use its members.</li>
+<li data-correct="false" data-explain="A member's access level can be narrower than its containing type's — that combination is valid and exactly what's happening here, not a compile error." >This doesn't compile — a Public class can't contain Friend members.</li>
+<li data-correct="false" data-explain="Friend restricts access to the same assembly — it has no relationship to inheritance or derived classes at all, unlike Protected." >It means only classes that inherit from <code>RestrictedPageEventArgs</code> can use those members.</li>
 </ul>
 </div>
 
