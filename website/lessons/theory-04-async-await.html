@@ -64,15 +64,24 @@ Done.</pre>
 
 <p>This reads top-to-bottom exactly like ordinary synchronous code — that's deliberate, and the whole point of the feature. But at the <code>await</code> line, control is handed back to the caller until <code>Task.Delay</code> (standing in for a real network call) actually finishes; the thread isn't blocked sitting there the whole time.</p>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/async-scenarios">Asynchronous programming scenarios guide</a> is direct about the risk: <em>"Synchronous blocking on asynchronous operations can lead to deadlocks and should be avoided whenever possible. The preferred solution is to use async/await throughout your call stack."</em> Its own guidance table maps every blocking call to its non-blocking replacement: <em>"Retrieve the result of a background task: Task.Wait or Task.Result → await. Continue after some amount of time: Thread.Sleep → await Task.Delay."</em>
+</div>
 <div class="callout warn">
 <span class="callout-title">The rule almost everyone breaks once</span>
 Never call <code>.Result</code> or <code>.Wait()</code> on a <code>Task</code> to force synchronous blocking on async code — this can deadlock in some hosting contexts (classic ASP.NET, some UI frameworks), because the thread that's blocked waiting is sometimes the exact same thread the async method needs back to finish. The fix is to <code>await</code> all the way up the call chain, not to block partway through it.
 </div>
+<div class="callout warn">
+<span class="callout-title">The wrong scenario: async void, outside an event handler</span>
+Microsoft's own guidance is narrow about where <code>async void</code> belongs: <em>"Return 'async void' only from event handlers... Other implementations of async void returning methods don't follow the TAP model and can present challenges: Exceptions thrown in an async void method can't be caught outside of that method [and] async void methods are difficult to test."</em> An <code>async Task</code> method's exception propagates to whoever <code>await</code>s it, exactly like a normal exception; an <code>async void</code> method's exception has nowhere to propagate to — it crashes the process instead of being catchable by the caller. Write <code>async Task FetchAsync()</code>, never <code>async void FetchAsync()</code>, for anything other than a genuine UI event handler.
+</div>
 
 <h2>Best practice</h2>
 <ul>
-<li>Name async methods with an <code>Async</code> suffix (as above) — a real, widely-followed .NET convention that flags at a glance which methods need <code>await</code>.</li>
-<li>An <code>async</code> method with no <code>await</code> inside it runs synchronously anyway (with a compiler warning) — if nothing in the method is actually slow/async, it usually shouldn't be <code>async</code> at all.</li>
+<li><strong>Name async methods with an <code>Async</code> suffix (as above).</strong> A real, widely-followed .NET convention that flags at a glance which methods need <code>await</code>.</li>
+<li><strong>An <code>async</code> method with no <code>await</code> inside it runs synchronously anyway (with a compiler warning).</strong> If nothing in the method is actually slow/async, it usually shouldn't be <code>async</code> at all.</li>
+<li><strong>Return <code>async Task</code>, never <code>async void</code>, unless you're writing a genuine UI event handler.</strong> An <code>async void</code> method's exceptions can't be caught by its caller — they crash the process instead.</li>
 </ul>
 
 <h2>Check your understanding</h2>
@@ -82,6 +91,15 @@ Never call <code>.Result</code> or <code>.Wait()</code> on a <code>Task</code> t
 <li data-correct="true" data-explain="In some hosting contexts, the thread you've blocked with .Result is the exact thread the async method needs to resume on once its await completes — each is waiting on the other, a deadlock." >It can deadlock in certain hosting contexts, because the blocked thread may be the same one the async call needs to resume on.</li>
 <li data-correct="false" data-explain=".Result doesn't change the network call's actual speed — it just blocks the calling thread until the task finishes." >It makes the network call itself slower.</li>
 <li data-correct="false" data-explain="This isn't a syntax error — it compiles fine, which is exactly why the risk is easy to miss until it causes an intermittent, hard-to-reproduce deadlock in production.">The code simply won't compile if you try it.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">A method is declared <code>async void FetchPartnerResponseAsync()</code> instead of <code>async Task FetchPartnerResponseAsync()</code>, and it isn't a UI event handler. It throws an exception. What happens to code that calls it inside a <code>try</code>/<code>catch</code>?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Microsoft's own async scenarios guide states this directly: 'Exceptions thrown in an async void method can't be caught outside of that method.' There's no Task for the exception to propagate through, so the surrounding try/catch never sees it." >The <code>catch</code> block never catches it — an <code>async void</code> method's exceptions can't be caught by its caller at all.</li>
+<li data-correct="false" data-explain="This is exactly the behavior async void breaks — it would be true for async Task, where the exception propagates through the returned Task to whoever awaits it." >The <code>catch</code> block catches it normally, exactly like a synchronous method.</li>
+<li data-correct="false" data-explain="The exception isn't silently swallowed — it still causes real, visible failure; it just can't be caught by the caller's try/catch the normal way." >Nothing happens — the exception is silently swallowed and the program continues.</li>
 </ul>
 </div>
 
