@@ -24,6 +24,14 @@
 <tr><td><strong>DLL</strong></td><td>Dynamic-Link Library — a compiled assembly meant to be referenced by other programs, not run directly (as opposed to an <code>.exe</code>, which is a runnable assembly).</td></tr>
 </table>
 <p>When you add a project reference in Visual Studio, you're telling your project "at build time, compile against this assembly's public types, and at runtime, load this DLL to actually execute them."</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/standard/assembly/">Assemblies in .NET reference</a> lists what an assembly actually bounds, not just contains: <em>"The type boundary. Every type's identity includes the name of the assembly in which it resides. A type called MyType that's loaded in the scope of one assembly isn't the same as a type called MyType that's loaded in the scope of another assembly."</em> It also confirms the versioning claim directly: <em>"The version boundary. The assembly is the smallest versionable unit in the common language runtime. All types and resources in the same assembly are versioned as a unit."</em>
+</div>
+<div class="callout warn">
+<span class="callout-title">What if two different-but-same-named DLLs both exist? The type identity, not just the name, decides</span>
+Per the type-boundary rule above, a class named <code>Fiuu.Logging.LogManager</code> compiled into one build of <code>Fiuu.Logging.dll</code> is not the same type, as far as the runtime is concerned, as a class with the exact same name and namespace compiled into a <em>different</em> build of that same-named DLL. If a consuming app somehow ends up with two different versions of <code>Fiuu.Logging.dll</code> loaded at once (a real, if unusual, possibility), passing an object created against one version into code expecting the other can fail with a genuinely confusing "cannot convert type X to type X" error — the two <code>X</code>s only look identical in the error message; they're bound to two different assemblies underneath.
+</div>
 
 <h2>Two ways to consume someone else's code</h2>
 <ul>
@@ -42,7 +50,10 @@ If you're debugging behavior that seems to come from <code>Fiuu.Logging.dll</cod
 </div>
 
 <h2>Best practice</h2>
-<p>When you're not sure whether you're looking at the real, current source of a referenced type, check how it's referenced — a <code>&lt;ProjectReference&gt;</code> in the <code>.csproj</code> means you're building against live source; a <code>&lt;Reference&gt;</code> with a <code>HintPath</code> pointing at a <code>.dll</code> means you're not, and the actual behavior is frozen at whenever that DLL was last built.</p>
+<ul>
+<li><strong>When you're not sure whether you're looking at the real, current source of a referenced type, check how it's referenced.</strong> A <code>&lt;ProjectReference&gt;</code> in the <code>.csproj</code> means you're building against live source; a <code>&lt;Reference&gt;</code> with a <code>HintPath</code> pointing at a <code>.dll</code> means you're not, and the actual behavior is frozen at whenever that DLL was last built.</li>
+<li><strong>Never assume two same-named types from two different assembly builds are interchangeable.</strong> The runtime scopes type identity to the assembly it came from — a mismatch here produces a confusing error where the type name in the message looks correct but the object still won't cast.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -51,6 +62,15 @@ If you're debugging behavior that seems to come from <code>Fiuu.Logging.dll</cod
 <li data-correct="false" data-explain="A build failure would produce compiler errors — the scenario describes a successful rebuild that just doesn't propagate the change, a different problem." >The Components project probably failed to compile.</li>
 <li data-correct="true" data-explain="If the consuming app references the prebuilt Fiuu.Logging.dll sitting in class-library's repo root rather than the Components/Logging project directly, rebuilding the source elsewhere doesn't update that DLL — someone has to manually rebuild and re-commit it there for the fix to actually reach consumers." >The app likely references the prebuilt DLL committed in class-library's root, which isn't automatically regenerated from the Components source you just changed.</li>
 <li data-correct="false" data-explain=".NET doesn't cache assemblies across an application restart in a way that would explain this — the actual explanation is about which physical DLL is being referenced at all.">.NET caches the old assembly in memory until the whole machine restarts.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Two different builds of <code>Fiuu.Logging.dll</code> both define a class named <code>Fiuu.Logging.LogManager</code>. An object created against one build is passed to code expecting the type from the other build. What happens?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="Matching names and namespaces aren't enough — Microsoft's own Assemblies reference is explicit that a type's identity includes which assembly it came from, not just its name." >It works fine — the class name and namespace match, so the runtime treats them as the same type.</li>
+<li data-correct="true" data-explain="Microsoft's own Assemblies in .NET reference states this directly: 'A type called MyType that's loaded in the scope of one assembly isn't the same as a type called MyType that's loaded in the scope of another assembly.' The two LogManager types are only identical by name — the runtime treats them as genuinely different types, and passing one where the other is expected fails, confusingly, even though the error message names the 'same' type on both sides." >It can fail with a confusing type-mismatch error — the runtime treats them as genuinely different types, even though their name and namespace are identical.</li>
+<li data-correct="false" data-explain="The CLR doesn't automatically detect and merge two same-named types from different assembly builds — they remain genuinely distinct types under the type-boundary rule." >The runtime automatically picks whichever version was loaded more recently.</li>
 </ul>
 </div>
 
