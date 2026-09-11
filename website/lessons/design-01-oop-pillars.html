@@ -85,6 +85,10 @@ End Module</pre>
 </div>
 </div>
 <p>Nothing technically forces callers through <code>Deposit()</code> in either language — <code>private</code> only blocks access from <em>outside the class</em>, and within it the field is freely mutable. Encapsulation here means bundling the data with the one method that's allowed to safely change it, matching the underscore-prefix convention you saw on reload's real <code>_provider</code>/<code>_accountCompo</code> fields in <a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/tutorials/oop">Object-Oriented Programming (C#) reference</a> defines all four pillars in one place: <em>"Encapsulation — Hiding the internal state and functionality of an object and only allowing access through a public set of functions."</em> <code>_balance</code> is exactly that hidden internal state; <code>Deposit()</code> and <code>GetBalance()</code> are the public set of functions allowed to touch it.
+</div>
 
 <h2>Example: inheritance, polymorphism, and real abstraction</h2>
 <div class="tryit" data-lang="dual">
@@ -156,9 +160,16 @@ Processed RM25 via Card</pre>
 </div>
 </div>
 <p><strong>Inheritance</strong>: both classes <code>: PaymentMethod</code> / <code>Inherits PaymentMethod</code>, inheriting its shape. <strong>Polymorphism</strong>: the loop calls <code>m.Process(25)</code> identically for both objects, but each runs its own version — the caller doesn't need to know or care which concrete class it's holding. <strong>Abstraction</strong>: <code>abstract</code>/<code>MustInherit</code> means <code>PaymentMethod</code> itself can never be instantiated directly (<code>new PaymentMethod()</code> is a compile error) — it exists purely to declare the contract every payment method must fulfil, exactly like <code>ITerminalService</code> in <a href="cs-04-classes.html">C# Fundamentals → Classes, Objects &amp; Interfaces</a>.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+The same Microsoft reference defines the other three pillars in identical terms: <em>"Abstraction — Modeling the relevant attributes and interactions of entities as classes to define an abstract representation of a system. Inheritance — Ability to create new abstractions based on existing abstractions. Polymorphism — Ability to implement inherited properties or methods in different ways across multiple abstractions."</em> <code>TngPayment</code> and <code>CardPayment</code> are new abstractions built on <code>PaymentMethod</code>'s existing one (inheritance), each implementing <code>Process</code> differently (polymorphism) — precisely the definitions above, not a looser analogy of them.
+</div>
 
 <h2>Best practice</h2>
-<p>Prefer an interface (<code>ITerminalService</code>-style) when unrelated classes need to share a contract with no shared implementation; prefer an abstract base class (like <code>PaymentMethod</code> above) when they also share some real, reusable logic. Reload uses interfaces for its Service layer contracts and — in InComm specifically — an abstract Template Method base for shared protocol logic (see <a href="design-03-patterns-in-reload.html">Design Patterns reload Actually Uses</a>).</p>
+<ul>
+<li><strong>Prefer an interface (<code>ITerminalService</code>-style) when unrelated classes need to share a contract with no shared implementation.</strong> Prefer an abstract base class (like <code>PaymentMethod</code> above) when they also share some real, reusable logic. Reload uses interfaces for its Service layer contracts and — in InComm specifically — an abstract Template Method base for shared protocol logic (see <a href="design-03-patterns-in-reload.html">Design Patterns reload Actually Uses</a>).</li>
+<li><strong>Keep fields private and expose behavior through methods, not raw setters, whenever "changing this value" has real rules attached.</strong> <code>Deposit()</code> validating <code>amount &gt; 0</code> is the whole point of encapsulation — a public field would let any caller skip that check entirely.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -167,6 +178,15 @@ Processed RM25 via Card</pre>
 <li data-correct="false" data-explain="That's inheritance — both classes sharing a common parent. Polymorphism is about what happens when you call a method on them, not the shared parent itself." >Both classes inheriting from PaymentMethod.</li>
 <li data-correct="true" data-explain="Polymorphism specifically means the same method call (m.Process(25)) produces different behavior depending on the actual runtime type of the object — the loop doesn't need an if/else to check which class it has." >The loop calling m.Process(25) identically on both objects, but getting different behavior from each.</li>
 <li data-correct="false" data-explain="Declaring PaymentMethod abstract/MustInherit is what enforces the contract (abstraction) — it's related but not itself the definition of polymorphism.">PaymentMethod being declared abstract/MustInherit.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Per Microsoft's own definitions, what specifically distinguishes abstraction from encapsulation?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="Microsoft's own reference states them separately: abstraction is 'modeling the relevant attributes and interactions of entities as classes' (defining what a Terminal or PaymentMethod IS, conceptually), while encapsulation is specifically about 'hiding the internal state and functionality... only allowing access through a public set of functions' (how that internal state is protected once modeled)." >Abstraction is modeling an entity's relevant attributes and interactions as a class; encapsulation is specifically hiding that class's internal state behind a public set of functions.</li>
+<li data-correct="false" data-explain="This is backwards — Microsoft's own definitions describe abstraction as designing the class's conceptual shape, and encapsulation as hiding the internal state, not the other way around." >Abstraction hides internal state; encapsulation designs the class's public shape.</li>
+<li data-correct="false" data-explain="These are two distinct, separately-defined pillars in Microsoft's own OOP reference, each covering a different concern — they aren't the same idea under two names." >They're the same concept, just two different names for it.</li>
 </ul>
 </div>
 
