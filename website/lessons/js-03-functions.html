@@ -32,6 +32,42 @@ console.log(calculateFeeArrow(100));</pre>
 </div>
 
 <p>Both do the same thing here. Arrow functions are everywhere in modern JS, especially as short one-off callbacks — you'll see the arrow form far more often than the traditional one in real code.</p>
+<div class="callout tip">
+<span class="callout-title">Official documentation — the real difference isn't just shorter syntax</span>
+MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions">Arrow function expressions reference</a> names the one difference that actually matters, not a cosmetic one: <em>"Arrow functions don't have their own bindings to <code>this</code>, <code>arguments</code>, or <code>super</code>, and should not be used as methods."</em> More precisely: <em>"Arrow functions establish <code>this</code> based on the scope the arrow function is defined within, and the <code>this</code> value does not change based on how the function is invoked."</em> A traditional <code>function</code> gets its own, separate <code>this</code> every time it's called — an arrow function never does; it always reuses whatever <code>this</code> already meant in the surrounding code.
+</div>
+<p>What that difference actually looks like, run to prove it rather than just asserted — the same object method extracts a callback and invokes it as a bare function call, exactly what <code>setTimeout</code> does internally when its delay fires:</p>
+<div class="tryit" data-lang="js">
+<pre class="tryit-src">const terminal = {
+  status: "online",
+  reportLaterTraditional() {
+    // a traditional function here gets its OWN this — and called
+    // as a bare function (not terminal.something()), that this is not terminal
+    return function () {
+      console.log("Traditional function this.status:", this.status);
+    };
+  },
+  reportLaterArrow() {
+    // an arrow function has no this of its own — it reuses
+    // reportLaterArrow's this, which IS terminal, no matter how it's later called
+    return () => {
+      console.log("Arrow function this.status:", this.status);
+    };
+  },
+};
+
+// This is exactly what setTimeout does internally when its delay
+// fires: it calls the callback as a bare function, with no object
+// in front of the dot — callback(), not terminal.callback().
+const traditionalCallback = terminal.reportLaterTraditional();
+const arrowCallback = terminal.reportLaterArrow();
+traditionalCallback();
+arrowCallback();</pre>
+</div>
+<div class="callout warn">
+<span class="callout-title">The wrong scenario: using an arrow function as an object method itself</span>
+The one place to specifically avoid an arrow function is the method itself, not just its callbacks — <code>reportLater: () =&gt; { console.log(this.status) }</code> written as the object's own method would capture whatever <code>this</code> existed outside the object literal (often not the object at all), not <code>terminal</code>. Arrow functions are for callbacks defined <em>inside</em> a real method, where reusing that method's own <code>this</code> is exactly what you want — not for the method declaration itself.
+</div>
 
 <h2>Scope: where a variable is visible</h2>
 <div class="tryit" data-lang="js">
@@ -67,8 +103,9 @@ console.log(validateReload(50, null));</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li>Give a function one job. <code>validateReload</code> only validates — it doesn't also save the reload or send a confirmation. This is the same Single Responsibility idea you'll meet formally in <a href="design-02-solid.html">Software Design → SOLID Principles</a>, just at function scale instead of class scale.</li>
-<li>Name a function by what it does, as a verb phrase (<code>validateReload</code>, not <code>reloadStuff</code>) — the name should make a call site readable without needing to jump to the definition.</li>
+<li><strong>Give a function one job.</strong> <code>validateReload</code> only validates — it doesn't also save the reload or send a confirmation. This is the same Single Responsibility idea you'll meet formally in <a href="design-02-solid.html">Software Design → SOLID Principles</a>, just at function scale instead of class scale.</li>
+<li><strong>Name a function by what it does, as a verb phrase.</strong> <code>validateReload</code>, not <code>reloadStuff</code> — the name should make a call site readable without needing to jump to the definition.</li>
+<li><strong>Use an arrow function for a callback inside a method; never as the method itself.</strong> A callback should usually reuse its surrounding <code>this</code> — that's what arrow functions are for. A method declaration needs its own <code>this</code>, bound to the object it's called on — that's what a traditional function gives you.</li>
 </ul>
 
 <h2>Better ways</h2>
@@ -81,6 +118,24 @@ console.log(validateReload(50, null));</pre>
 <li data-correct="false" data-explain="Scope doesn't work that way — a variable exists in the block that declared it and any nested block inside that, not 'anywhere after declaration'.">Anywhere in the file, after the line it was declared on.</li>
 <li data-correct="true" data-explain="This is the core rule of block scope: the variable only exists within the { } it was declared in, including any nested blocks — not outside it." >Only inside that function (and any nested block within it).</li>
 <li data-correct="false" data-explain="Only if that other function is called from inside the first one, and even then it isn't visible by scope rules — it would have to be passed in explicitly.">Inside any other function that runs afterward.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">An object method uses <code>setTimeout(function () { console.log(this.status); }, 10)</code> inside it, with a traditional function as the callback. What does <code>this.status</code> log?</p>
+<ul class="quiz-options">
+<li data-correct="false" data-explain="This is what an arrow function callback would do — reuse the outer method's this. A traditional function specifically does NOT do this; it gets its own separate this when called by setTimeout." >The object's own <code>status</code> property, since the callback is defined inside the object's method.</li>
+<li data-correct="true" data-explain="MDN's own Arrow function reference is precise about this: a traditional function gets its own this binding every time it's called. When setTimeout invokes the callback, that this is not the object — it's undefined (in strict mode) or the global object, so this.status is undefined." >Not the object's <code>status</code> — a traditional function gets its own separate <code>this</code> when called, and <code>setTimeout</code> doesn't call it in a way that makes <code>this</code> point back to the object.</li>
+<li data-correct="false" data-explain="setTimeout doesn't throw for accessing an undefined property this way — this.status simply evaluates to undefined, it doesn't error." >It throws an error, because <code>this</code> isn't defined inside a callback.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q">Why is an arrow function specifically discouraged as an object's own method (e.g. <code>reportLater: () => { console.log(this.status) }</code>), even though it's shorter to write?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="MDN's own reference states this plainly: 'Arrow functions don't have their own bindings to this... and should not be used as methods.' An arrow function reuses whatever this already meant in the surrounding code where it was defined — for a method written directly in an object literal, that's not the object itself." >Because an arrow function has no <code>this</code> of its own — it reuses whatever <code>this</code> meant in the surrounding code, which usually isn't the object the method is attached to.</li>
+<li data-correct="false" data-explain="Both syntaxes support parameters identically — that isn't the real distinction being taught here." >Because arrow functions can't accept any parameters.</li>
+<li data-correct="false" data-explain="This is backwards — the concern with arrow functions as methods is specifically about this binding, not about return values." >Because arrow functions can't return a value from inside an object.</li>
 </ul>
 </div>
 
