@@ -68,6 +68,11 @@ Production logs showed a crash inside <code>MolPayOfflinePaymentService.ApiCall_
 
 <p>The method has exactly one safety net — the inner <code>try/catch (WebException e)</code> around <code>GetResponse()</code> — and it exists specifically to hand back a usable stub response (<code>{"statusCode": "M1"}</code>) if the HTTP call itself fails. But <code>request.ContentLength = byteArray.Length</code> is set before this, and for a POST with a real body, <code>HttpWebRequest</code> actually opens the TCP connection at <strong><code>GetRequestStream()</code></strong> — line 89 — not later at <code>GetResponse()</code>. That line sits <em>outside</em> the inner try. A connection failure there (exactly what production hit: "Unable to connect to the remote server") skips the safety net entirely, falls straight into the broad outer <code>catch (Exception ex)</code>, gets logged, and is never rethrown.</p>
 
+<div class="callout tip">
+<span class="callout-title">Official documentation</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.net.httpwebrequest.getrequeststream">HttpWebRequest.GetRequestStream reference</a> lists <code>WebException</code> among the exceptions this specific method can throw — <em>"An error occurred while processing the request"</em> — confirming this isn't a method that only ever succeeds or fails silently: a connection failure genuinely surfaces as an exception right here, at the point the two nested <code>try</code> scopes in this code don't agree on who's responsible for catching it.
+</div>
+
 <div class="callout real">
 <span class="callout-title">What that means for <code>responseMessage</code></span>
 Nothing between line 89 and the outer catch ever ran. <code>responseMessage</code> is returned exactly as constructed at line 70: a brand-new <code>HttpResponseMessage()</code> whose default <code>StatusCode</code> is <code>200 OK</code> and whose <code>Content</code> was never assigned — <code>null</code>. Not the "M1" stub. Not a real response. A blank object that looks, from the outside, like a legitimate empty success.
@@ -100,7 +105,10 @@ if (responseMessage != null)                                    // true — it's
 <p>One more discipline this incident surfaced: when testing a hypothesis, change <strong>one variable at a time</strong> and confirm the other precondition is still true. A test that set <code>ContentLength = 0</code> and got "no exception, request went through" proved nothing about the <code>ContentLength &gt; 0</code> theory — the connection wasn't actually broken during that particular run, so of course it succeeded. Two changed conditions, one observed result, is not a test of either one alone.</p>
 
 <h2>Best practice</h2>
-<p>Whenever you write a method with an outer catch-and-log-and-swallow around a whole method body, ask: does this method's return value get checked for success by the caller? If so, make sure every exit path — including the one your outer catch falls through to — leaves that return value in a state the caller's check can correctly classify as failure. A default-constructed object is rarely a safe stand-in for "this failed."</p>
+<ul>
+<li><strong>Whenever you write a method with an outer catch-and-log-and-swallow around a whole method body, ask whether this method's return value gets checked for success by the caller.</strong> If so, make sure every exit path — including the one your outer catch falls through to — leaves that return value in a state the caller's check can correctly classify as failure. A default-constructed object is rarely a safe stand-in for "this failed."</li>
+<li><strong>When testing a hypothesis about a failure condition, change exactly one variable at a time and confirm the other precondition still holds.</strong> A test that changes two things and observes one result proves nothing about either variable alone — reproduce the exact failure condition, don't approximate it.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
