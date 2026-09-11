@@ -52,7 +52,7 @@ It's natural to assume <code>web_api</code>, <code>web_app</code>, <code>reload_
 
 <div class="callout tip">
 <span class="callout-title">Why this matters practically</span>
-Don't assume "app X depends on module Y" as a blanket rule — verify it via the actual <code>ProjectReference</code>/<code>HintPath</code> in that app's project file. Some apps (like <code>BackOffice/Web</code>) reference the same module name from both tier 2 and tier 3 simultaneously, for different pieces — this is a live, only partially-completed consolidation, not a finished clean architecture.
+Don't assume "app X depends on module Y" as a blanket rule — verify it via the actual <code>ProjectReference</code>/<code>HintPath</code> in that app's project file. Some apps (like <code>BackOffice/Web</code>) reference the same module name from both tier 2 and tier 3 simultaneously, for different pieces — this is a live, only partially-completed consolidation, not a finished clean architecture. Per Microsoft's own <a href="https://learn.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=visualstudio">Common MSBuild Project Items reference</a>, these are two genuinely different mechanisms: <code>HintPath</code> is <em>"the relative or absolute path of the assembly"</em> for a direct prebuilt-DLL reference (tier 2's own committed DLLs, or tier 3), while <code>ProjectReference</code> <em>"represents a reference to another project"</em> resolved through that project's real build output — which is why a source-level search for "who uses module Y" can miss a consumer that's actually wired through <code>HintPath</code> to a DLL instead.
 </div>
 
 <h2>Request flow, simplified</h2>
@@ -128,7 +128,10 @@ Don't assume "app X depends on module Y" as a blanket rule — verify it via the
 <p>This mirrors the reload_db-side flow from the SQL track — the application-side <code>Reloads/Terminal/Api</code> is what actually lands rows in <code>TRANSACTION</code> in the first place. Almost every step along the way reads shared reference data out of <code>CEPP</code> (the dashed connections) without that being part of the main request path itself.</p>
 
 <h2>Best practice</h2>
-<p>Verify an architectural claim against the actual <code>.csproj</code>/<code>ProjectReference</code>/<code>HintPath</code> entries before repeating it as fact — this whole topology doc exists because the natural first assumption (separate repos per app) turned out to be wrong, and the three-tier shared-library situation means "app X depends on module Y" needs a specific file citation, not a guess by module name.</p>
+<ul>
+<li><strong>Verify an architectural claim against the actual <code>.csproj</code>/<code>ProjectReference</code>/<code>HintPath</code> entries before repeating it as fact.</strong> This whole topology doc exists because the natural first assumption (separate repos per app) turned out to be wrong.</li>
+<li><strong>When a shared module could be reached through either a <code>ProjectReference</code> or a <code>HintPath</code>-based DLL, check both before concluding "app X depends on module Y" or "nothing depends on module Y."</strong> The three-tier shared-library situation means either mechanism could be in play, and only one of them shows up in a source-level search.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">
@@ -137,6 +140,15 @@ Don't assume "app X depends on module Y" as a blanket rule — verify it via the
 <li data-correct="false" data-explain="This is the natural first assumption, but it's specifically been corrected — most of those 'sibling folders' were found to be empty placeholder directories, not real repos." >It's a separate repo alongside web_app and web_api.</li>
 <li data-correct="true" data-explain="This is an explicitly flagged open question in the architecture docs: no separate reload_portal codebase was found. It might be the same app as BackOffice/Web under a different name, or a repo not present in this checkout — it needs a human answer, not an assumed one." >That's an open, unresolved question — no separate reload_portal codebase was actually found; don't treat any answer as settled without checking further.</li>
 <li data-correct="false" data-explain="Reloads/Terminal/Api is the terminal-facing REST API (web_api), a different thing from the WebForms merchant/dealer portal question being asked about.">It's inside Reloads/Terminal/Api, the same project as web_api.</li>
+</ul>
+</div>
+
+<div class="quiz" data-type="mcq">
+<p class="quiz-q"><code>BackOffice/Web</code> references a shared module by name from both tier 2 (<code>reload/class-library</code>) and tier 3 (<code>reload/web/Libraries/NET/*</code>) at once, for different pieces of functionality. What does this actually tell you about the codebase?</p>
+<ul class="quiz-options">
+<li data-correct="true" data-explain="The topology doc is explicit that this reflects a live, only partially-completed migration off the older vendored-DLL tier onto the newer submodule — not a finished, clean layering. Treating either tier as 'the' dependency without checking the actual reference would be wrong." >A module consolidation from tier 3 to tier 2 is underway but incomplete — this app hasn't fully migrated off the older vendored DLLs yet.</li>
+<li data-correct="false" data-explain="Two different tiers referencing the same module name by two different mechanisms (HintPath vs. ProjectReference) is not itself a build error — both can compile and run side by side, which is exactly what makes this easy to miss." >This is a build configuration error that would prevent the app from compiling.</li>
+<li data-correct="false" data-explain="The lesson explicitly frames the three-tier situation as reflecting real, incomplete migration history — not a deliberate, finished architectural pattern to replicate elsewhere." >This is the intended, final architecture, and new apps should replicate this same three-tier pattern.</li>
 </ul>
 </div>
 
