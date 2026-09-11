@@ -41,6 +41,10 @@ Transaction time crept up from normal to as long as <strong>two hours</strong> t
 <span class="callout-title">Why this specifically causes a slow multi-hour creep, not an instant crash</span>
 Windows serializes access to crypto key material. As unreleased handles piled up over hours, each new lookup got slower, competing for the same serialized resource. And because this all happened <strong>inside a per-account lock</strong>, the slowdown queued behind itself — one slow transaction blocks the next one for the same account, compounding the delay instead of just adding to it.
 </div>
+<div class="callout tip">
+<span class="callout-title">Official documentation — why the garbage collector doesn't save you here</span>
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/unmanaged">Cleaning up unmanaged resources</a> reference names exactly this category of bug: <em>"The most common types of unmanaged resources are objects that wrap operating system resources, such as files, windows, network connections, or database connections. Although the garbage collector is able to track the lifetime of an object that encapsulates an unmanaged resource, it doesn't know how to release and clean up the unmanaged resource."</em> A <code>.pfx</code> certificate handle is exactly this kind of OS-backed resource — the GC will eventually reclaim the managed wrapper object's memory, but that says nothing about when (or whether) the underlying OS handle gets released, which is precisely why this leak could run for hours before anyone noticed.
+</div>
 
 <h2>Step 4 — the fix, and the generalizable lesson</h2>
 <p>The fix itself is almost anticlimactic once the cause is found: release the certificate/key handle after each use instead of leaking it. The lesson that outlives this specific ticket:</p>
@@ -51,7 +55,10 @@ Windows serializes access to crypto key material. As unreleased handles piled up
 </div>
 
 <h2>Best practice</h2>
-<p>When a symptom description arrives ("it's slow," "the amount is wrong," "duplicate records appeared"), resist jumping straight to the code — spend the first few minutes narrowing which <em>shape</em> of bug it is (resource leak, unit/format mismatch, race condition, unbounded query) before opening a single file. The shape tells you where to look; guessing at code first usually means reading the wrong file first.</p>
+<ul>
+<li><strong>When a symptom description arrives ("it's slow," "the amount is wrong," "duplicate records appeared"), resist jumping straight to the code — spend the first few minutes narrowing which <em>shape</em> of bug it is first.</strong> Resource leak, unit/format mismatch, race condition, unbounded query — the shape tells you where to look; guessing at code first usually means reading the wrong file first.</li>
+<li><strong>"Gets slowly worse over hours, restart fixes it" is specifically the signature of an unreleased OS-backed resource — go looking for something opened with no matching <code>Dispose()</code>, not for a logic bug.</strong> Per Microsoft's own docs, the garbage collector reclaims managed memory but has no idea how to release an unmanaged handle it's wrapping — that gap is exactly where this bug class lives.</li>
+</ul>
 
 <h2>Try applying it: which pattern does each symptom match?</h2>
 
