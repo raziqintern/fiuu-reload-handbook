@@ -35,11 +35,19 @@
     End Try
 End Sub</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:31-58</p>
-<p><code>btnExcel.Visible</code> is decided exactly once, guarded by <code>If Not IsPostBack</code> — the very first time the page loads. Every subsequent postback on this page (clicking Search, clicking Reset) never touches it again. That's not an oversight to "fix" reflexively: in WebForms, a control's server-side properties — <code>Visible</code> included — are persisted in <strong>ViewState</strong> and survive across postbacks automatically. Once set, it stays set until something explicitly changes it, exactly the way a page author would want for a value that only depends on the user's access rights, which don't change mid-session.</p>
+<ul>
+<li><code>btnExcel.Visible</code> is decided exactly once, guarded by <code>If Not IsPostBack</code> — the very first time the page loads.</li>
+<li>Every subsequent postback on this page (clicking Search, clicking Reset) never touches it again.</li>
+<li>Not an oversight to "fix" reflexively: in WebForms, a control's server-side properties — <code>Visible</code> included — are persisted in <strong>ViewState</strong> and survive across postbacks automatically.</li>
+<li>Once set, it stays set until something explicitly changes it — exactly what you'd want for a value that only depends on the user's access rights, which don't change mid-session.</li>
+</ul>
 
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's own <a href="https://learn.microsoft.com/en-us/previous-versions/aspnet/bb386448(v=vs.100)">ASP.NET View State Overview</a> confirms this is deliberate framework behavior, not something specific to this page: <em>"View state is the method that the ASP.NET page framework uses to preserve page and control values between round trips... View state is used automatically by the ASP.NET page framework to persist information that must be preserved between postbacks. This information includes any non-default values of controls."</em> <code>Visible</code> is exactly this kind of non-default control value — once set to <code>True</code> outside the framework's own default, ViewState is what keeps it <code>True</code> across every later postback with zero code re-running that line.
+<ul>
+<li>Microsoft's own <a href="https://learn.microsoft.com/en-us/previous-versions/aspnet/bb386448(v=vs.100)">ASP.NET View State Overview</a> confirms this is deliberate framework behavior, not something specific to this page: <em>"View state is the method that the ASP.NET page framework uses to preserve page and control values between round trips... View state is used automatically by the ASP.NET page framework to persist information that must be preserved between postbacks. This information includes any non-default values of controls."</em></li>
+<li><code>Visible</code> is exactly this kind of non-default control value — once set to <code>True</code> outside the framework's own default, ViewState is what keeps it <code>True</code> across every later postback with zero code re-running that line.</li>
+</ul>
 </div>
 
 <div class="callout warn">
@@ -54,7 +62,10 @@ The moment someone makes <code>btnExcel</code>'s visibility depend on something 
 </ul>
 
 <h2>Pitfall 2 — a function literally named <code>pageLoad</code> is a framework hook, not just a name you picked</h2>
-<p>ASP.NET AJAX (<code>Sys.Application</code>, the framework behind <code>UpdatePanel</code>) automatically calls a global JavaScript function named exactly <code>pageLoad(sender, args)</code> — if one exists anywhere on the page — after the initial page load, <strong>and again after every single async partial postback completes</strong>. It's not an event you subscribe to; it's a magic name the framework looks for.</p>
+<ul>
+<li>ASP.NET AJAX (<code>Sys.Application</code>, the framework behind <code>UpdatePanel</code>) automatically calls a global JavaScript function named exactly <code>pageLoad(sender, args)</code> — if one exists anywhere on the page — after the initial page load, <strong>and again after every single async partial postback completes</strong>.</li>
+<li>It's not an event you subscribe to; it's a magic name the framework looks for.</li>
+</ul>
 <div class="callout real">
 <span class="callout-title">Why this made a search spinner stick, on a real page in this codebase</span>
 While cleaning up an unrelated jQuery UI autocomplete block that was copy-pasted onto this page from elsewhere, a leftover was left behind:
@@ -80,14 +91,20 @@ The message received from the server could not be parsed.</pre>
     ScriptManager.GetCurrent(Me).RegisterPostBackControl(upReport.FindControl("btnExcel"))
 End If</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:44-46</p>
-<p><code>RegisterPostBackControl</code> tells the framework "treat clicks on this specific control as a full postback, regardless of what panel it's sitting in" — required for any file download triggered from inside an <code>UpdatePanel</code>-heavy page. If you add a new export/download button to a page like this one and copy the surrounding panel structure but miss this line, the button will look identical in the markup and still throw this exact parser exception the first time someone clicks it.</p>
+<ul>
+<li><code>RegisterPostBackControl</code> tells the framework "treat clicks on this specific control as a full postback, regardless of what panel it's sitting in" — required for any file download triggered from inside an <code>UpdatePanel</code>-heavy page.</li>
+<li>If you add a new export/download button to a page like this one and copy the surrounding panel structure but miss this line, the button will look identical in the markup and still throw this exact parser exception the first time someone clicks it.</li>
+</ul>
 
 <h2>A smaller trap hiding in the same button: two statements, one <code>onclick</code></h2>
 <p><code>OnClientClick="ShowProgress()"</code> on a WebForms button gets rendered client-side as roughly <code>onclick="ShowProgress(); __doPostBack(...)"</code> — two JavaScript statements, in sequence. If <code>ShowProgress()</code> throws an uncaught exception (for example, because a dependency it calls — like jQuery itself — was never loaded on this page), the browser aborts the rest of that inline handler right there. <code>__doPostBack(...)</code>, the part that actually submits the postback and runs your server-side click handler, **never runs at all** — no request goes out, nothing happens, and it looks exactly like "the button stopped working," when the server-side code was never reached in the first place.</p>
 
 <div class="callout tip">
 <span class="callout-title">The general lesson across all three pitfalls</span>
-WebForms hides a lot of client/server plumbing behind a small surface area — a property that "just persists," a function name that "just happens" to get called, an attribute that "just" runs some script before a postback. When a bug's symptom doesn't match the code you're staring at, ask whether you're looking at the framework's plumbing instead of your own logic: stale ViewState, a magic-named global function, or a postback silently never reaching the server at all.
+<ul>
+<li>WebForms hides a lot of client/server plumbing behind a small surface area — a property that "just persists," a function name that "just happens" to get called, an attribute that "just" runs some script before a postback.</li>
+<li>When a bug's symptom doesn't match the code you're staring at, ask whether you're looking at the framework's plumbing instead of your own logic: stale ViewState, a magic-named global function, or a postback silently never reaching the server at all.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

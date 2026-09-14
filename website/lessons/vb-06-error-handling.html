@@ -38,7 +38,7 @@ End Sub</pre>
 Program continues</pre>
 </div>
 
-<h2>Finally still always runs</h2>
+<h2>Finally Block</h2>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">Try
     Console.WriteLine("Attempting reload...")
@@ -58,8 +58,11 @@ Cleanup: closing connection</pre>
 <code>DivideByZeroException</code>, <code>Exception</code>, and every other exception type here are the exact same .NET Base Class Library types C# uses — VB.NET and C# share one runtime and one set of framework types. This is the whole reason the two languages are basically a syntax skin over the same underlying platform.
 </div>
 
-<h2>Catch ... When — a filter, not just a type match</h2>
-<p><code>Catch</code> can add a <code>When</code> condition, so the catch block only runs if both the exception type <em>and</em> the condition match — otherwise VB.NET keeps looking for a different matching <code>Catch</code>, or the exception propagates up if none matches:</p>
+<h2>Catch ... When Filters</h2>
+<ul>
+<li><code>Catch</code> can add a <code>When</code> condition, so the catch block only runs if both the exception type <em>and</em> the condition match.</li>
+<li>Otherwise VB.NET keeps looking for a different matching <code>Catch</code>, or the exception propagates up if none matches.</li>
+</ul>
 <pre class="code-block">Try
     CallExternalApi()
 Catch ex As WebException When TypeOf ex.Response Is HttpWebResponse AndAlso CType(ex.Response, HttpWebResponse).StatusCode = HttpStatusCode.NotFound
@@ -73,11 +76,18 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/langu
 </div>
 <div class="callout tip">
 <span class="callout-title">When to reach for a When filter vs. checking inside the Catch</span>
-A <code>When</code> filter is worth it specifically when you have <strong>multiple <code>Catch</code> blocks for the same exception type</strong>, each wanting different handling depending on some detail of the exception (a status code, an error number). If there's only one <code>Catch</code> for that type, an <code>If</code> inside the block is equally clear and doesn't need the extra syntax — reach for <code>When</code> once you'd otherwise need nested <code>If</code>s inside a single catch block just to re-dispatch on the same condition a <code>When</code> filter could express in the <code>Catch</code> line itself.
+<ul>
+<li><strong>Use a <code>When</code> filter</strong> when you have multiple <code>Catch</code> blocks for the same exception type, each wanting different handling depending on some detail of the exception (a status code, an error number).</li>
+<li>If there's only one <code>Catch</code> for that type, an <code>If</code> inside the block is equally clear and doesn't need the extra syntax.</li>
+<li>Reach for <code>When</code> once you'd otherwise need nested <code>If</code>s inside a single catch block just to re-dispatch on the same condition a <code>When</code> filter could express in the <code>Catch</code> line itself.</li>
+</ul>
 </div>
 
-<h2>Catching a SQL error specifically, and telling one kind of failure from another</h2>
-<p>A generic <code>Catch ex As Exception</code> tells you something failed but nothing about <em>what kind</em> of failure it was — a network timeout, a duplicate key, a deadlock, and a typo in a stored procedure name all just look like "an exception happened." <code>SqlException</code> carries a <code>Number</code> property specifically so code can react differently depending on which SQL Server error actually occurred.</p>
+<h2>SqlException.Number</h2>
+<ul>
+<li>A generic <code>Catch ex As Exception</code> tells you something failed but nothing about <em>what kind</em> of failure it was — a network timeout, a duplicate key, a deadlock, and a typo in a stored procedure name all just look like "an exception happened."</li>
+<li><code>SqlException</code> carries a <code>Number</code> property specifically so code can react differently depending on which SQL Server error actually occurred.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.data.sqlclient.sqlexception.number">SqlException.Number reference</a> states plainly: <em>"Gets a number that identifies the type of error."</em> Its own VB.NET example is the textbook shape — a typed <code>Catch</code> for the specific exception type, then iterating its <code>Errors</code> collection:
@@ -100,7 +110,11 @@ The reference also points to Microsoft's own <a href="https://learn.microsoft.co
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/PaymentEnquiry.aspx.vb:2776-2778 (the same shape repeats in ~12 sibling report pages, e.g. ReportSalesTransaction.aspx.vb:674, ReportEInvoice.aspx.vb:217)</p>
 <div class="callout real">
 <span class="callout-title">What if instead the code used a typed <code>Catch ex As SqlException</code> here?</span>
-It would need a <em>second</em>, separate <code>Catch</code> for every other exception type this code also cares about (<code>OutOfMemoryException</code>, <code>ReportExceedLimitException</code>) — VB.NET has no way to write one <code>Catch</code> clause matching several unrelated types at once. The real code's choice — one broad <code>Catch ex As Exception</code>, then <code>TypeOf</code>/<code>OrElse</code> checks inside it — is how this codebase gets "react differently to three specific, unrelated exception types" without three separate <code>Catch</code> blocks each needing their own duplicate follow-up logic. It's a real, working alternative to the textbook shape, not a mistake — but it does mean <code>ex</code> is typed as the base <code>Exception</code> inside the block, so every SQL-specific member access needs an explicit <code>CType(ex, SqlException)</code> first, exactly as shown above.
+<ul>
+<li>It would need a <em>second</em>, separate <code>Catch</code> for every other exception type this code also cares about (<code>OutOfMemoryException</code>, <code>ReportExceedLimitException</code>) — VB.NET has no way to write one <code>Catch</code> clause matching several unrelated types at once.</li>
+<li>The real code's choice — one broad <code>Catch ex As Exception</code>, then <code>TypeOf</code>/<code>OrElse</code> checks inside it — is how this codebase gets "react differently to three specific, unrelated exception types" without three separate <code>Catch</code> blocks each needing their own duplicate follow-up logic.</li>
+<li>It's a real, working alternative to the textbook shape, not a mistake — but <code>ex</code> is typed as the base <code>Exception</code> inside the block, so every SQL-specific member access needs an explicit <code>CType(ex, SqlException)</code> first, exactly as shown above.</li>
+</ul>
 </div>
 <p>The genuine, number-specific dispatch — "is this error a duplicate key, or a timeout, or something else entirely" — does exist in this codebase, just on the C# side of the shared <code>class-library</code>, using the more textbook typed <code>Catch</code>:</p>
 <pre class="code-block">catch (SqlException sqlex)
@@ -114,21 +128,28 @@ It would need a <em>second</em>, separate <code>Catch</code> for every other exc
 <p class="code-cite">reload/class-library/Reloads/TNG/Providers/FundTransactionProvider.cs:366-373 (SqlExceptionNumber.cs defines ViolationOfUniqueKeyConstraint = 2601, ViolationOfUniqueIndexConstraint = 2627, ExecutionTimeout = -2)</p>
 <p>Same idea in both languages — react to the specific SQL error number, not just "something failed" — expressed through two different real shapes depending on which part of the codebase you're reading.</p>
 
-<h2>Is Nothing / IsNot Nothing — not just style, a real distinction</h2>
+<h2>Is / IsNot Nothing</h2>
 <p>Real, verified code from this exact codebase, showing both the recommended form and the older, more awkward one still present in production:</p>
 <pre class="code-block">If lstTerminalModel Is Nothing Then ...
 If lstTerminalModel IsNot Nothing And lstTerminalModel.Count > 0 Then ...</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx.vb:156,161</p>
 <pre class="code-block">If Not countries Is Nothing Then ...</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/DealerCreate.aspx.vb:368</p>
-<p><code>IsNot</code> exists specifically so you don't have to write the second, more awkward form — <code>Not x Is Nothing</code> and <code>x IsNot Nothing</code> mean exactly the same thing, but <code>IsNot</code> reads directly instead of needing a mental double-negative. Both forms are real, currently-shipping code in this codebase — a reminder that "the codebase does X" isn't always uniform, and reading the older form correctly matters as much as writing the newer one.</p>
+<ul>
+<li><code>IsNot</code> exists specifically so you don't have to write the second, more awkward form — <code>Not x Is Nothing</code> and <code>x IsNot Nothing</code> mean exactly the same thing, but <code>IsNot</code> reads directly instead of needing a mental double-negative.</li>
+<li>Both forms are real, currently-shipping code in this codebase — a reminder that "the codebase does X" isn't always uniform, and reading the older form correctly matters as much as writing the newer one.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/operators/is-operator">Is operator reference</a> defines the comparison precisely: <em>"The <code>Is</code> operator determines if two object references refer to the same object. However, it does not perform value comparisons."</em> That second sentence is the entire reason it exists as a separate operator from <code>=</code> — a value-comparison operator and a reference-identity operator answer genuinely different questions, and only one of them is safe against being silently redefined by an overloaded <code>=</code>.
 </div>
 <div class="callout warn">
 <span class="callout-title">Why Is/IsNot exist at all instead of just using = and &lt;&gt;</span>
-<code>Is</code> and <code>IsNot</code> are specifically for reference comparison — "do these two variables point at the same object" — and only work on reference types. Using <code>=</code> for this can give incorrect or unintended results because <code>=</code> can be intercepted by an overloaded equality operator that compares by <em>value</em> instead of by reference identity; <code>Is</code>/<code>IsNot</code> always compare identity, with no possibility of being overridden to mean something else. This is exactly why checking for <code>Nothing</code> specifically should always be <code>Is Nothing</code>/<code>IsNot Nothing</code>, never <code>= Nothing</code>.
+<ul>
+<li><code>Is</code>/<code>IsNot</code> are specifically for reference comparison — "do these two variables point at the same object" — and only work on reference types.</li>
+<li>Using <code>=</code> for this can give incorrect or unintended results: <code>=</code> can be intercepted by an overloaded equality operator that compares by <em>value</em> instead of by reference identity, while <code>Is</code>/<code>IsNot</code> always compare identity with no possibility of being overridden.</li>
+<li>This is exactly why checking for <code>Nothing</code> should always be <code>Is Nothing</code>/<code>IsNot Nothing</code>, never <code>= Nothing</code>.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

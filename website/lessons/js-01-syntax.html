@@ -17,8 +17,13 @@
 <h1>Variables &amp; Syntax</h1>
 <p class="lede">JavaScript is what runs inside the browser tab, separate from anything C# is doing on the server. Every "Try it Yourself" box on this site is itself a small JavaScript program — this is a good moment to actually understand how they work.</p>
 
-<h2>Declaring variables</h2>
-<p>Modern JavaScript has three ways to declare a variable. Use <code>let</code> by default, <code>const</code> when the value never gets reassigned, and avoid <code>var</code> (an older, quirkier version kept only for backwards compatibility).</p>
+<h2>Variable Declarations</h2>
+<ul>
+<li>Modern JavaScript has three ways to declare a variable: <code>let</code>, <code>const</code>, <code>var</code>.</li>
+<li>Use <code>let</code> by default.</li>
+<li>Use <code>const</code> when the value never gets reassigned.</li>
+<li>Avoid <code>var</code> — an older, quirkier version kept only for backwards compatibility.</li>
+</ul>
 
 <div class="tryit" data-lang="js">
 <pre class="tryit-src">let amount = 25.5;
@@ -37,7 +42,11 @@ MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference
 </div>
 <div class="callout real">
 <span class="callout-title">Real, verified: <code>var</code> is still genuinely present in production reload code</span>
-<code>var downloadTimer;</code>, <code>var cookieName = "DownloadChecker";</code>, and three more <code>var</code> declarations sit in the same script block on a real BackOffice page — a concrete reminder that "avoid <code>var</code>" is guidance for code you write today, not a claim that it's extinct in this codebase. Older inline <code>&lt;script&gt;</code> blocks predate the <code>let</code>/<code>const</code> convention and were never retrofitted.
+<ul>
+<li><code>var downloadTimer;</code>, <code>var cookieName = "DownloadChecker";</code>, and three more <code>var</code> declarations sit in the same script block on a real BackOffice page.</li>
+<li>A concrete reminder that "avoid <code>var</code>" is guidance for code you write today, not a claim that it's extinct in this codebase.</li>
+<li>Older inline <code>&lt;script&gt;</code> blocks predate the <code>let</code>/<code>const</code> convention and were never retrofitted.</li>
+</ul>
 </div>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/TerminalFirmwareVersionList.aspx:15,23-24</p>
 <p>What "block-scoped" actually changes, side by side — the exact same shape of code, only the keyword different:</p>
@@ -63,9 +72,13 @@ function letTest() {
 varTest();
 letTest();</pre>
 </div>
-<p>With <code>var</code>, the inner declaration isn't a new variable at all — it's the same one, reused, because <code>var</code> only respects function boundaries, not <code>{ }</code> blocks. With <code>let</code>, the inner <code>x</code> is a distinct variable that happens to share a name; once its block ends, the outer <code>x</code> is exactly as it was. This is the real, structural reason <code>var</code> can silently corrupt a variable a few lines away that looks completely unrelated at a glance.</p>
+<ul>
+<li>With <code>var</code>, the inner declaration isn't a new variable at all — it's the same one, reused, because <code>var</code> only respects function boundaries, not <code>{ }</code> blocks.</li>
+<li>With <code>let</code>, the inner <code>x</code> is a distinct variable that happens to share a name; once its block ends, the outer <code>x</code> is exactly as it was.</li>
+<li>This is the real, structural reason <code>var</code> can silently corrupt a variable a few lines away that looks completely unrelated at a glance.</li>
+</ul>
 
-<h2>The core types</h2>
+<h2>Core Types</h2>
 <table>
 <tr><th>Type</th><th>Example</th></tr>
 <tr><td>Number</td><td><code>25.5</code>, <code>10</code> — JS doesn't distinguish int vs. float, there's just Number.</td></tr>
@@ -80,7 +93,11 @@ MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Dat
 </div>
 <div class="callout warn">
 <span class="callout-title">The trap that catches everyone once</span>
-JavaScript will happily let you add a number and a string — and it won't throw, it'll silently convert. <code>5 + "5"</code> is <code>"55"</code> (a string), not <code>10</code>. This "helpful" coercion is a real source of bugs when data arrives from a form field (always a string) and you forget to convert it with <code>Number(...)</code> first.
+<ul>
+<li>JavaScript will happily let you add a number and a string — and it won't throw, it'll silently convert.</li>
+<li><code>5 + "5"</code> is <code>"55"</code> (a string), not <code>10</code>.</li>
+<li>This "helpful" coercion is a real source of bugs when data arrives from a form field (always a string) and you forget to convert it with <code>Number(...)</code> first.</li>
+</ul>
 </div>
 
 <h2>Try it yourself</h2>
@@ -105,7 +122,10 @@ console.log(typeof price);</pre>
 </ul>
 
 <h2>Better ways</h2>
-<p><code>Number(quantity)</code> is one of several conversion options and it's a reasonable default, but it silently returns <code>NaN</code> for genuinely invalid input rather than telling you something's wrong. For code that must actively reject bad input rather than quietly limp along with <code>NaN</code>, check <code>isNaN(...)</code> (or validate the string's shape) before trusting the converted value.</p>
+<ul>
+<li><code>Number(quantity)</code> is one of several conversion options and it's a reasonable default, but it silently returns <code>NaN</code> for genuinely invalid input rather than telling you something's wrong.</li>
+<li>For code that must actively reject bad input rather than quietly limp along with <code>NaN</code>, check <code>isNaN(...)</code> (or validate the string's shape) before trusting the converted value.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="predict" data-answer="1010">

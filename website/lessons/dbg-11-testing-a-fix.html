@@ -33,7 +33,10 @@
 <h2>Step 2 — build a boundary-value matrix, not one happy-path click</h2>
 <div class="callout tip">
 <span class="callout-title">Official documentation — this technique has a name</span>
-<a href="https://istqb-glossary.page/boundary-value-analysis/">ISTQB's glossary</a> defines exactly this technique: <em>"A black-box test design technique in which test cases are designed based on boundary values."</em> Every row in the tables below — the old boundary, one step inside a new range, one step outside it — is a deliberate instance of this named technique, the same family as the decision-table testing covered in <a href="dbg-06-postback-state-trap.html">the postback state trap lesson</a>: writing down the structure of the input space instead of picking values at random.
+<ul>
+<li><a href="https://istqb-glossary.page/boundary-value-analysis/">ISTQB's glossary</a> defines exactly this technique: <em>"A black-box test design technique in which test cases are designed based on boundary values."</em></li>
+<li>Every row in the tables below — the old boundary, one step inside a new range, one step outside it — is a deliberate instance of this named technique, the same family as the decision-table testing covered in <a href="dbg-06-postback-state-trap.html">the postback state trap lesson</a>: writing down the structure of the input space instead of picking values at random.</li>
+</ul>
 </div>
 <p>For the loosened field (PayerIc), the useful test isn't "does a valid value still work" — it's proving the <em>old</em> boundary still works <strong>and</strong> values outside it now also work, without silently breaking the field's other guard (empty-string rejection, untouched by this diff):</p>
 <table>
@@ -47,7 +50,12 @@
 
 <div class="callout tip">
 <span class="callout-title">The same discipline for the tightened field</span>
-For IncomeCode (now must be exactly 9 digits), the matrix is the mirror image: 9 digits exactly (accept), 8 and 10 digits (reject, one on each side of the boundary — confirms it's not an off-by-one), and confirm the rejection maps to the right response code (<code>InvalidReferenceNo</code>), not a generic failure that would also fire for an unrelated reason.
+For IncomeCode (now must be exactly 9 digits), the matrix is the mirror image:
+<ul>
+<li>9 digits exactly — accept.</li>
+<li>8 and 10 digits — reject, one on each side of the boundary, confirming it's not an off-by-one.</li>
+<li>Confirm the rejection maps to the right response code (<code>InvalidReferenceNo</code>), not a generic failure that would also fire for an unrelated reason.</li>
+</ul>
 </div>
 
 <h2>Step 3 — a real result that looked like a new bug, but wasn't</h2>

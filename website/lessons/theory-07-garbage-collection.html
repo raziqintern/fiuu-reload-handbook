@@ -17,8 +17,13 @@
 <h1>Garbage Collection &amp; Object Lifetime</h1>
 <p class="lede">This is the lesson that explains the real reload incident (issue #2592) introduced in the previous lesson — and the one piece of theory that would have caught it before it shipped. It gets a full worked-example treatment later in Debugging Reload.</p>
 
-<h2>What the GC actually does</h2>
-<p>In C/C++, you manually free memory you allocated. In .NET, the <strong>garbage collector</strong> does this for you: it periodically scans for heap objects nothing references anymore, and reclaims their memory automatically. This is why you don't call <code>delete</code> or <code>free()</code> in C#/VB.NET — and it's genuinely one of the biggest sources of memory bugs in unmanaged languages that .NET mostly eliminates.</p>
+<h2>Garbage Collector Behavior</h2>
+<ul>
+<li>In C/C++, you manually free memory you allocated.</li>
+<li>In .NET, the <strong>garbage collector</strong> does this for you: it periodically scans for heap objects nothing references anymore, and reclaims their memory automatically.</li>
+<li>This is why you don't call <code>delete</code> or <code>free()</code> in C#/VB.NET.</li>
+<li>It's genuinely one of the biggest sources of memory bugs in unmanaged languages that .NET mostly eliminates.</li>
+</ul>
 
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
@@ -26,20 +31,24 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/standard/garbage-c
 </div>
 <div class="callout warn">
 <span class="callout-title">The critical limit: the GC only knows about .NET memory</span>
-The garbage collector manages <em>managed</em> memory — objects on the .NET heap. It has no idea about, and cannot clean up, unmanaged resources: an open file handle, a network socket, a database connection, a cryptographic key handle from the OS. If your object holds one of those and you don't explicitly release it, the GC eventually collecting the wrapper object does <strong>not</strong> mean the underlying OS resource gets released at the same time — sometimes not for a long while, sometimes not correctly at all.
+<ul>
+<li>The garbage collector manages <em>managed</em> memory — objects on the .NET heap.</li>
+<li>It has no idea about, and cannot clean up, unmanaged resources: an open file handle, a network socket, a database connection, a cryptographic key handle from the OS.</li>
+<li>If your object holds one of those and you don't explicitly release it, the GC eventually collecting the wrapper object does <strong>not</strong> mean the underlying OS resource gets released at the same time — sometimes not for a long while, sometimes not correctly at all.</li>
+</ul>
 </div>
 <div class="callout warn">
 <span class="callout-title">What if you skip Dispose and rely on a finalizer instead? Non-deterministic, and that's the whole problem</span>
 The same reference names the fallback mechanism and its real cost: <em>"Define a finalizer. Finalization enables the non-deterministic release of unmanaged resources when the consumer of a type fails to call IDisposable.Dispose."</em> A finalizer isn't a substitute for calling <code>Dispose</code> — it's a safety net for when someone forgets to, and it runs on the GC's own schedule, not the moment the resource is actually done being used. This is exactly the shape of the real TNG incident: the handle would eventually be released by a finalizer, "eventually" being however long the object happened to survive before a GC pass reached it — nowhere near fast enough once handles were piling up faster than that.
 </div>
 
-<h2>This is exactly what caused a real reload incident</h2>
+<h2>Real Incident: TNG Certificate Handle Leak</h2>
 <div class="callout real">
 <span class="callout-title">Issue #2592, one more time</span>
 Every TNG reload transaction opened a <code>.pfx</code> certificate file and RSA-decrypted a session key from scratch, and never released the handle — the full investigation is a worked example later in <a href="dbg-04-trace-a-bug.html">Debugging Reload → Worked Example: Tracing a Bug</a>. This is precisely the gap above: the GC would eventually collect the .NET wrapper object around that handle, but the underlying OS-level crypto handle isn't guaranteed to be released promptly just because the GC ran — and Windows serializes access to crypto key material, so as unreleased handles piled up, every new lookup got slower. The garbage collector was never going to save this code — it wasn't designed to.
 </div>
 
-<h2>The real fix: IDisposable and using</h2>
+<h2>IDisposable and Using</h2>
 <p>For exactly this class of resource, .NET has a deterministic cleanup mechanism separate from the GC: implement <code>IDisposable</code>, and wrap usage in a <code>using</code> block (C#) / <code>Using</code> block (VB.NET) that guarantees <code>Dispose()</code> runs the moment you're done with it — immediately, not "whenever the GC gets around to it."</p>
 
 <div class="tryit" data-lang="dual">

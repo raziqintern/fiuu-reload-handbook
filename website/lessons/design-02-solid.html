@@ -18,20 +18,35 @@
 <p class="lede">Five naming conventions for design smells you already have an instinct for. Knowing the names lets you talk about them precisely — and lets you recognise them in real code you've already seen on this site.</p>
 
 <h2>S — Single Responsibility</h2>
-<p>A class should have one reason to change. This is exactly why reload splits each module into Model/Provider/Service (<a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>): a <code>Provider</code> changes only when data-access logic changes; a <code>Service</code> changes only when business rules change. Mixing both into one class means a change to either reason touches the same file.</p>
+<ul>
+<li>A class should have one reason to change.</li>
+<li>This is exactly why reload splits each module into Model/Provider/Service (<a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>): a <code>Provider</code> changes only when data-access logic changes; a <code>Service</code> changes only when business rules change.</li>
+<li>Mixing both into one class means a change to either reason touches the same file.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles">Architectural principles reference</a> states the rule in the same terms: <em>"It states that objects should have only one responsibility and that they should have only one reason to change... Following this principle helps to produce more loosely coupled and modular systems, since many kinds of new behavior can be implemented as new classes, rather than by adding additional responsibility to existing classes."</em>
 </div>
 
 <h2>O — Open/Closed</h2>
-<p>Code should be open to extension, closed to modification — you should be able to add new behavior without editing existing, working code. The <code>PaymentMethod</code> hierarchy from <a href="design-01-oop-pillars.html">OOP Pillars</a> demonstrates this: adding a new payment method means writing a new subclass, not editing the loop that calls <code>process()</code>.</p>
+<ul>
+<li>Code should be open to extension, closed to modification — you should be able to add new behavior without editing existing, working code.</li>
+<li>The <code>PaymentMethod</code> hierarchy from <a href="design-01-oop-pillars.html">OOP Pillars</a> demonstrates this: adding a new payment method means writing a new subclass, not editing the loop that calls <code>process()</code>.</li>
+</ul>
 
 <h2>L — Liskov Substitution</h2>
-<p>Any subclass should be usable anywhere its parent type is expected, without breaking things. If <code>CardPayment.process()</code> secretly required an extra step the caller didn't know about, substituting it for <code>TngPayment</code> would silently break — that's a Liskov violation. The polymorphism example only works cleanly <em>because</em> both subclasses honor the same contract.</p>
+<ul>
+<li>Any subclass should be usable anywhere its parent type is expected, without breaking things.</li>
+<li>If <code>CardPayment.process()</code> secretly required an extra step the caller didn't know about, substituting it for <code>TngPayment</code> would silently break — that's a Liskov violation.</li>
+<li>The polymorphism example only works cleanly <em>because</em> both subclasses honor the same contract.</li>
+</ul>
 
 <h2>I — Interface Segregation</h2>
-<p>Don't force a class to implement methods it doesn't need. A bloated <code>IPaymentService</code> with 15 methods, where most implementations only genuinely need 3, pressures every new implementer into writing empty/throwing stubs for the rest. Smaller, focused interfaces (reload's real <code>ITerminalService</code> has exactly the methods a terminal service needs, nothing more) are easier to implement correctly.</p>
+<ul>
+<li>Don't force a class to implement methods it doesn't need.</li>
+<li>A bloated <code>IPaymentService</code> with 15 methods, where most implementations only genuinely need 3, pressures every new implementer into writing empty/throwing stubs for the rest.</li>
+<li>Smaller, focused interfaces (reload's real <code>ITerminalService</code> has exactly the methods a terminal service needs, nothing more) are easier to implement correctly.</li>
+</ul>
 
 <h2>D — Dependency Inversion</h2>
 <div class="callout tip">
@@ -40,7 +55,11 @@ Microsoft's own reference states the direction of the inversion precisely: <em>"
 </div>
 <div class="callout real">
 <span class="callout-title">You've already seen this in real reload code</span>
-High-level code should depend on abstractions, not concrete implementations. <code>TerminalService</code> depending on <code>IAccountService</code> (an interface) rather than a concrete <code>AccountService</code> class — resolved lazily via <code>EngineContext.Current.Resolve&lt;IAccountService&gt;()</code>, see <a href="conv-02-layering.html">Layering</a> — is dependency inversion in action. The Service layer never needs to know which concrete class actually implements the interface.
+<ul>
+<li>High-level code should depend on abstractions, not concrete implementations.</li>
+<li><code>TerminalService</code> depending on <code>IAccountService</code> (an interface) rather than a concrete <code>AccountService</code> class — resolved lazily via <code>EngineContext.Current.Resolve&lt;IAccountService&gt;()</code>, see <a href="conv-02-layering.html">Layering</a> — is dependency inversion in action.</li>
+<li>The Service layer never needs to know which concrete class actually implements the interface.</li>
+</ul>
 </div>
 <p>What the inversion actually buys you, made concrete — the same <code>TerminalService</code> class, swapped between two different <code>IAccountService</code> implementations with zero changes to <code>TerminalService</code> itself:</p>
 <div class="tryit" data-lang="dual">
@@ -123,7 +142,10 @@ End Module</pre>
 Balance: 999</pre>
 </div>
 </div>
-<p><code>TerminalService</code>'s own source code never mentions <code>RealAccountService</code> or <code>FakeAccountService</code> — it was written once, against the interface, and works correctly with either. That's the practical payoff: swapping implementations (a real service in production, a fake one in a test) needs zero changes to the class doing the depending.</p>
+<ul>
+<li><code>TerminalService</code>'s own source code never mentions <code>RealAccountService</code> or <code>FakeAccountService</code> — it was written once, against the interface, and works correctly with either.</li>
+<li><strong>The practical payoff:</strong> swapping implementations (a real service in production, a fake one in a test) needs zero changes to the class doing the depending.</li>
+</ul>
 
 <h2>Best practice</h2>
 <ul>

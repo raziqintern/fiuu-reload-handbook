@@ -17,8 +17,12 @@
 <h1>Comment Style</h1>
 <p class="lede">The last stop in this track: how much commenting actually exists, and where it earns its keep. Full source: <a href="../../conventions/comment-style.md">conventions/comment-style.md</a>.</p>
 
-<h2>XML doc comments are rare — about 1 in 10 files</h2>
-<p>Of 626 <code>.cs</code> files under class-library, only 62 contain an XML doc comment (<code>///</code>) anywhere at all. Public <code>*Service</code>/<code>*Provider</code> classes are overwhelmingly undocumented at the member level — method and parameter names (<code>GetTerminalSummaryByTransNo(string transNo)</code>) are expected to carry the meaning on their own, and mostly do. There's no IntelliSense-visible description of edge cases or failure modes for a consumer of the shared library.</p>
+<h2>XML Doc Comments Are Rare</h2>
+<ul>
+<li>Of 626 <code>.cs</code> files under class-library, only 62 contain an XML doc comment (<code>///</code>) anywhere at all.</li>
+<li>Public <code>*Service</code>/<code>*Provider</code> classes are overwhelmingly undocumented at the member level — method and parameter names (<code>GetTerminalSummaryByTransNo(string transNo)</code>) are expected to carry the meaning on their own, and mostly do.</li>
+<li>There's no IntelliSense-visible description of edge cases or failure modes for a consumer of the shared library.</li>
+</ul>
 
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
@@ -29,7 +33,7 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-re
 Don't go looking for doc comments to understand what a method does — you likely won't find them. Read the method name, its parameter names, and (per the Naming lesson) the layer suffix on its class. That's the primary documentation this codebase actually has.
 </div>
 
-<h2>Inline comments are sparse — but load-bearing when present</h2>
+<h2>Inline Comments: Sparse but Load-Bearing</h2>
 <p>Most methods have zero inline comments. When one does appear, it's because the behavior is genuinely non-obvious and the author knew it:</p>
 <pre class="code-block">long subNumber = Int64.Parse(cardNumber.Substring(cardNumber.Length - 10, 9)); //last digit is serve as parity bit
 long fileIndex = (subNumber - 1) / 2000000;
@@ -39,16 +43,20 @@ cardIndex = cardIndex == 0 ? 1999999 : cardIndex - 1; // Fix the index due to 20
 
 <div class="callout warn">
 <span class="callout-title">The philosophy: comments explain business magic, not mechanics</span>
-This codebase's comments explain domain magic numbers and business rules that genuinely can't be inferred from the code — not what the code is mechanically doing. The trade-off: a file dense with magic numbers like this one is still hard to follow even with the comments it has, because there's no overview comment explaining the file format or scheme as a whole. If you touch a file like this, consider whether a short summary comment at the top would have saved you the time you just spent understanding it — and add one if so.
+<ul>
+<li>This codebase's comments explain domain magic numbers and business rules that genuinely can't be inferred from the code — not what the code is mechanically doing.</li>
+<li><strong>The trade-off:</strong> a file dense with magic numbers like this one is still hard to follow even with the comments it has, because there's no overview comment explaining the file format or scheme as a whole.</li>
+<li>If you touch a file like this, consider whether a short summary comment at the top would have saved you the time you just spent understanding it — and add one if so.</li>
+</ul>
 </div>
 
-<h2>A comment that reveals the codebase's own history</h2>
+<h2>A Comment That Reveals the Codebase's History</h2>
 <pre class="code-block">foundFile = true;
 break; // TODO: might not be correct. Was : Exit For</pre>
 <p class="code-cite">reload/class-library/Database/Helpers/DBConnectionHelper.cs:61-63</p>
 <p>"Was: Exit For" is a tell that this file was mechanically ported from <a href="vb-01-syntax.html">VB.NET</a> (<code>Exit For</code> is VB's loop-break keyword) rather than written fresh in C#. If you're editing <code>Fiuu.Database</code> code and something feels slightly foreign for idiomatic C#, this is likely why.</p>
 
-<h2>SQL headers: a consistent template, shallow content</h2>
+<h2>SQL Header Comments: Template, Shallow Content</h2>
 <pre class="code-block">-- =============================================
 -- Author:		Chee Hong
 -- Create date: 2024-05-06

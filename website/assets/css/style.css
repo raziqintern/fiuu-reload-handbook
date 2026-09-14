@@ -323,18 +323,20 @@ body.home #site-main { max-width: 1000px; }
 
 /* ---------- Typography ---------- */
 
-h1 { font-size: 2rem; margin: 0 0 6px; }
-h2 { font-size: 1.45rem; margin: 2.2em 0 0.6em; padding-top: 0.2em; border-top: 1px solid var(--line); }
-h2:first-of-type { border-top: none; margin-top: 0.8em; }
-h3 { font-size: 1.15rem; margin: 1.6em 0 0.5em; }
-p { margin: 0 0 1em; }
+h1 { font-size: 2rem; margin: 0 0 10px; }
+h2 { font-size: 1.45rem; margin: 3em 0 0.9em; padding-top: 0.5em; border-top: 1px solid var(--line); }
+h2:first-of-type { border-top: none; margin-top: 1.2em; }
+h3 { font-size: 1.15rem; margin: 2.2em 0 0.7em; }
+p { margin: 0 0 1.3em; }
 .lede {
   font-size: 1.08rem;
   color: var(--ink-soft);
-  margin-bottom: 1.6em;
+  margin-bottom: 2em;
 }
-ul, ol { padding-left: 1.4em; }
-li { margin-bottom: 0.4em; }
+ul, ol { padding-left: 1.4em; margin: 0 0 1.3em; }
+li { margin-bottom: 0.65em; line-height: 1.55; }
+li:last-child { margin-bottom: 0; }
+li > ul, li > ol { margin-top: 0.5em; }
 
 .track-label {
   display: inline-block;
@@ -349,8 +351,8 @@ li { margin-bottom: 0.4em; }
   margin-bottom: 10px;
 }
 
-table { border-collapse: collapse; width: 100%; margin: 1em 0 1.5em; font-size: 0.92rem; }
-th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+table { border-collapse: collapse; width: 100%; margin: 1.3em 0 1.8em; font-size: 0.92rem; }
+th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; vertical-align: top; line-height: 1.5; }
 th { background: var(--paper-soft); font-weight: 700; }
 
 blockquote {
@@ -365,18 +367,21 @@ blockquote {
 
 .callout {
   border-radius: var(--radius);
-  padding: 14px 16px;
-  margin: 1.4em 0;
+  padding: 18px 20px;
+  margin: 1.8em 0;
   border: 1px solid var(--line);
+  line-height: 1.55;
 }
 .callout-title {
   font-weight: 700;
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  margin-bottom: 4px;
+  margin-bottom: 10px;
   display: block;
 }
+.callout ul, .callout ol { margin: 0.6em 0; }
+.callout p:last-child, .callout ul:last-child, .callout ol:last-child { margin-bottom: 0; }
 .callout.tip { background: var(--tip-bg); border-color: var(--tip-line); }
 .callout.tip .callout-title { color: var(--green-dark); }
 .callout.warn { background: var(--warn-bg); border-color: var(--warn-line); }
@@ -389,17 +394,17 @@ blockquote {
 pre.code-block {
   background: var(--code-bg);
   color: var(--code-fg);
-  padding: 14px 16px;
+  padding: 16px 18px;
   border-radius: var(--radius);
   overflow-x: auto;
   font-size: 0.88rem;
-  margin: 1em 0 1.4em;
+  margin: 1.3em 0 0.5em;
   line-height: 1.55;
 }
 .code-cite {
   font-size: 0.78rem;
   color: var(--ink-soft);
-  margin: -1em 0 1.4em;
+  margin: 0 0 1.8em;
   font-family: var(--mono);
 }
 
@@ -408,7 +413,7 @@ pre.code-block {
 .tryit {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  margin: 1.4em 0 1.8em;
+  margin: 1.8em 0 2.2em;
   overflow: hidden;
 }
 .tryit-bar {

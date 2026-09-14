@@ -18,7 +18,12 @@
 <p class="lede">A new track: the "why did my code do that" theory every C#/VB.NET developer eventually needs, once syntax alone stops explaining the behavior you're seeing.</p>
 
 <h2>How to use this track</h2>
-<p>Each lesson explains one mental model, shows it happening in both languages, and connects it to a real, cited pattern elsewhere on this site or in reload itself. These are the topics that separate "I can write C#" from "I understand why C# behaves the way it does."</p>
+<ul>
+<li>Each lesson explains one mental model.</li>
+<li>Each lesson shows that model happening in both languages.</li>
+<li>Each lesson connects the model to a real, cited pattern elsewhere on this site or in reload itself.</li>
+</ul>
+<p>These are the topics that separate "I can write C#" from "I understand why C# behaves the way it does."</p>
 
 <h2>The core distinction</h2>
 <table>
@@ -84,15 +89,28 @@ t1.Id = TNG-9999, t2.Id = TNG-9999</pre>
 <p>Changing <code>b</code> never touches <code>a</code> — they're independent copies. But changing <code>t2.Id</code> also changes what <code>t1.Id</code> reports, because <code>t1</code> and <code>t2</code> are two labels pointing at the exact same <code>Terminal</code> object in memory. This is the single most common source of "I didn't even touch that variable, why did it change?" bugs in object-oriented code.</p>
 <div class="callout warn">
 <span class="callout-title">What if a value type itself holds a reference-type field? Copying gets one layer deeper</span>
-The rule above isn't "value type = fully independent, always" — it's specifically about the top-level copy. Microsoft's own reference is precise about this: <em>"If a value type contains a data member of a reference type, you copy only the reference to the instance of the reference type when you copy a value-type instance. Both the copy and original value-type instance have access to the same reference-type instance."</em> Concretely: a <code>struct</code> holding a <code>List&lt;string&gt;</code> field gets copied as a whole struct on assignment, but that copy's list field still points at the exact same list as the original — mutating the list through either copy is visible through both. Copying a value type copies its own fields' values, one level deep; it does not deep-copy an object referenced by one of those fields.
+<ul>
+<li>The rule above isn't "value type = fully independent, always" — it's specifically about the top-level copy.</li>
+<li>Microsoft's own reference is precise about this: <em>"If a value type contains a data member of a reference type, you copy only the reference to the instance of the reference type when you copy a value-type instance. Both the copy and original value-type instance have access to the same reference-type instance."</em></li>
+<li>Concretely: a <code>struct</code> holding a <code>List&lt;string&gt;</code> field gets copied as a whole struct on assignment, but that copy's list field still points at the exact same list as the original — mutating the list through either copy is visible through both.</li>
+<li>Copying a value type copies its own fields' values, one level deep; it does not deep-copy an object referenced by one of those fields.</li>
+</ul>
 </div>
 
-<h2>Where they actually live: stack vs. heap</h2>
-<p>As a working simplification: local value-type variables live on the <strong>stack</strong> — a fast, function-call-scoped region that's automatically reclaimed the instant the method returns. Objects created with <code>new</code> (reference types) live on the <strong>heap</strong> — a larger, longer-lived region managed by the garbage collector (see <a href="theory-07-garbage-collection.html">Garbage Collection &amp; Object Lifetime</a>), which can outlive the method that created them. A local variable holding a reference type is itself just a small pointer on the stack, pointing into the heap.</p>
+<h2>Stack vs. Heap</h2>
+<p>As a working simplification:</p>
+<ul>
+<li><strong>Local value-type variables</strong> live on the <strong>stack</strong> — a fast, function-call-scoped region that's automatically reclaimed the instant the method returns.</li>
+<li><strong>Objects created with <code>new</code> (reference types)</strong> live on the <strong>heap</strong> — a larger, longer-lived region managed by the garbage collector (see <a href="theory-07-garbage-collection.html">Garbage Collection &amp; Object Lifetime</a>), which can outlive the method that created them.</li>
+<li><strong>A local variable holding a reference type</strong> is itself just a small pointer on the stack, pointing into the heap.</li>
+</ul>
 
 <div class="callout warn">
 <span class="callout-title">This is a simplification, not the full CLR spec</span>
-Value types nested inside a class (a field of type <code>int</code> on a heap-allocated object) actually live on the heap too, as part of that object. The "value types = stack, reference types = heap" rule of thumb is the right first mental model, not a universal law — don't repeat it as an absolute in a technical interview without this caveat.
+<ul>
+<li>Value types nested inside a class (a field of type <code>int</code> on a heap-allocated object) actually live on the heap too, as part of that object.</li>
+<li>The "value types = stack, reference types = heap" rule of thumb is the right first mental model, not a universal law — don't repeat it as an absolute in a technical interview without this caveat.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

@@ -17,13 +17,21 @@
 <h1>Git Archaeology: What Blame Can't Tell You</h1>
 <p class="lede">Two real investigations into "why does this line exist" and "is it safe to reset this pointer" — and where each one ran into a limit that isn't about knowing the right git command, but about knowing when a command's answer isn't the real answer.</p>
 
-<h2>The question: why does this line exist?</h2>
-<p>A page disabled a dropdown after a search ran, with no comment explaining why. Before assuming it was a bug worth removing, the reasonable move is to find out whether it was ever a deliberate requirement — and <code>git log -S"the exact line"</code> (or <code>git blame</code>) is the standard way to find the commit that introduced a specific piece of code.</p>
+<h2>git log -S and git blame</h2>
+<ul>
+<li>A page disabled a dropdown after a search ran, with no comment explaining why.</li>
+<li>Before assuming it was a bug worth removing, the reasonable move is to find out whether it was ever a deliberate requirement.</li>
+<li><code>git log -S"the exact line"</code> (or <code>git blame</code>) is the standard way to find the commit that introduced a specific piece of code.</li>
+</ul>
 <pre class="code-block">git log -S"ddlStockType.Enabled = False" -- path/to/StockAllocationEdit.aspx.vb</pre>
 
 <div class="callout warn">
 <span class="callout-title">The trail led to a bulk rename, not the real origin</span>
-The commit that came back had the message <code>"[SIT] {Reload} GIT#1770"</code> — but reading that ticket showed it was a project-wide <strong>namespace consolidation</strong> ("rename <code>MOL.App.CEPP.BackOffice.Web</code> to <code>Fiuu.App.BackOffice.Web</code>"), not a change to this page's search behavior at all. The whole file had been reintroduced wholesale as part of that rename/move — which is exactly the kind of commit <code>git log -S</code> and <code>blame</code> will surface as "the" origin, because as far as git's line history is concerned, that's the most recent commit that touched this exact line at this exact path. The actual original authorship, from whenever the file lived under its old namespace, doesn't reliably carry across a wholesale move like that.
+<ul>
+<li>The commit that came back had the message <code>"[SIT] {Reload} GIT#1770"</code> — but reading that ticket showed it was a project-wide <strong>namespace consolidation</strong> ("rename <code>MOL.App.CEPP.BackOffice.Web</code> to <code>Fiuu.App.BackOffice.Web</code>"), not a change to this page's search behavior at all.</li>
+<li>The whole file had been reintroduced wholesale as part of that rename/move — which is exactly the kind of commit <code>git log -S</code> and <code>blame</code> will surface as "the" origin, because as far as git's line history is concerned, that's the most recent commit that touched this exact line at this exact path.</li>
+<li>The actual original authorship, from whenever the file lived under its old namespace, doesn't reliably carry across a wholesale move like that.</li>
+</ul>
 </div>
 
 <p>This is a known, structural limit of line-level history, not a mistake in how the command was used: a rename/move (especially one bundled into a large, unrelated commit) can sever the trail a tool like <code>blame</code> or <code>log -S</code> walks, even when <code>--follow</code>/rename-detection is in play. The tool isn't wrong — it's answering "what commit last touched this line at this path," which isn't always the same question as "who decided this behavior should exist, and why."</p>
@@ -33,14 +41,22 @@ The commit that came back had the message <code>"[SIT] {Reload} GIT#1770"</code>
 Once the trail dead-ends at a commit that's provably about something else (a rename, a bulk formatting pass, a dependency bump), further git archaeology on the same line is unlikely to produce a real answer. That's the point to say so plainly — "I can't find a documented reason this exists; it's worth asking someone who's worked on this page before" — rather than presenting a guess with the same confidence as a verified fact.
 </div>
 
-<h2>The question: is it safe to reset this pointer?</h2>
-<p>A second, unrelated situation: a working branch carried a <code>class-library</code> submodule reference pointing at commit <code>0bbe934f</code>. The target environment's current reference pointed at a different commit, <code>60e7c19</code>, dated four days later. The tempting move — since the environment's commit looked newer — was to leave it alone; a more dangerous one would have been to "fix" a perceived mismatch by resetting the environment's pointer back to the branch's own value.</p>
+<h2>git merge-base --is-ancestor</h2>
+<ul>
+<li>A second, unrelated situation: a working branch carried a <code>class-library</code> submodule reference pointing at commit <code>0bbe934f</code>.</li>
+<li>The target environment's current reference pointed at a different commit, <code>60e7c19</code>, dated four days later.</li>
+<li>The tempting move — since the environment's commit looked newer — was to leave it alone; a more dangerous one would have been to "fix" a perceived mismatch by resetting the environment's pointer back to the branch's own value.</li>
+</ul>
 
 <pre class="code-block">git merge-base --is-ancestor 0bbe934f 60e7c19 && echo "ancestor" || echo "diverged"</pre>
 
 <div class="callout real">
 <span class="callout-title">Newer isn't the same as "descended from"</span>
-Checking ancestry directly showed the two commits had <strong>diverged</strong> from a common point — neither was an ancestor of the other. The branch's own reference wasn't even about the same change: it turned out to be a different ticket's class-library revision, carried along incidentally from an earlier merge, not anything the branch's own work had introduced. Resetting the environment's pointer to that value would have moved it <em>backward</em> relative to unrelated fixes that had landed there in the meantime — a real regression a passing build would never catch, since a successful build only proves the referenced API surface still compiles, not that other tickets' changes are still present.
+<ul>
+<li>Checking ancestry directly showed the two commits had <strong>diverged</strong> from a common point — neither was an ancestor of the other.</li>
+<li>The branch's own reference wasn't even about the same change: it turned out to be a different ticket's class-library revision, carried along incidentally from an earlier merge, not anything the branch's own work had introduced.</li>
+<li>Resetting the environment's pointer to that value would have moved it <em>backward</em> relative to unrelated fixes that had landed there in the meantime — a real regression a passing build would never catch, since a successful build only proves the referenced API surface still compiles, not that other tickets' changes are still present.</li>
+</ul>
 </div>
 
 <div class="callout tip">

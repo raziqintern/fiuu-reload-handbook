@@ -43,9 +43,12 @@ static void Main()
 Program continues</pre>
 </div>
 
-<p>Note that <code>Console.WriteLine(result)</code> never runs — once <code>Divide</code> throws, execution jumps straight to the matching <code>catch</code>, skipping everything else left in the <code>try</code> block. Execution after the whole <code>try</code>/<code>catch</code> continues normally.</p>
+<ul>
+<li><code>Console.WriteLine(result)</code> never runs — once <code>Divide</code> throws, execution jumps straight to the matching <code>catch</code>, skipping everything else left in the <code>try</code> block.</li>
+<li>Execution after the whole <code>try</code>/<code>catch</code> continues normally.</li>
+</ul>
 
-<h2>finally always runs</h2>
+<h2>finally</h2>
 <div class="tryit" data-lang="csharp">
 <pre class="tryit-src">try
 {
@@ -89,7 +92,11 @@ The same reference is explicit about how multiple <code>catch</code> clauses are
 </ul>
 
 <h2>Better ways</h2>
-<p>Reload's own real code frequently catches broadly and logs-then-swallows (<a href="conv-03-error-handling.html">Fiuu C# Conventions → Error Handling</a>) — a deliberate, if debated, house pattern for this specific codebase. That's a real, working choice for a production system where an unhandled exception in one transaction shouldn't take down the whole process — but it's not the default you should reach for in new, general-purpose code without that same reasoning behind it.</p>
+<ul>
+<li>Reload's own real code frequently catches broadly and logs-then-swallows (<a href="conv-03-error-handling.html">Fiuu C# Conventions → Error Handling</a>) — a deliberate, if debated, house pattern for this specific codebase.</li>
+<li>That's a real, working choice for a production system where an unhandled exception in one transaction shouldn't take down the whole process.</li>
+<li>But it's not the default you should reach for in new, general-purpose code without that same reasoning behind it.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">

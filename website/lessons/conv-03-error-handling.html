@@ -17,7 +17,7 @@
 <h1>Error Handling</h1>
 <p class="lede">You learned in C# Fundamentals that catching <code>Exception</code> broadly is a code smell. Reload's real code does it constantly — on purpose. Full source: <a href="../../conventions/error-handling.md">conventions/error-handling.md</a>.</p>
 
-<h2>The dominant pattern: catch, log, return a sentinel — don't rethrow</h2>
+<h2>Catch, Log, Return a Sentinel</h2>
 <pre class="code-block">public long AddGameSalesTransaction(GameSalesTransaction gameSalesTransaction)
 {
     long iId = -1;
@@ -37,12 +37,16 @@
 
 <div class="callout warn">
 <span class="callout-title">Read that comment twice</span>
-This is the pattern's real cost, called out in the source doc itself: the caller of <code>AddGameSalesTransaction</code> gets back <code>-1</code> whether something threw an exception, or whether <code>-1</code> is a legitimately meaningful value. The exception detail exists <em>only</em> in the log. If you're debugging "why did this transaction silently not save", the log — not the C# call site — is where the real answer lives.
+<ul>
+<li>This is the pattern's real cost, called out in the source doc itself: the caller of <code>AddGameSalesTransaction</code> gets back <code>-1</code> whether something threw an exception, or whether <code>-1</code> is a legitimately meaningful value.</li>
+<li>The exception detail exists <em>only</em> in the log.</li>
+<li>If you're debugging "why did this transaction silently not save", the log — not the C# call site — is where the real answer lives.</li>
+</ul>
 </div>
 
 <p>This shape (wrap the whole method, catch <code>Exception</code>, log, return a safe default or an error-code DTO) is consistent across TNG, Game, Astro, and InComm. It's the de facto house style, even though nobody wrote it down anywhere.</p>
 
-<h2>The one narrower exception: known SQL constraint violations</h2>
+<h2>Known SQL Constraint Violations</h2>
 <p>Where duplicate-key detection matters for correctness — an idempotency check on a retryable network call — the code catches the specific <code>SqlException</code>, checks the error number, and rethrows everything else:</p>
 <pre class="code-block">catch (Exception ex)
 {
@@ -56,17 +60,24 @@ This is the pattern's real cost, called out in the source doc itself: the caller
 }</pre>
 <p class="code-cite">reload/class-library/Reloads/TNG/Providers/TerminalProvider.cs:109-124</p>
 
-<p>This is the one place in the sampled codebase where "catch broadly, but rethrow anything you didn't specifically expect" is done correctly. Worth knowing the two magic numbers: <code>2601</code> and <code>2627</code> are both SQL Server unique-constraint-violation error numbers.</p>
+<ul>
+<li>This is the one place in the sampled codebase where "catch broadly, but rethrow anything you didn't specifically expect" is done correctly.</li>
+<li>Worth knowing the two magic numbers: <code>2601</code> and <code>2627</code> are both SQL Server unique-constraint-violation error numbers.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's own <a href="https://learn.microsoft.com/en-us/sql/relational-databases/errors-events/database-engine-events-and-errors-2000-to-2999">Database Engine events and errors reference</a> confirms both numbers' exact meaning: error <strong>2601</strong>'s message text is <em>"Cannot insert duplicate key row in object '%.*ls' with unique index '%.*ls'. The duplicate key value is %ls."</em>; error <strong>2627</strong>'s is <em>"Violation of %ls constraint '%.*ls'. Cannot insert duplicate key in object '%.*ls'."</em> — 2601 fires for a duplicate on a unique <em>index</em> specifically, 2627 for a violated <code>PRIMARY KEY</code> or <code>UNIQUE</code> <em>constraint</em>. Checking both is why the real code above needs two numbers, not one.</div>
 
 <div class="callout warn">
 <span class="callout-title">Even here, consistency slips</span>
-Those same two numbers also exist as a named enum elsewhere (<code>SqlExceptionNumber.ViolationOfUniqueKeyConstraint = 2601</code>) — but <code>TerminalProvider</code> doesn't use it, and re-inlines the raw numbers instead. Two ways of expressing the same check coexist in the same module. If you're adding a similar check, prefer the named enum — but don't be surprised to find the magic-number version elsewhere.
+<ul>
+<li>Those same two numbers also exist as a named enum elsewhere (<code>SqlExceptionNumber.ViolationOfUniqueKeyConstraint = 2601</code>) — but <code>TerminalProvider</code> doesn't use it, and re-inlines the raw numbers instead.</li>
+<li>Two ways of expressing the same check coexist in the same module.</li>
+<li>If you're adding a similar check, prefer the named enum — but don't be surprised to find the magic-number version elsewhere.</li>
+</ul>
 </div>
 
-<h2>Logging code must never itself throw</h2>
+<h2>Logging Must Never Throw</h2>
 <pre class="code-block">LoggerDic[sKey].Log(sLogMessage);
 ...
 catch

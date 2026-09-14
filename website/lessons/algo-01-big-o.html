@@ -20,10 +20,13 @@
 <h2>How to use this track</h2>
 <p>Read the concept, then read <em>both</em> language tabs on each example — the point isn't just learning the algorithm, it's learning to recognise the same idea in whichever of the two languages a given piece of reload code happens to be written in.</p>
 
-<h2>Big O measures growth, not stopwatch time</h2>
-<p>Big O notation describes how the amount of work a piece of code does grows as its input gets bigger — not how many milliseconds it takes on your specific machine. "This is O(n)" means "if you double the input size, expect roughly double the work," regardless of whether that machine is fast or slow.</p>
+<h2>What Big O Measures</h2>
+<ul>
+<li>Big O describes how the amount of work a piece of code does grows as its input gets bigger — not how many milliseconds it takes on your specific machine.</li>
+<li>"This is O(n)" means "if you double the input size, expect roughly double the work," regardless of whether that machine is fast or slow.</li>
+</ul>
 
-<h2>Example: see it happen — O(n) vs. O(n²)</h2>
+<h2>O(n) vs. O(n²)</h2>
 <p>Predict both outputs, then reveal. Notice multiplying <code>n</code> by 10 multiplies the single-loop result by 10, but the nested-loop result by 100.</p>
 
 <div class="tryit" data-lang="dual">
@@ -100,7 +103,7 @@ Nested loop, n=100: 10000</pre>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1.add"><code>List&lt;T&gt;.Add</code> reference</a> states the method's actual complexity in its own Remarks, in Big O notation, no different from a textbook: <em>"If Count is less than Capacity, this method is an O(1) operation. If the capacity needs to be increased to accommodate the new element, this method becomes an O(n) operation, where n is Count."</em> This is exactly the "amortized O(1), occasionally O(n) on resize" behavior <a href="theory-06-generics-collections.html">Generics &amp; Collections Internals</a> describes for <code>List&lt;T&gt;</code> — stated by Microsoft itself, in these same terms, for real production code you already use.
 </div>
 
-<h2>The classes you'll actually encounter</h2>
+<h2>Common Complexity Classes</h2>
 <table>
 <tr><th>Notation</th><th>Meaning</th><th>Example</th></tr>
 <tr><td><code>O(1)</code></td><td>Constant — same work regardless of input size</td><td>Reading <code>array[5]</code> by index</td></tr>
@@ -122,7 +125,11 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collect
 
 <div class="callout warn">
 <span class="callout-title">Why a new engineer should care about this at all</span>
-Code that's "obviously correct" and works fine in testing with 10 rows can become a real production incident at 100,000 rows if it's secretly O(n²). Later, in <a href="dbg-02-pitfalls.html">Debugging Reload → Known Patterns &amp; Pitfalls</a>, you'll see a real reviewer comment about exactly this concern from a different angle — unbounded report queries: an operation whose cost scales with data size needs a limit, or its growth rate needs to be genuinely linear, not quadratic.
+<ul>
+<li>Code that's "obviously correct" and works fine in testing with 10 rows can become a real production incident at 100,000 rows if it's secretly O(n²).</li>
+<li>Later, in <a href="dbg-02-pitfalls.html">Debugging Reload → Known Patterns &amp; Pitfalls</a>, you'll see a real reviewer comment about exactly this concern from a different angle — unbounded report queries.</li>
+<li>An operation whose cost scales with data size needs a limit, or its growth rate needs to be genuinely linear, not quadratic.</li>
+</ul>
 </div>
 
 <h2>Check your understanding</h2>

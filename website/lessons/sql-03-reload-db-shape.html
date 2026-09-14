@@ -17,7 +17,7 @@
 <h1>How reload_db Is Organised</h1>
 <p class="lede">From here on this track stops being generic SQL and starts being specifically about reload_db. This lesson is a summary of <a href="../../architecture/reload_db/00-overview.md">architecture/reload_db/00-overview.md</a> — read that doc for the full module-by-module detail.</p>
 
-<h2>One SQL Server instance, ~20 separate databases</h2>
+<h2>reload_db's ~20 Databases</h2>
 <p>reload_db isn't one database with lots of tables — it's <strong>20 real, actively-patched databases</strong> on one instance, one per business domain, each with its own `MAINT/` patch-script folder:</p>
 
 <table>
@@ -30,14 +30,23 @@
 <tr><td><code>RMS_OFFLINE</code></td><td>The consumer-facing self-service "Reload Offline" web app — its own largely-independent user base.</td></tr>
 </table>
 
-<p>The data flow, in one sentence: a reload/payment request lands in <code>TRANSACTION</code>, gets routed to a provider-specific database, settlement rows land in <code>REPORTSUMMARY</code>, which feeds <code>DataWarehouse</code> — and almost every database along the way reads shared master data out of <code>CEPP</code>.</p>
+<p>The data flow, in order:</p>
+<ul>
+<li>A reload/payment request lands in <code>TRANSACTION</code>.</li>
+<li>It gets routed to a provider-specific database.</li>
+<li>Settlement rows land in <code>REPORTSUMMARY</code>, which feeds <code>DataWarehouse</code>.</li>
+<li>Almost every database along the way reads shared master data out of <code>CEPP</code>.</li>
+</ul>
 
 <div class="callout tip">
 <span class="callout-title">Why "one database per domain" matters when debugging</span>
-If a merchant's reload succeeded in <code>TRANSACTION</code> but never showed up in a settlement report, the bug is very likely a hop between two of these databases (e.g. <code>TRANSACTION → REPORTSUMMARY</code>), not inside either one alone. Knowing the map above tells you where to look next instead of re-reading the same stored procedure five times.
+<ul>
+<li>If a merchant's reload succeeded in <code>TRANSACTION</code> but never showed up in a settlement report, the bug is very likely a hop between two of these databases (e.g. <code>TRANSACTION → REPORTSUMMARY</code>), not inside either one alone.</li>
+<li>Knowing the map above tells you where to look next instead of re-reading the same stored procedure five times.</li>
+</ul>
 </div>
 
-<h2>Inside a MAINT folder: organised by object type</h2>
+<h2>MAINT Folder Structure</h2>
 <p>Every database's folder under <code>reload_db/MAINT/&lt;Name&gt;/</code> has the same shape — subfolders by <em>type</em> of SQL object, not by feature:</p>
 
 <pre class="code-block">reload_db/MAINT/TRANSACTION/
@@ -49,7 +58,10 @@ If a merchant's reload succeeded in <code>TRANSACTION</code> but never showed up
   Schema/
   Data/</pre>
 
-<p>One consequence worth internalising: a single business change ("add a column, and a stored proc to use it") lands as <strong>two separate files in two separate folders</strong>, tied together only by a shared ticket number in the filename. There's no single commit or PR-diff view that shows you "everything this ticket changed" the way you might expect from an application codebase.</p>
+<ul>
+<li><strong>One consequence worth internalising:</strong> a single business change ("add a column, and a stored proc to use it") lands as <strong>two separate files in two separate folders</strong>, tied together only by a shared ticket number in the filename.</li>
+<li>There's no single commit or PR-diff view that shows you "everything this ticket changed" the way you might expect from an application codebase.</li>
+</ul>
 
 <h2>Best practice</h2>
 <ul>

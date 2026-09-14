@@ -17,7 +17,7 @@
 <h1>Code Review Best Practices</h1>
 <p class="lede">The industry-general version of this skill. Once you've read this, <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a> shows you exactly how it plays out for real, with real quoted comments from reload's own review history.</p>
 
-<h2>As an author: make the reviewer's job easy</h2>
+<h2>As the Author</h2>
 <ul>
 <li><strong>Keep it small.</strong> A focused, single-purpose change is reviewable in one sitting; a 2,000-line change touching five unrelated things forces a reviewer to either rubber-stamp it or spend hours on it.</li>
 <li><strong>Write a description that explains why, not just what.</strong> The diff already shows what changed — a reviewer needs the context a diff can't show: why this approach, what alternatives were considered, what it fixes.</li>
@@ -27,10 +27,14 @@
 
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Google's published <a href="https://google.github.io/eng-practices/review/reviewer/standard.html">Engineering Practices — The Standard of Code Review</a> states the core rule reviewers actually follow at scale: <em>"In general, reviewers should favor approving a CL once it is in a state where it definitely improves the overall code health of the system being worked on, even if the CL isn't perfect."</em> And explicitly: <em>"Reviewers should not require the author to polish every tiny piece of a CL before granting approval."</em> The goal is "better," not "perfect" — a real, named principle behind the priority order below, not just personal taste.
+<ul>
+<li>Google's published <a href="https://google.github.io/eng-practices/review/reviewer/standard.html">Engineering Practices — The Standard of Code Review</a> states the core rule reviewers actually follow at scale: <em>"In general, reviewers should favor approving a CL once it is in a state where it definitely improves the overall code health of the system being worked on, even if the CL isn't perfect."</em></li>
+<li>And explicitly: <em>"Reviewers should not require the author to polish every tiny piece of a CL before granting approval."</em></li>
+<li>The goal is "better," not "perfect" — a real, named principle behind the priority order below, not just personal taste.</li>
+</ul>
 </div>
 
-<h2>As a reviewer: what to actually look for, in priority order</h2>
+<h2>As the Reviewer: Priority Order</h2>
 <ol>
 <li><strong>Correctness first.</strong> Does it do what it claims to do? Are there edge cases (empty input, null, the boundary values) that aren't handled?</li>
 <li><strong>Safety second.</strong> Could this break something else? Does it handle errors sensibly? Is anything sensitive (a secret, an unvalidated input) handled carelessly?</li>
@@ -40,15 +44,27 @@ Google's published <a href="https://google.github.io/eng-practices/review/review
 
 <div class="callout tip">
 <span class="callout-title">Phrase feedback as a question or observation, not a command</span>
-"Why does this catch Exception broadly instead of the specific type?" invites explanation and rarely feels adversarial. "Don't catch Exception broadly" reads as a command and can put the author on the defensive even when the underlying concern is identical. The content of good feedback and bad feedback is often the same — the delivery is what differs.
+<ul>
+<li>"Why does this catch Exception broadly instead of the specific type?" invites explanation and rarely feels adversarial.</li>
+<li>"Don't catch Exception broadly" reads as a command and can put the author on the defensive even when the underlying concern is identical.</li>
+<li>The content of good feedback and bad feedback is often the same — the delivery is what differs.</li>
+</ul>
 </div>
 
-<h2>Don't take review comments personally — including as an author</h2>
-<p>A review comment is about the code, not about you. This runs both ways: as a reviewer, critique the diff, not the person; as an author, a comment pointing out a real problem is the system working as intended, not a judgment of your ability. The goal of review is better code shipping, not proving anyone right or wrong.</p>
+<h2>Comments Aren't Personal</h2>
+<ul>
+<li>A review comment is about the code, not about you.</li>
+<li>This runs both ways: as a reviewer, critique the diff, not the person; as an author, a comment pointing out a real problem is the system working as intended, not a judgment of your ability.</li>
+<li>The goal of review is better code shipping, not proving anyone right or wrong.</li>
+</ul>
 
 <div class="callout warn">
 <span class="callout-title">Revision count alone isn't a quality signal</span>
-It's tempting to treat "this MR needed 10 rounds of revision" as evidence of poor initial work. As you'll see in the real data in <a href="dbg-03-review-checklist.html">What Reviewers Actually Flag</a>, high revision counts in a real project often reflect evolving requirements discovered mid-review, not repeated rejection of the same mistake. Look at what actually changed between revisions before drawing a conclusion from the count.
+<ul>
+<li>It's tempting to treat "this MR needed 10 rounds of revision" as evidence of poor initial work.</li>
+<li>As you'll see in the real data in <a href="dbg-03-review-checklist.html">What Reviewers Actually Flag</a>, high revision counts in a real project often reflect evolving requirements discovered mid-review, not repeated rejection of the same mistake.</li>
+<li>Look at what actually changed between revisions before drawing a conclusion from the count.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

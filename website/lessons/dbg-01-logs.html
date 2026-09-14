@@ -17,19 +17,30 @@
 <h1>Reading the Logs First</h1>
 <p class="lede">You've now seen why this matters: error handling swallows exceptions into sentinel values, and the log is often the only place the real story survives. This lesson turns that into a habit.</p>
 
-<h2>The core fact this whole track is built on</h2>
+<h2>Ambiguous Sentinel Values</h2>
 <div class="callout real">
 <span class="callout-title">A -1, false, or null return value is ambiguous by design</span>
-Under reload's dominant catch-log-return-sentinel pattern (<a href="conv-03-error-handling.html">Conventions → Error Handling</a>), a Provider method returning <code>-1</code> could mean "legitimately nothing found" or "an exception was thrown and swallowed." The two are indistinguishable from the return value alone. <strong>When debugging "why did this silently not work", check the log before you re-read the C# a third time.</strong>
+<ul>
+<li>Under reload's dominant catch-log-return-sentinel pattern (<a href="conv-03-error-handling.html">Conventions → Error Handling</a>), a Provider method returning <code>-1</code> could mean "legitimately nothing found" or "an exception was thrown and swallowed."</li>
+<li>The two are indistinguishable from the return value alone.</li>
+<li><strong>When debugging "why did this silently not work", check the log before you re-read the C# a third time.</strong></li>
+</ul>
 </div>
 
-<h2>Search by correlation key, not chronologically</h2>
-<p>Recall the <code>&gt;&gt;&gt;</code>/<code>&lt;&lt;&lt;</code> bracket convention from <a href="conv-04-logging.html">Conventions → Logging</a>: outbound calls are logged with a <code>[Key: ...]</code> correlation id, usually the business reference. Given a specific failing transaction, search the log for its reference id directly — don't scroll from the top of the file.</p>
+<h2>Search by Correlation Key, Not Chronologically</h2>
+<ul>
+<li>Recall the <code>&gt;&gt;&gt;</code>/<code>&lt;&lt;&lt;</code> bracket convention from <a href="conv-04-logging.html">Conventions → Logging</a>: outbound calls are logged with a <code>[Key: ...]</code> correlation id, usually the business reference.</li>
+<li>Given a specific failing transaction, search the log for its reference id directly — don't scroll from the top of the file.</li>
+</ul>
 
-<h2>The root cause: logging and handling are two separate responsibilities that keep getting merged into one <code>catch</code> block</h2>
-<p>"Log the exception" and "handle/recover from the exception" are logically independent decisions — a layer can do either, both, or neither. The bug in this section happens whenever two layers in the same call chain <em>both</em> decide to log, because neither one knows the other already did. This isn't specific to reload's <code>LogHelper</code> convention — it's a general call-stack problem that shows up anywhere exceptions propagate through more than one layer.</p>
+<h2>Logging vs. Handling: Two Separate Responsibilities</h2>
+<ul>
+<li>"Log the exception" and "handle/recover from the exception" are logically independent decisions — a layer can do either, both, or neither.</li>
+<li>The bug in this section happens whenever two layers in the same call chain <em>both</em> decide to log, because neither one knows the other already did.</li>
+<li>This isn't specific to reload's <code>LogHelper</code> convention — it's a general call-stack problem that shows up anywhere exceptions propagate through more than one layer.</li>
+</ul>
 
-<h2>The most misleading thing you'll see in a log: duplicate entries for one real error</h2>
+<h2>Duplicate Exception Logging</h2>
 <p>This is a real, explicitly-named review complaint — reviewer <code>khenggek</code> flags it repeatedly across unrelated <a class="term" data-term="merge-request">merge requests</a>:</p>
 <blockquote>"Please check whether the reference will write to event viewer. There is no point in writing to viewer and throw the same exception again. This will cause it to write to event viewer twice for the same error and will be misleading." — MR !844</blockquote>
 <blockquote>"Please always check the method reference. Is there try catch at the reference? If yes, you should not put try catch here as you are just logging and throwing exception again and causing double writing to event viewer..." — MR !470</blockquote>
@@ -38,21 +49,38 @@ Under reload's dominant catch-log-return-sentinel pattern (<a href="conv-03-erro
 
 <div class="callout tip">
 <span class="callout-title">Official documentation — this is a known problem at the framework level too, not just a reload code-review nitpick</span>
-Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/core/compatibility/aspnet-core/10/exception-handler-diagnostics-suppressed">ASP.NET Core 10 breaking-change notice</a> documents the exact same failure mode inside ASP.NET Core's own exception-handling middleware. <strong>Previous behavior:</strong> <em>"the exception handler middleware recorded diagnostics about exceptions handled by IExceptionHandler"</em> — meaning the middleware logged the exception even when an app's own <code>IExceptionHandler</code> had already logged it. <strong>Reason for the fix in .NET 10:</strong> <em>"Their IExceptionHandler implementation reported that the exception was handled, but the error handling middleware still recorded the error in the app's telemetry."</em> Microsoft's own framework shipped this exact "handled here, but logged again one layer up" bug for multiple major versions before fixing it in .NET 10 — the reload review complaints above are catching, by hand, precisely the class of bug Microsoft needed a breaking change to fix in their own middleware.
+<ul>
+<li>Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/core/compatibility/aspnet-core/10/exception-handler-diagnostics-suppressed">ASP.NET Core 10 breaking-change notice</a> documents the exact same failure mode inside ASP.NET Core's own exception-handling middleware.</li>
+<li><strong>Previous behavior:</strong> <em>"the exception handler middleware recorded diagnostics about exceptions handled by IExceptionHandler"</em> — meaning the middleware logged the exception even when an app's own <code>IExceptionHandler</code> had already logged it.</li>
+<li><strong>Reason for the fix in .NET 10:</strong> <em>"Their IExceptionHandler implementation reported that the exception was handled, but the error handling middleware still recorded the error in the app's telemetry."</em></li>
+<li>Microsoft's own framework shipped this exact "handled here, but logged again one layer up" bug for multiple major versions before fixing it in .NET 10 — the reload review complaints above are catching, by hand, precisely the class of bug Microsoft needed a breaking change to fix in their own middleware.</li>
+</ul>
 </div>
 
 <div class="callout warn">
 <span class="callout-title">The rule</span>
-Log in exactly one place per exception. Either let it propagate unlogged to a handler further up that will log it, or catch and log it here without rethrowing to something that will log it again. If you see the same error message twice in a log with slightly different context, suspect this pattern before you suspect two real, independent failures.
+<ul>
+<li>Log in exactly one place per exception.</li>
+<li>Either let it propagate unlogged to a handler further up that will log it, or catch and log it here without rethrowing to something that will log it again.</li>
+<li>If you see the same error message twice in a log with slightly different context, suspect this pattern before you suspect two real, independent failures.</li>
+</ul>
 </div>
 
 <div class="callout real">
 <span class="callout-title">What if the caller doesn't log at all?</span>
-The opposite failure mode is just as real: if the inner method's <code>catch</code> swallows the exception (logs it, then returns a sentinel like <code>-1</code> or <code>false</code> instead of rethrowing — see <a href="conv-03-error-handling.html">Conventions → Error Handling</a>) and the caller has no idea an exception happened, the caller can't add any of its own context (which terminal, which request) to that log entry. Either extreme — logging twice with no coordination, or logging once with no context from the caller — comes from the same root problem: no single layer owns "who logs this exception," so each layer decides independently.
+<ul>
+<li>The opposite failure mode is just as real: if the inner method's <code>catch</code> swallows the exception (logs it, then returns a sentinel like <code>-1</code> or <code>false</code> instead of rethrowing — see <a href="conv-03-error-handling.html">Conventions → Error Handling</a>) and the caller has no idea an exception happened, the caller can't add any of its own context (which terminal, which request) to that log entry.</li>
+<li>Either extreme — logging twice with no coordination, or logging once with no context from the caller — comes from the same root problem: no single layer owns "who logs this exception," so each layer decides independently.</li>
+</ul>
 </div>
 
-<h2>What actually gets logged — and what doesn't</h2>
-<p>Full outbound request/response JSON payloads, generally. Exceptions, with whatever <code>customMessage</code> the author bothered to add. Row-count/no-op conditions, sometimes, as informational writes rather than errors. What's <em>not</em> guaranteed: a consistent method surface across modules (each module's <code>LogHelper</code> is different — see <a href="conv-04-logging.html">Logging</a>), or redaction of sensitive fields before logging.</p>
+<h2>What Gets Logged — and What Doesn't</h2>
+<ul>
+<li>Full outbound request/response JSON payloads, generally.</li>
+<li>Exceptions, with whatever <code>customMessage</code> the author bothered to add.</li>
+<li>Row-count/no-op conditions, sometimes, as informational writes rather than errors.</li>
+<li>What's <em>not</em> guaranteed: a consistent method surface across modules (each module's <code>LogHelper</code> is different — see <a href="conv-04-logging.html">Logging</a>), or redaction of sensitive fields before logging.</li>
+</ul>
 
 <h2>Best practice</h2>
 <ul>

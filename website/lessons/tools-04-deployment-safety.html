@@ -18,27 +18,42 @@
 <p class="lede">A real BackOffice release walkthrough — checking out a release branch, deploying to UAT, and the runbook steps a manual deploy to a shared Windows server actually involves. Every one of these is a real, easy-to-make mistake, not a hypothetical one.</p>
 
 <h2>The task, as it was actually given</h2>
-<p>A typical instruction for this kind of release looks like: check out the release branch, deploy BackOffice to the UAT server, zip the release with a dated name, and add a tester to the UAT merge request. Each of those is a separate tool/step — GitHub Desktop only covers the branch checkout; the rest is manual server work, file zipping, and GitLab, done outside any single tool.</p>
+<ul>
+<li>A typical instruction for this kind of release looks like: check out the release branch, deploy BackOffice to the UAT server, zip the release with a dated name, and add a tester to the UAT merge request.</li>
+<li>Each of those is a separate tool/step — GitHub Desktop only covers the branch checkout; the rest is manual server work, file zipping, and GitLab, done outside any single tool.</li>
+</ul>
 
-<h2>Step 1 — strip build-time config before copying anything</h2>
+<h2>Step 1: Strip Build-Time Config Before Copying</h2>
 <div class="callout warn">
 <span class="callout-title">Your build's config is not the server's config</span>
-Publishing/building the app locally produces an output folder whose config files (<code>Web.config</code>, and <code>appsettings.json</code> for newer .NET apps) contain whatever settings your <em>build environment</em> resolved — a different database, different endpoints, a different mail server than the live target. The live server already has its own correct config for that specific environment. Removing <code>.config</code> files (and <code>appsettings.json</code>, where applicable) from the release output <em>before</em> copying it anywhere means the deploy physically cannot clobber the server's real settings, even by accident.
+<ul>
+<li>Publishing/building the app locally produces an output folder whose config files (<code>Web.config</code>, and <code>appsettings.json</code> for newer .NET apps) contain whatever settings your <em>build environment</em> resolved — a different database, different endpoints, a different mail server than the live target.</li>
+<li>The live server already has its own correct config for that specific environment.</li>
+<li>Removing <code>.config</code> files (and <code>appsettings.json</code>, where applicable) from the release output <em>before</em> copying it anywhere means the deploy physically cannot clobber the server's real settings, even by accident.</li>
+</ul>
 </div>
 
-<h2>Step 2 — confirm which server, every time</h2>
+<h2>Step 2: Confirm Which Server, Every Time</h2>
 <p>Different apps in this system live on different servers (BackOffice, Terminal API, API Portal, Terminal Server, Scheduler each have their own instance) — there's no single box a deploy always targets. Before touching anything, confirm which server this specific app/environment combination actually maps to, rather than assuming it's the same one as last time.</p>
 
 <div class="callout real">
 <span class="callout-title">A real near-miss: a connection literally named "-prod"</span>
-Mid-deploy, the active RDP connection in use was named <code>rmsq-sg-backoffice-ec2-prod</code> — while the task was to deploy to <strong>UAT</strong>, and a separately-named <code>RMSQ-pipeline-uat</code> connection existed right next to it in the same connection list. Two explanations were both plausible: either the wrong connection had genuinely been grabbed, or the team's internal naming just labels the QA group's primary node with "-prod" for unrelated reasons. Either way, the right move is the same — <strong>stop and confirm which server this actually is before backing up, uploading, or overwriting anything on it</strong>, rather than trusting that a connection's position in a list or its similarity to a past deploy means it's the right target.
+<ul>
+<li>Mid-deploy, the active RDP connection in use was named <code>rmsq-sg-backoffice-ec2-prod</code> — while the task was to deploy to <strong>UAT</strong>, and a separately-named <code>RMSQ-pipeline-uat</code> connection existed right next to it in the same connection list.</li>
+<li>Two explanations were both plausible: either the wrong connection had genuinely been grabbed, or the team's internal naming just labels the QA group's primary node with "-prod" for unrelated reasons.</li>
+<li>Either way, the right move is the same — <strong>stop and confirm which server this actually is before backing up, uploading, or overwriting anything on it</strong>, rather than trusting that a connection's position in a list or its similarity to a past deploy means it's the right target.</li>
+</ul>
 </div>
 
-<h2>Step 3 — back up before you touch anything</h2>
+<h2>Step 3: Back Up Before You Touch Anything</h2>
 <p>Copy the <em>current live</em> files into a dated backup folder (e.g. <code>C:\00-Backup\&lt;date&gt;\</code>) before any new files are written. This is the rollback point — if the new release breaks something, you restore from here instead of trying to reconstruct what was previously live from memory or source control alone (a manually-deployed server's exact live state isn't guaranteed to match any single commit).</p>
 
-<h2>Step 4 — stage before you promote</h2>
-<p>Upload the new release into a separate, dated staging folder (e.g. <code>C:\00-Updates\&lt;date&gt;\</code>) — not the live application path directly. This lets you confirm the files actually transferred correctly (right contents, no partial copy) before they touch anything a real user or terminal is currently hitting. Only once that's confirmed do you copy from staging into the live path, overwriting the previous version.</p>
+<h2>Step 4: Stage Before You Promote</h2>
+<ul>
+<li>Upload the new release into a separate, dated staging folder (e.g. <code>C:\00-Updates\&lt;date&gt;\</code>) — not the live application path directly.</li>
+<li>This lets you confirm the files actually transferred correctly (right contents, no partial copy) before they touch anything a real user or terminal is currently hitting.</li>
+<li>Only once that's confirmed do you copy from staging into the live path, overwriting the previous version.</li>
+</ul>
 
 <div class="callout tip">
 <span class="callout-title">Official documentation — the same principle, at platform scale</span>

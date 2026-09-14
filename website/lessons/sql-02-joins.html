@@ -17,7 +17,7 @@
 <h1>Joins &amp; Filtering</h1>
 <p class="lede">Real questions almost never live in one table. "Show me every transaction, with the merchant name attached" needs a <strong>join</strong>.</p>
 
-<h2>INNER JOIN: rows that match in both tables</h2>
+<h2>INNER JOIN</h2>
 <div class="tryit" data-lang="sql">
 <pre class="tryit-src">SELECT
   ta.TransNo,
@@ -27,13 +27,16 @@ FROM TerminalActivities ta
 INNER JOIN Terminals t ON ta.TerminalId = t.TerminalId;</pre>
 </div>
 
-<p>Read it as: "for every row in <code>TerminalActivities</code>, find the matching row in <code>Terminals</code> where the <code>TerminalId</code> is equal, and pull columns from both." <code>ta</code> and <code>t</code> are aliases — short names so you don't have to spell out the full table name on every column.</p>
+<ul>
+<li>Read it as: "for every row in <code>TerminalActivities</code>, find the matching row in <code>Terminals</code> where the <code>TerminalId</code> is equal, and pull columns from both."</li>
+<li><code>ta</code> and <code>t</code> are aliases — short names so you don't have to spell out the full table name on every column.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql">FROM clause plus JOIN reference</a> defines <code>INNER</code> precisely: <em>"Specifies all matching pairs of rows are returned. Discards unmatched rows from both tables."</em> That "discards" is the whole reason a row with no match on either side simply never appears — it's documented behavior, not an incidental side effect.
 </div>
 
-<h2>LEFT JOIN: keep rows even without a match</h2>
+<h2>LEFT JOIN</h2>
 <div class="tryit" data-lang="sql">
 <pre class="tryit-src">SELECT
   t.MerchantName,
@@ -43,7 +46,11 @@ LEFT JOIN TerminalActivities ta ON ta.TerminalId = t.TerminalId
 WHERE t.TerminalId = 3;</pre>
 </div>
 
-<p>Terminal 3 ("Old Kiosk") has no activity rows. An <code>INNER JOIN</code> would have dropped it from the results entirely; <code>LEFT JOIN</code> keeps it and fills the missing activity columns with <code>NULL</code>. Use <code>LEFT JOIN</code> whenever "no matching rows" is itself a meaningful answer, not an error.</p>
+<ul>
+<li>Terminal 3 ("Old Kiosk") has no activity rows.</li>
+<li>An <code>INNER JOIN</code> would have dropped it from the results entirely; <code>LEFT JOIN</code> keeps it and fills the missing activity columns with <code>NULL</code>.</li>
+<li>Use <code>LEFT JOIN</code> whenever "no matching rows" is itself a meaningful answer, not an error.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 The same reference states <code>LEFT [OUTER]</code>'s behavior in the same precise terms: <em>"Specifies that all rows from the left table not meeting the join condition are included in the result set, and output columns from the other table are set to NULL in addition to all rows returned by the inner join."</em> Every row an <code>INNER JOIN</code> would have kept is still there — <code>LEFT JOIN</code> only adds back the ones that <code>INNER</code> would have discarded.
@@ -53,7 +60,11 @@ The same reference states <code>LEFT [OUTER]</code>'s behavior in the same preci
 <span class="callout-title">A real incident: data existed, but an INNER JOIN two layers deep was silently dropping it</span>
 A BackOffice list page showed "No result found" for every status filter, even though the underlying table clearly had matching rows. The trail went two layers deep: the stored procedure itself already filtered by country (correctly), and then a second, page-level LINQ query re-filtered the results with its own <code>Join</code> against a <code>GetUsers()</code> call — which turned out to run <code>INNER JOIN Departments ON Departments.Id = Users.DepartmentId</code> internally. Any user with a <code>NULL</code> or orphaned <code>DepartmentId</code> silently disappeared from that "all users" list — and every record they had ever created vanished from the page along with them, regardless of what status filter was applied. Nothing in the page's own filters was wrong; an unrelated <code>INNER JOIN</code> three calls away was the actual cause.
 </div>
-<p>The lesson generalises beyond this one page: when a query or a page shows fewer rows than the data supports, don't stop at the first <code>WHERE</code> clause you find — a chain of joins across a service layer can each independently be "correct" in isolation and still silently exclude real rows in combination. An <code>INNER JOIN</code> anywhere in that chain is a candidate for accidental data loss, not just the one in the query you're currently looking at.</p>
+<ul>
+<li>The lesson generalises beyond this one page: when a query or a page shows fewer rows than the data supports, don't stop at the first <code>WHERE</code> clause you find.</li>
+<li>A chain of joins across a service layer can each independently be "correct" in isolation and still silently exclude real rows in combination.</li>
+<li>An <code>INNER JOIN</code> anywhere in that chain is a candidate for accidental data loss, not just the one in the query you're currently looking at.</li>
+</ul>
 
 <h2>Filtering and ordering</h2>
 <div class="tryit" data-lang="sql">

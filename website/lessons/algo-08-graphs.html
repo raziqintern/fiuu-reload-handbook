@@ -17,15 +17,23 @@
 <h1>Graphs &amp; Traversal</h1>
 <p class="lede">Drop the "exactly one parent" rule from a tree and you get a graph — nodes and connections where more than one path can lead to the same place. You've already seen a real one, drawn on this site.</p>
 
-<h2>The shape: nodes and edges, paths can converge</h2>
-<p>A graph is a set of nodes and a set of edges connecting them. Unlike a tree, a node can be reached from more than one other node, and cycles are allowed. That "more than one path leads here" property is exactly what makes graph traversal need one extra piece of bookkeeping a tree traversal doesn't: a record of what's already been visited.</p>
+<h2>Graph Shape</h2>
+<ul>
+<li>A graph is a set of nodes and a set of edges connecting them.</li>
+<li>Unlike a tree, a node can be reached from more than one other node, and cycles are allowed.</li>
+<li>That "more than one path leads here" property is exactly what makes graph traversal need one extra piece of bookkeeping a tree traversal doesn't: a record of what's already been visited.</li>
+</ul>
 
 <div class="callout real">
 <span class="callout-title">You'll see this exact shape again later</span>
-The reload_db data-flow diagram in <a href="arch-02-reload-db.html">Architecture Map → reload_db</a> — <code>TRANSACTION</code> routing to <code>TNG</code>/<code>BILL_PAYMENT</code>/<code>TICKET</code>, all of which reference <code>CEPP</code> — is a real graph, not a tree. <code>CEPP</code> is reachable from every one of those databases; it has multiple incoming edges. That's precisely the shape a tree structurally cannot represent.
+<ul>
+<li>The reload_db data-flow diagram in <a href="arch-02-reload-db.html">Architecture Map → reload_db</a> — <code>TRANSACTION</code> routing to <code>TNG</code>/<code>BILL_PAYMENT</code>/<code>TICKET</code>, all of which reference <code>CEPP</code> — is a real graph, not a tree.</li>
+<li><code>CEPP</code> is reachable from every one of those databases; it has multiple incoming edges.</li>
+<li>That's precisely the shape a tree structurally cannot represent.</li>
+</ul>
 </div>
 
-<h2>Example: Breadth-First Search (BFS)</h2>
+<h2>Breadth-First Search (BFS)</h2>
 <p>BFS explores a graph one "layer" out at a time, using a queue — visit a node, then all of its direct neighbors, then all of <em>their</em> unvisited neighbors, and so on.</p>
 
 <div class="tryit" data-lang="dual">

@@ -17,20 +17,27 @@
 <h1>CSV Export Escaping</h1>
 <p class="lede">Issue #2467 reported "Top Up Information List" CSV exports with rows visibly drifting out of alignment with their headers. The investigation found not one but <strong>two different wrong ways</strong> to build a CSV row already shipped in this codebase — neither of them real CSV escaping.</p>
 
-<h2>Anti-pattern 1: the Excel "force-text" trick isn't CSV escaping</h2>
+<h2>Anti-Pattern 1: The Excel Force-Text Trick</h2>
 <p><code>TopUpList.aspx.vb</code>'s CSV export handler builds each row with a formula-looking wrapper instead of real quoting:</p>
 <pre class="code-block">Response.Write(String.Format("{0},=""{1}"",=""{2}"",=""{3}"",=""{4}"",=""{5}"",=""{6}"",=""{7}"",=""{8}"",=""{9}"",{10}",
     CInt(i + 1), topUpList(i).RequestId, topUpList(i).DealerName, topUpList(i).StoreName,
     topUpList(i).EmailAddress, ...))</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/CEPP/BackOffice/Web/WebForms/TopUpList.aspx.vb:451-507 (btnCSV_OnClick)</p>
-<p><code>="value"</code> is an Excel formula that forces a cell to display as literal text (useful for preventing Excel from mangling things like leading zeros) — it is not RFC4180 CSV quoting, and it doesn't behave like it. The header row and the data row both have exactly 11 columns, so this isn't an off-by-one column bug; the header/data column counts genuinely match.</p>
+<ul>
+<li><code>="value"</code> is an Excel formula that forces a cell to display as literal text (useful for preventing Excel from mangling things like leading zeros) — it is not RFC4180 CSV quoting, and it doesn't behave like it.</li>
+<li>The header row and the data row both have exactly 11 columns, so this isn't an off-by-one column bug; the header/data column counts genuinely match.</li>
+</ul>
 
 <div class="callout warn">
 <span class="callout-title">Why this shows up as rows "pushed a little bit upwards"</span>
-The <code>="…"</code> pattern does nothing to protect against a comma, a double quote, or an embedded newline inside a free-text field — <code>DealerName</code>, <code>StoreName</code>, and <code>EmailAddress</code> here. A dealer name like <code>Acme, Inc.</code> splits into an extra field mid-row the instant a comma appears in the raw value. Because the export streams row-by-row via <code>Response.Write</code> with no validation, one corrupted row shifts every column of every row after it — which is exactly what "pushed a little bit upwards relative to the header" looks like when the file is opened in Excel.
+<ul>
+<li>The <code>="…"</code> pattern does nothing to protect against a comma, a double quote, or an embedded newline inside a free-text field — <code>DealerName</code>, <code>StoreName</code>, and <code>EmailAddress</code> here.</li>
+<li>A dealer name like <code>Acme, Inc.</code> splits into an extra field mid-row the instant a comma appears in the raw value.</li>
+<li>Because the export streams row-by-row via <code>Response.Write</code> with no validation, one corrupted row shifts every column of every row after it — which is exactly what "pushed a little bit upwards relative to the header" looks like when the file is opened in Excel.</li>
+</ul>
 </div>
 
-<h2>Anti-pattern 2: silently stripping characters is worse, not better</h2>
+<h2>Anti-Pattern 2: Silently Stripping Characters</h2>
 <p>Tracing for an existing helper turned up a second, already-shipped attempt at the same problem — this one in the Web project's own helpers, actively used across several other BackOffice reports:</p>
 <pre class="code-block">&lt;Extension()&gt;
 Public Function ToCSVDisplayString(ByVal text As String) As String
@@ -41,14 +48,22 @@ End Function</pre>
 <span class="callout-title">The concept: extension methods — adding a method to a type you don't own</span>
 <code>ToCSVDisplayString</code> isn't a member of <code>String</code> — it's a regular function, marked with the <code>&lt;Extension()&gt;</code> attribute, that VB.NET lets you call using instance-method syntax (<code>dealerName.ToCSVDisplayString()</code>) as if <code>String</code> itself had grown a new method. Per <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/procedures/extension-methods">Microsoft's Extension Methods reference</a>: <em>"Extension methods make it possible to write a method that can be called as if it were an instance method of the existing type."</em> The rule that makes it work: it must be a <code>Sub</code> or <code>Function</code> declared inside a <code>Module</code> (never a <code>Class</code>), marked <code>&lt;Extension()&gt;</code>, and its <em>first parameter</em> specifies which type it extends — that first parameter is what gets bound to whatever value the method is called on. This is exactly how <code>BackofficeExtension.vb</code>'s helper works: its first parameter, <code>text As String</code>, is why it can be called as <code>dealerName.ToCSVDisplayString()</code> on any string value.
 </div>
-<p>This is called on <code>DealerName</code>/<code>Dealer.Name</code> and similar free-text fields in <code>ReportVoucherRedemption.aspx.vb</code>, <code>RestorifyCarbonCalculatorList.aspx.vb</code>, <code>RestorifyCarbonCalculatorPaymentList.aspx.vb</code>, and more. It avoids the alignment problem — but only by permanently replacing every comma and every double quote in the source value with a space, silently and unrecoverably, on every single export.</p>
+<ul>
+<li>This is called on <code>DealerName</code>/<code>Dealer.Name</code> and similar free-text fields in <code>ReportVoucherRedemption.aspx.vb</code>, <code>RestorifyCarbonCalculatorList.aspx.vb</code>, <code>RestorifyCarbonCalculatorPaymentList.aspx.vb</code>, and more.</li>
+<li>It avoids the alignment problem — but only by permanently replacing every comma and every double quote in the source value with a space, silently and unrecoverably, on every single export.</li>
+</ul>
 
 <div class="callout real">
 <span class="callout-title">Two wrong fixes for the same real problem, in the same codebase</span>
-Both anti-patterns exist because proper CSV escaping was never implemented — one dodges it by hoping Excel's text-force syntax is enough (it isn't, and it corrupts alignment when it fails), the other dodges it by destroying the offending characters before they can cause trouble (which corrupts the data itself, silently, every time, without ever looking broken to whoever opens the file). Neither is a substitute for actually quoting the field.
+<ul>
+<li>Both anti-patterns exist because proper CSV escaping was never implemented.</li>
+<li>One dodges it by hoping Excel's text-force syntax is enough (it isn't, and it corrupts alignment when it fails).</li>
+<li>The other dodges it by destroying the offending characters before they can cause trouble (which corrupts the data itself, silently, every time, without ever looking broken to whoever opens the file).</li>
+<li>Neither is a substitute for actually quoting the field.</li>
+</ul>
 </div>
 
-<h2>The correct fix: real RFC4180 escaping</h2>
+<h2>The Correct Fix: RFC 4180 Escaping</h2>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 <a href="https://www.rfc-editor.org/rfc/rfc4180">RFC 4180</a>, the actual CSV standard, states both rules directly. When to quote a field at all: <em>"Fields containing line breaks (CRLF), double quotes, and commas should be enclosed in double-quotes."</em> How to escape a quote inside a quoted field: <em>"If double-quotes are used to enclose fields, then a double-quote appearing inside a field must be escaped by preceding it with another double quote."</em> Its own example shows exactly this: <code>"aaa","b""bb","ccc"</code> — the middle field's internal quote is doubled, not backslash-escaped or stripped.

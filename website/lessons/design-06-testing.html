@@ -17,7 +17,7 @@
 <h1>Testing Fundamentals</h1>
 <p class="lede">A unit test is just code that checks other code's behavior automatically, so a human doesn't have to manually re-verify it every time something nearby changes.</p>
 
-<h2>The shape of a test: Arrange, Act, Assert</h2>
+<h2>Arrange, Act, Assert</h2>
 <p>Almost every unit test follows the same three-part structure: set up the inputs (<strong>Arrange</strong>), call the code you're testing (<strong>Act</strong>), and check the result is what you expected (<strong>Assert</strong>). You don't need a real testing framework to see this in action — here it is hand-rolled, testing the exact same validation function from <a href="cs-03-methods.html">C# Fundamentals → Methods &amp; Parameters</a>:</p>
 
 <div class="tryit" data-lang="dual">
@@ -75,16 +75,23 @@ PASS: missing method should fail</pre>
 <p>You've now seen this exact validation logic implemented across three languages on this site — JavaScript, C#, VB.NET — and this is the first time you've seen it <em>verified</em> automatically instead of by eyeballing the output.</p>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices">Best practices for writing unit tests</a> defines the pattern in the same three parts used above: <em>"Arrange your objects, create, and configure them as necessary. Act on an object. Assert that something is as expected."</em> The same reference also names a real, specific naming convention worth matching: <em>"The name of your test should consist of three parts: Name of the method being tested, Scenario under which the method is being tested, Expected behavior when the scenario is invoked"</em> — for example <code>Add_SingleNumber_ReturnsSameNumber</code>, not <code>Test_Single</code>. The plain-string test names above ("negative amount should fail") capture the same idea informally; a real framework's method-name convention makes it precise and searchable.
+<ul>
+<li>Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices">Best practices for writing unit tests</a> defines the pattern in the same three parts used above: <em>"Arrange your objects, create, and configure them as necessary. Act on an object. Assert that something is as expected."</em></li>
+<li>The same reference also names a real, specific naming convention worth matching: <em>"The name of your test should consist of three parts: Name of the method being tested, Scenario under which the method is being tested, Expected behavior when the scenario is invoked"</em> — for example <code>Add_SingleNumber_ReturnsSameNumber</code>, not <code>Test_Single</code>.</li>
+<li>The plain-string test names above ("negative amount should fail") capture the same idea informally; a real framework's method-name convention makes it precise and searchable.</li>
+</ul>
 </div>
 
-<h2>Why untested code is a real, tracked risk — not a theoretical concern</h2>
+<h2>The Risk of Untested Code</h2>
 <div class="callout warn">
 <span class="callout-title">A real example from reload itself</span>
-<code>CardNumberValidator.IsValid</code> encodes a blacklist bitmap lookup scheme with several magic numbers and no visible unit tests anywhere in the sampled codebase (<a href="dbg-02-pitfalls.html">Debugging Reload → Known Patterns &amp; Pitfalls</a>). The documented guidance is explicit: treat changes to this class as high-risk specifically <em>because</em> there's no test suite to catch a regression — you're relying entirely on manual review and production behavior to notice a mistake.
+<ul>
+<li><code>CardNumberValidator.IsValid</code> encodes a blacklist bitmap lookup scheme with several magic numbers and no visible unit tests anywhere in the sampled codebase (<a href="dbg-02-pitfalls.html">Debugging Reload → Known Patterns &amp; Pitfalls</a>).</li>
+<li>The documented guidance is explicit: treat changes to this class as high-risk specifically <em>because</em> there's no test suite to catch a regression — you're relying entirely on manual review and production behavior to notice a mistake.</li>
+</ul>
 </div>
 
-<h2>What tests actually buy you</h2>
+<h2>The Value of Tests</h2>
 <ul>
 <li><strong>Confidence to change code.</strong> A good test suite tells you within seconds whether a refactor broke something, instead of waiting for a bug report.</li>
 <li><strong>Executable documentation.</strong> A test named <code>"negative amount should fail"</code> tells a future reader what the function is supposed to do, in a way that can't silently go stale the way a comment can.</li>
@@ -93,7 +100,11 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/core/testing/unit-
 
 <div class="callout warn">
 <span class="callout-title">What if not: multiple Act steps in one test?</span>
-Microsoft's own reference names a concrete cost of this: <em>"Multiple Act tasks need to be individually asserted, and you can't guarantee that all Assert tasks execute. In most unit testing frameworks, after an Assert task fails in a unit test, all subsequent tests are automatically considered as failing."</em> If one test calls <code>ValidateReload</code> three times with three different inputs and asserts after each, a failure on the first call can hide whether the second and third would have passed at all — the recommended fix is a separate test (or a parameterized one) per scenario, so a single failure tells you exactly which case broke.
+<ul>
+<li>Microsoft's own reference names a concrete cost of this: <em>"Multiple Act tasks need to be individually asserted, and you can't guarantee that all Assert tasks execute. In most unit testing frameworks, after an Assert task fails in a unit test, all subsequent tests are automatically considered as failing."</em></li>
+<li>If one test calls <code>ValidateReload</code> three times with three different inputs and asserts after each, a failure on the first call can hide whether the second and third would have passed at all.</li>
+<li>The recommended fix is a separate test (or a parameterized one) per scenario, so a single failure tells you exactly which case broke.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

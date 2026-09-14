@@ -17,13 +17,17 @@
 <h1>Data Access</h1>
 <p class="lede">Three distinct ways of calling the database coexist in class-library — but one rule is universal across all of them. Full source: <a href="../../conventions/data-access.md">conventions/data-access.md</a>.</p>
 
-<h2>The one universal rule: stored-procedure-only</h2>
+<h2>Stored-Procedure-Only Data Access</h2>
 <div class="callout real">
 <span class="callout-title">No exceptions found, across every module sampled</span>
-No inline dynamic SQL, no string-built SELECT/UPDATE statements, no LINQ-to-SQL or Entity Framework entity mapping, anywhere. Every single read or write goes through a named <a class="term" data-term="stored-procedure">stored procedure</a>. This is worth internalizing before you go looking for "the query" behind a bug — it's in reload_db's <code>StoredProcedure/</code> folder, never inline in the C#.
+<ul>
+<li>No inline dynamic SQL, no string-built SELECT/UPDATE statements, no LINQ-to-SQL or Entity Framework entity mapping, anywhere.</li>
+<li>Every single read or write goes through a named <a class="term" data-term="stored-procedure">stored procedure</a>.</li>
+<li>Worth internalizing before you go looking for "the query" behind a bug — it's in reload_db's <code>StoredProcedure/</code> folder, never inline in the C#.</li>
+</ul>
 </div>
 
-<h2>Pattern 1 (most common): SqlAccessor + ParameterCollection</h2>
+<h2>Pattern 1: SqlAccessor + ParameterCollection</h2>
 <pre class="code-block">public bool Insert(TerminalActivity activity)
 {
     var param = new ParameterCollection();
@@ -35,7 +39,10 @@ No inline dynamic SQL, no string-built SELECT/UPDATE statements, no LINQ-to-SQL 
 }</pre>
 <p class="code-cite">reload/class-library/Reloads/TNG/Providers/TerminalProvider.cs:12-33</p>
 
-<p>A custom framework wrapper around ADO.NET: build a <code>ParameterCollection</code>, call <code>SqlAccessor.ExecuteProcedure(...)</code>, get back a <code>SqlResult</code>. Mapping a database row back into a C# model is always done <strong>by hand, field by field</strong>, via a shared <code>Conversion.DBNullTo*</code> helper family — never a generic/reflection-based mapper:</p>
+<ul>
+<li>A custom framework wrapper around ADO.NET: build a <code>ParameterCollection</code>, call <code>SqlAccessor.ExecuteProcedure(...)</code>, get back a <code>SqlResult</code>.</li>
+<li>Mapping a database row back into a C# model is always done <strong>by hand, field by field</strong>, via a shared <code>Conversion.DBNullTo*</code> helper family — never a generic/reflection-based mapper:</li>
+</ul>
 
 <pre class="code-block">private static Account GetAccountModel(DataRow dr)
 {
@@ -51,17 +58,26 @@ No inline dynamic SQL, no string-built SELECT/UPDATE statements, no LINQ-to-SQL 
 
 <p>Notice <code>MStatusId</code> (the M-prefix column from <a href="conv-01-naming.html">Naming</a>) is cast to a friendly <code>Status</code> enum right here — this is exactly where that mapping happens.</p>
 
-<h2>Pattern 2 and 3: raw Dapper, two different shapes</h2>
-<p>The <code>Fiuu.Database</code> project skips <code>SqlAccessor</code> entirely and uses Dapper directly against a <code>SqlConnection</code> opened per call — either through a generic <code>BaseProvider&lt;T&gt;</code> (Pattern 2), or, in the Notification module, a singleton with one hand-named method per stored procedure (Pattern 3). Pattern 3's Dapper usage (<code>connection.Query&lt;Messages&gt;(...)</code> directly against the domain model) is actually the lightest-weight and closest to how a modern Dapper repository is normally written — ironically the oldest-feeling module (Notification) has the most modern-looking data access code.</p>
+<h2>Pattern 2 and 3: Raw Dapper</h2>
+<ul>
+<li>The <code>Fiuu.Database</code> project skips <code>SqlAccessor</code> entirely and uses Dapper directly against a <code>SqlConnection</code> opened per call.</li>
+<li><strong>Pattern 2:</strong> a generic <code>BaseProvider&lt;T&gt;</code>.</li>
+<li><strong>Pattern 3:</strong> in the Notification module, a singleton with one hand-named method per stored procedure.</li>
+<li>Pattern 3's Dapper usage (<code>connection.Query&lt;Messages&gt;(...)</code> directly against the domain model) is actually the lightest-weight and closest to how a modern Dapper repository is normally written — ironically the oldest-feeling module (Notification) has the most modern-looking data access code.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Dapper's own <a href="https://github.com/DapperLib/Dapper">project reference</a> describes exactly what Pattern 3 is leaning on: <em>"Dapper is a NuGet library that you can add in to your project that will enhance your ADO.NET connections via extension methods on your DbConnection instance."</em> Its <code>Query&lt;T&gt;</code> method maps each returned row directly to a typed object automatically — the field-by-field mapping Pattern 1 writes out explicitly (<code>Conversion.DBNullToInt32(dr["Id"])</code> and so on) is exactly the step Dapper's <code>Query&lt;Messages&gt;(...)</code> does for you, by matching column names to property names.
 </div>
 
-<h2>No transactions spanning multiple Provider calls</h2>
+<h2>No Cross-Provider Transactions</h2>
 <div class="callout warn">
 <span class="callout-title">Atomicity is the stored procedure's job, not C#'s</span>
-There is no example anywhere in class-library of composing multiple writes into one ADO.NET transaction across Provider calls. If an operation needs "insert this, then update that" to happen atomically, that atomicity is expected to live inside a single stored procedure doing everything server-side — not orchestrated by a C# unit-of-work. If you're tempted to add a <code>TransactionScope</code> around two Provider calls to fix a consistency bug, that would be a new pattern for this codebase, not an existing one — think carefully, and check whether the real fix belongs in the stored procedure instead.
+<ul>
+<li>There is no example anywhere in class-library of composing multiple writes into one ADO.NET transaction across Provider calls.</li>
+<li>If an operation needs "insert this, then update that" to happen atomically, that atomicity is expected to live inside a single stored procedure doing everything server-side — not orchestrated by a C# unit-of-work.</li>
+<li>If you're tempted to add a <code>TransactionScope</code> around two Provider calls to fix a consistency bug, that would be a new pattern for this codebase, not an existing one — think carefully, and check whether the real fix belongs in the stored procedure instead.</li>
+</ul>
 </div>
 
 <h2>Best practice — for working inside this specific codebase</h2>

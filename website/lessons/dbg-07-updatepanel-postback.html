@@ -48,7 +48,11 @@ End If</pre>
 
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.web.httpresponse.suppresscontent">HttpResponse.SuppressContent reference</a> confirms exactly what this property does, stated as plainly as an API can be: <em>"Gets or sets a value indicating whether to send HTTP content to the client."</em> Set to <code>true</code>, nothing the rest of that response's render pass produces — dropdown state, info messages, anything else destined for the page — ever reaches the browser. It's a page-wide switch, not something scoped to the file-download portion of the response alone.
+<ul>
+<li>Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.web.httpresponse.suppresscontent">HttpResponse.SuppressContent reference</a> confirms exactly what this property does, stated as plainly as an API can be: <em>"Gets or sets a value indicating whether to send HTTP content to the client."</em></li>
+<li>Set to <code>true</code>, nothing the rest of that response's render pass produces — dropdown state, info messages, anything else destined for the page — ever reaches the browser.</li>
+<li>It's a page-wide switch, not something scoped to the file-download portion of the response alone.</li>
+</ul>
 </div>
 
 <div class="quiz" data-type="mcq">

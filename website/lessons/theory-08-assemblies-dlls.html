@@ -17,7 +17,7 @@
 <h1>Assemblies &amp; DLLs</h1>
 <p class="lede">The last theory lesson, and the one that explains a genuinely unusual real pattern you'll run into in reload's own repository layout.</p>
 
-<h2>The vocabulary</h2>
+<h2>Assemblies and DLLs</h2>
 <table>
 <tr><th>Term</th><th>Meaning</th></tr>
 <tr><td><strong>Assembly</strong></td><td>The .NET unit of compiled code, versioning, and deployment — the output of compiling one project. Contains IL (Intermediate Language) code plus metadata describing every type inside it.</td></tr>
@@ -33,7 +33,7 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/standard/assembly/
 Per the type-boundary rule above, a class named <code>Fiuu.Logging.LogManager</code> compiled into one build of <code>Fiuu.Logging.dll</code> is not the same type, as far as the runtime is concerned, as a class with the exact same name and namespace compiled into a <em>different</em> build of that same-named DLL. If a consuming app somehow ends up with two different versions of <code>Fiuu.Logging.dll</code> loaded at once (a real, if unusual, possibility), passing an object created against one version into code expecting the other can fail with a genuinely confusing "cannot convert type X to type X" error — the two <code>X</code>s only look identical in the error message; they're bound to two different assemblies underneath.
 </div>
 
-<h2>Two ways to consume someone else's code</h2>
+<h2>Project References and Binary References</h2>
 <ul>
 <li><strong>Project reference (source):</strong> your build compiles the other project's source directly alongside yours. Change the source, rebuild, see the change immediately.</li>
 <li><strong>Binary reference (a prebuilt DLL):</strong> you reference an already-compiled <code>.dll</code> file directly. You don't have (or need) its source to build against it — but you also can't see or step into its implementation without a separate copy of the source, and it won't reflect any source change until someone rebuilds and re-drops a new DLL.</li>
@@ -41,7 +41,12 @@ Per the type-boundary rule above, a class named <code>Fiuu.Logging.LogManager</c
 
 <div class="callout real">
 <span class="callout-title">reload's class-library does something genuinely unusual here</span>
-Traced in full later in <a href="arch-01-reload.html">Architecture Map → reload: Topology &amp; Modules</a> — the short version: several modules (<code>Fiuu.CEPP</code>, <code>Fiuu.Logging</code>, <code>Fiuu.Lookup</code>, <code>Fiuu.MasterFramework</code>, <code>Fiuu.Provider</code>, and others) exist as <strong>prebuilt <code>.dll</code> files committed directly into the <code>class-library</code> repository's root</strong> — not built from source inside that repo. Their actual source lives elsewhere (in <code>Components/*</code>, a different part of the monorepo). How the built DLL gets from that source into <code>class-library</code>'s root was never confirmed in this handbook's research — no visible build-and-publish pipeline step does it automatically, so the most likely explanation is a developer building locally and manually committing the resulting DLL.
+<ul>
+<li>Traced in full later in <a href="arch-01-reload.html">Architecture Map → reload: Topology &amp; Modules</a>.</li>
+<li>Several modules (<code>Fiuu.CEPP</code>, <code>Fiuu.Logging</code>, <code>Fiuu.Lookup</code>, <code>Fiuu.MasterFramework</code>, <code>Fiuu.Provider</code>, and others) exist as <strong>prebuilt <code>.dll</code> files committed directly into the <code>class-library</code> repository's root</strong> — not built from source inside that repo.</li>
+<li>Their actual source lives elsewhere (in <code>Components/*</code>, a different part of the monorepo).</li>
+<li>How the built DLL gets from that source into <code>class-library</code>'s root was never confirmed in this handbook's research — no visible build-and-publish pipeline step does it automatically, so the most likely explanation is a developer building locally and manually committing the resulting DLL.</li>
+</ul>
 </div>
 
 <div class="callout warn">

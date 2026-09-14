@@ -38,7 +38,11 @@ MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference
 </div>
 <div class="callout warn">
 <span class="callout-title">Use === , not ==</span>
-<code>==</code> performs type coercion before comparing — <code>0 == "0"</code> is <code>true</code>, but so is the much more surprising <code>0 == ""</code> and <code>0 == false</code>. <code>===</code> compares without converting anything, which is almost always what you actually mean. Always default to <code>===</code>.
+<ul>
+<li><code>==</code> performs type coercion before comparing — <code>0 == "0"</code> is <code>true</code>, but so is the much more surprising <code>0 == ""</code> and <code>0 == false</code>.</li>
+<li><code>===</code> compares without converting anything, which is almost always what you actually mean.</li>
+<li>Always default to <code>===</code>.</li>
+</ul>
 </div>
 <div class="callout real">
 <span class="callout-title">Real, verified: loose equality in production reload JS</span>

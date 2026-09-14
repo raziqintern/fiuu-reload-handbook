@@ -17,7 +17,7 @@
 <h1>OOP Pillars</h1>
 <p class="lede">A new track: language-agnostic ideas about how to <em>structure</em> code well, not just how to write syntax that runs. You've already met every concept in this track in passing — this is where they get named properly, in the two languages reload actually uses.</p>
 
-<h2>Example: encapsulation — hide the internals, expose a controlled surface</h2>
+<h2>Encapsulation</h2>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">public class Terminal
@@ -84,13 +84,16 @@ End Module</pre>
 <pre class="tryit-output-src">150</pre>
 </div>
 </div>
-<p>Nothing technically forces callers through <code>Deposit()</code> in either language — <code>private</code> only blocks access from <em>outside the class</em>, and within it the field is freely mutable. Encapsulation here means bundling the data with the one method that's allowed to safely change it, matching the underscore-prefix convention you saw on reload's real <code>_provider</code>/<code>_accountCompo</code> fields in <a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>.</p>
+<ul>
+<li>Nothing technically forces callers through <code>Deposit()</code> in either language — <code>private</code> only blocks access from <em>outside the class</em>, and within it the field is freely mutable.</li>
+<li>Encapsulation here means bundling the data with the one method that's allowed to safely change it, matching the underscore-prefix convention you saw on reload's real <code>_provider</code>/<code>_accountCompo</code> fields in <a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/tutorials/oop">Object-Oriented Programming (C#) reference</a> defines all four pillars in one place: <em>"Encapsulation — Hiding the internal state and functionality of an object and only allowing access through a public set of functions."</em> <code>_balance</code> is exactly that hidden internal state; <code>Deposit()</code> and <code>GetBalance()</code> are the public set of functions allowed to touch it.
 </div>
 
-<h2>Example: inheritance, polymorphism, and real abstraction</h2>
+<h2>Inheritance, Polymorphism &amp; Abstraction</h2>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">public abstract class PaymentMethod
@@ -159,10 +162,17 @@ End Module</pre>
 Processed RM25 via Card</pre>
 </div>
 </div>
-<p><strong>Inheritance</strong>: both classes <code>: PaymentMethod</code> / <code>Inherits PaymentMethod</code>, inheriting its shape. <strong>Polymorphism</strong>: the loop calls <code>m.Process(25)</code> identically for both objects, but each runs its own version — the caller doesn't need to know or care which concrete class it's holding. <strong>Abstraction</strong>: <code>abstract</code>/<code>MustInherit</code> means <code>PaymentMethod</code> itself can never be instantiated directly (<code>new PaymentMethod()</code> is a compile error) — it exists purely to declare the contract every payment method must fulfil, exactly like <code>ITerminalService</code> in <a href="cs-04-classes.html">C# Fundamentals → Classes, Objects &amp; Interfaces</a>.</p>
+<ul>
+<li><strong>Inheritance:</strong> both classes <code>: PaymentMethod</code> / <code>Inherits PaymentMethod</code>, inheriting its shape.</li>
+<li><strong>Polymorphism:</strong> the loop calls <code>m.Process(25)</code> identically for both objects, but each runs its own version — the caller doesn't need to know or care which concrete class it's holding.</li>
+<li><strong>Abstraction:</strong> <code>abstract</code>/<code>MustInherit</code> means <code>PaymentMethod</code> itself can never be instantiated directly (<code>new PaymentMethod()</code> is a compile error) — it exists purely to declare the contract every payment method must fulfil, exactly like <code>ITerminalService</code> in <a href="cs-04-classes.html">C# Fundamentals → Classes, Objects &amp; Interfaces</a>.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-The same Microsoft reference defines the other three pillars in identical terms: <em>"Abstraction — Modeling the relevant attributes and interactions of entities as classes to define an abstract representation of a system. Inheritance — Ability to create new abstractions based on existing abstractions. Polymorphism — Ability to implement inherited properties or methods in different ways across multiple abstractions."</em> <code>TngPayment</code> and <code>CardPayment</code> are new abstractions built on <code>PaymentMethod</code>'s existing one (inheritance), each implementing <code>Process</code> differently (polymorphism) — precisely the definitions above, not a looser analogy of them.
+<ul>
+<li>The same Microsoft reference defines the other three pillars in identical terms: <em>"Abstraction — Modeling the relevant attributes and interactions of entities as classes to define an abstract representation of a system. Inheritance — Ability to create new abstractions based on existing abstractions. Polymorphism — Ability to implement inherited properties or methods in different ways across multiple abstractions."</em></li>
+<li><code>TngPayment</code> and <code>CardPayment</code> are new abstractions built on <code>PaymentMethod</code>'s existing one (inheritance), each implementing <code>Process</code> differently (polymorphism) — precisely the definitions above, not a looser analogy of them.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

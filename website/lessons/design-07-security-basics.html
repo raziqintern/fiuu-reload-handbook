@@ -17,7 +17,7 @@
 <h1>Security Basics</h1>
 <p class="lede">Reload is a payment platform — security here isn't abstract. This lesson covers the handful of concepts worth understanding before you touch anything that handles money or credentials.</p>
 
-<h2>SQL injection: see it happen, live, against this site's own practice database</h2>
+<h2>SQL Injection</h2>
 <p>Imagine a search feature built by directly pasting user input into a SQL string, like <code>"SELECT * FROM Terminals WHERE MerchantName = '" + userInput + "'"</code>. Now imagine a user (or attacker) types <code>' OR '1'='1</code> into that search box instead of a real merchant name:</p>
 
 <div class="tryit" data-lang="sql">
@@ -26,7 +26,10 @@
 SELECT * FROM Terminals WHERE MerchantName = '' OR '1'='1';</pre>
 </div>
 
-<p>Run it. You get <em>every row in the table</em>, not zero rows — because <code>'1'='1'</code> is always true, the attacker's input turned a "find one specific merchant" query into "return everything," entirely through the text of the query itself. This is SQL injection: user input being interpreted as <em>code</em> instead of as <em>data</em>.</p>
+<ul>
+<li>Run it. You get <em>every row in the table</em>, not zero rows — because <code>'1'='1'</code> is always true, the attacker's input turned a "find one specific merchant" query into "return everything," entirely through the text of the query itself.</li>
+<li>This is SQL injection: user input being interpreted as <em>code</em> instead of as <em>data</em>.</li>
+</ul>
 
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
@@ -34,19 +37,33 @@ Microsoft's own <a href="https://learn.microsoft.com/en-us/sql/relational-databa
 </div>
 <div class="callout warn">
 <span class="callout-title">A common misconception, corrected</span>
-"We use stored procedures, so we're safe from SQL injection" is not quite true. Microsoft's own reference confirms this directly: <em>"Stored procedures might be susceptible to SQL injection if they use unfiltered input,"</em> and its own vulnerable example is exactly this shape — building a dynamic SQL string by concatenating a parameter (<code>EXEC('SELECT * FROM Terminals WHERE MerchantName = ''' + @Name + '''')</code>) is exactly as vulnerable as the raw query above. The actual defense is <strong>parameterization</strong> — passing the value as a typed parameter that's never interpreted as SQL syntax, regardless of whether it's wrapped in a stored procedure or not: <em>"If you use stored procedures, you should use parameters as their input."</em>
+<ul>
+<li>"We use stored procedures, so we're safe from SQL injection" is not quite true.</li>
+<li>Microsoft's own reference confirms this directly: <em>"Stored procedures might be susceptible to SQL injection if they use unfiltered input,"</em> and its own vulnerable example is exactly this shape — building a dynamic SQL string by concatenating a parameter (<code>EXEC('SELECT * FROM Terminals WHERE MerchantName = ''' + @Name + '''')</code>) is exactly as vulnerable as the raw query above.</li>
+<li>The actual defense is <strong>parameterization</strong> — passing the value as a typed parameter that's never interpreted as SQL syntax, regardless of whether it's wrapped in a stored procedure or not: <em>"If you use stored procedures, you should use parameters as their input."</em></li>
+</ul>
 </div>
 
 <div class="callout real">
 <span class="callout-title">This is genuinely how reload defends against it</span>
-Recall from <a href="conv-05-data-access.html">Fiuu C# Conventions → Data Access</a>: every parameter reload sends to a stored procedure goes through <code>ParameterCollection.Add("@Name", DbType.String, value)</code> — the value is bound as typed data, never concatenated into query text. Combined with "no inline dynamic SQL, no string-built SELECT/UPDATE statements... anywhere," this is a real, consistently-applied defense — not just "we use stored procedures so we're fine."
+<ul>
+<li>Recall from <a href="conv-05-data-access.html">Fiuu C# Conventions → Data Access</a>: every parameter reload sends to a stored procedure goes through <code>ParameterCollection.Add("@Name", DbType.String, value)</code> — the value is bound as typed data, never concatenated into query text.</li>
+<li>Combined with "no inline dynamic SQL, no string-built SELECT/UPDATE statements... anywhere," this is a real, consistently-applied defense — not just "we use stored procedures so we're fine."</li>
+</ul>
 </div>
 
-<h2>Secrets: never in source code, never fully trust logs</h2>
-<p>You've already seen reload's real secrets story in <a href="conv-06-config-secrets.html">Configuration &amp; Secrets</a>: credentials live in AWS Secrets Manager, not hardcoded in source. The general principle behind that: a secret committed to source control is compromised the moment it's pushed, even if you delete it in a later commit — <a class="term" data-term="git">Git</a> history keeps it. And recall <a href="conv-04-logging.html">Logging</a>'s warning that reload logs full request/response payloads unredacted — a secret or account number passed through a logged call is now sitting in a log file too, a second place it can leak from.</p>
+<h2>Secrets Management</h2>
+<ul>
+<li>You've already seen reload's real secrets story in <a href="conv-06-config-secrets.html">Configuration &amp; Secrets</a>: credentials live in AWS Secrets Manager, not hardcoded in source.</li>
+<li>The general principle behind that: a secret committed to source control is compromised the moment it's pushed, even if you delete it in a later commit — <a class="term" data-term="git">Git</a> history keeps it.</li>
+<li>Recall <a href="conv-04-logging.html">Logging</a>'s warning that reload logs full request/response payloads unredacted — a secret or account number passed through a logged call is now sitting in a log file too, a second place it can leak from.</li>
+</ul>
 
-<h2>Least privilege</h2>
-<p>Give code (and people) only the access they actually need, not the broadest access that happens to be convenient. A background job that only ever reads from <code>REPORTSUMMARY</code> shouldn't run with a database credential that also has write access to <code>CEPP</code> — if that job is ever compromised or has a bug, the blast radius is limited to what it actually needed.</p>
+<h2>Least Privilege</h2>
+<ul>
+<li>Give code (and people) only the access they actually need, not the broadest access that happens to be convenient.</li>
+<li>A background job that only ever reads from <code>REPORTSUMMARY</code> shouldn't run with a database credential that also has write access to <code>CEPP</code> — if that job is ever compromised or has a bug, the blast radius is limited to what it actually needed.</li>
+</ul>
 
 <h2>Best practice</h2>
 <ul>

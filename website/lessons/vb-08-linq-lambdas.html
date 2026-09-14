@@ -17,7 +17,7 @@
 <h1>LINQ in VB.NET: Query Syntax, Lambdas &amp; Anonymous Types</h1>
 <p class="lede">C# Fundamentals covered LINQ as method calls (<code>.Where(...)</code>, <code>.Select(...)</code>). VB.NET has that too — but it also has a second, SQL-shaped way to write the exact same query, actually used in BackOffice. Both need one more concept first: VB's own lambda syntax.</p>
 
-<h2>A lambda expression is a function with no name, written inline</h2>
+<h2>Lambda Expressions</h2>
 <p>Per Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/procedures/lambda-expressions">Lambda Expressions reference</a>: <em>"A lambda expression is a function or subroutine without a name that can be used wherever a delegate is valid."</em> Concretely, "without a name" means this — the exact same logic, written two ways:</p>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">' A normal, named function — declared on its own, called by name.
@@ -57,8 +57,12 @@ Dim invalid = Function(x) Console.WriteLine(x) : x + 1</pre>
 VB.NET does have a real multi-line lambda form (<code>Function(x) ... End Function</code>, spanning several lines with a proper <code>Return</code>), but the moment a lambda needs several statements and its own local variables to express its logic, that's usually the sign the logic deserves a real, named method instead — referenced with <code>AddressOf</code> where a delegate is needed — rather than growing an inline lambda into something hard to read at a glance.
 </div>
 
-<h2>VB.NET's second option: query syntax, the same LINQ written like SQL</h2>
-<p>Everything above is <strong>method syntax</strong> — chained <code>.Where(...)</code>/<code>.Select(...)</code> calls, same as C#. VB.NET also has <strong>query syntax</strong>: <code>From</code>/<code>Where</code>/<code>Order By</code>/<code>Select</code> keywords that read like a SQL statement, compiling down to the exact same method calls underneath. Side by side, on a simple case, before the real production one:</p>
+<h2>Query Syntax</h2>
+<ul>
+<li><strong>Method syntax</strong> is everything above — chained <code>.Where(...)</code>/<code>.Select(...)</code> calls, same as C#.</li>
+<li><strong>Query syntax</strong> is VB.NET's second option: <code>From</code>/<code>Where</code>/<code>Order By</code>/<code>Select</code> keywords that read like a SQL statement, compiling down to the exact same method calls underneath.</li>
+</ul>
+<p>Side by side, on a simple case, before the real production one:</p>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">Dim numbers = {10, 25, 600, 15}
 
@@ -82,9 +86,15 @@ Next</pre>
                             Order By CType(item, Integer)
                             Select New With {.Text = item.ToString(), .Value = CType(item, Integer)})</pre>
 <p class="code-cite">Module: BackOffice/Web · File: WebForms/DealerCreate.aspx.vb:539-542</p>
-<p>Reading it clause by clause: <code>From item In [Enum].GetValues(...)</code> declares a <em>range variable</em>, <code>item</code>, iterating the source — the query-syntax equivalent of the lambda parameter in method syntax (compare to <code>n</code> in the simple example above, or <code>item</code> in <code>.Any(Function(item) ...)</code>). <code>Where</code> filters, exactly like <code>.Where(...)</code>. <code>Order By</code> sorts, corresponding to <code>.OrderBy(...)</code>. <code>Select</code> defines the shape of each result.</p>
+<p>Reading it clause by clause:</p>
+<ul>
+<li><code>From item In [Enum].GetValues(...)</code> declares a <em>range variable</em>, <code>item</code>, iterating the source — the query-syntax equivalent of the lambda parameter in method syntax (compare to <code>n</code> in the simple example above, or <code>item</code> in <code>.Any(Function(item) ...)</code>).</li>
+<li><code>Where</code> filters, exactly like <code>.Where(...)</code>.</li>
+<li><code>Order By</code> sorts, corresponding to <code>.OrderBy(...)</code>.</li>
+<li><code>Select</code> defines the shape of each result.</li>
+</ul>
 
-<h2>Anonymous types: what that Select clause is actually constructing</h2>
+<h2>Anonymous Types</h2>
 <p><code>New With {.Text = item.ToString(), .Value = CType(item, Integer)}</code> creates an object of a type that has no name anywhere in the code — VB.NET generates one on the fly, with exactly the properties listed (<code>Text</code>, <code>Value</code>), typed from whatever each expression evaluates to. This exists specifically for cases like this one: the query's result only needs to exist briefly, to bind to <code>ddlWalletType</code>'s <code>DataSource</code> — defining a real, named class just to hold two properties for one local use would be pure ceremony.</p>
 <div class="callout warn">
 <span class="callout-title">The wrong scenario: when an anonymous type stops being the right tool</span>
@@ -94,7 +104,7 @@ End Function</pre>
 The moment a shape needs to be passed between methods, stored in a field, or referred to by a real type name anywhere else, an anonymous type stops working — there's no type name that could legally fill in the <code>???</code> above, because the type was never given one. An anonymous type's "type" only has meaning within the single method (and any lambdas nested inside it) that created it. Once a shape needs to cross a method boundary like this, define an actual class instead.
 </div>
 
-<h2>Filtering one collection against another: three real idioms, and one real trap</h2>
+<h2>Filtering One Collection Against Another</h2>
 <p>A recurring shape in BackOffice: given a full list and a list of items to exclude, produce the remainder. This isn't a special LINQ feature — it's an application of <code>Where</code> you already know, plus two variants worth recognizing by name.</p>
 <p>The dominant idiom, seen repeated across every "sync a multi-select against a saved list" page in BackOffice — filter one collection by whether each element is <em>absent</em> from another:</p>
 <pre class="code-block">Dim addedStore = stores.Where(Function(b) Not UserStore.Contains(b)).ToList()
@@ -119,7 +129,7 @@ When there are only one or two hardcoded values to exclude — not a runtime lis
 This doesn't scale past two or three values (each new exclusion is another <code>AndAlso</code> clause) — the moment a third or fourth exclusion shows up, or the excluded set might change without a code change, that's the signal to switch to a real list and <code>Where(Function(x) Not excludeList.Contains(x))</code> instead.
 </div>
 
-<h2>Reducing overhead: the same exclusion filter, made structurally faster</h2>
+<h2>List vs. HashSet Lookups</h2>
 <p>The dominant exclusion idiom above — <code>Where(Function(b) Not otherList.Contains(b))</code> — has a real cost hiding in it once the lists get large: <code>List(Of T).Contains</code> scans the list from the start until it finds a match (or reaches the end). Run inside a <code>Where</code> over every element of the first list, that's a scan of the second list <em>for every single element</em> of the first — the total work grows with the size of <strong>both</strong> lists multiplied together, not just added.</p>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
@@ -139,7 +149,7 @@ Dim addedStore = stores.Where(Function(b) Not userStoreSet.Contains(b)).ToList()
 For a handful of items the difference is invisible either way — this only becomes worth doing once the lists genuinely get large (hundreds or thousands of stores/dealers/users), which is exactly the kind of change worth making the next time one of these six files is touched anyway, not necessarily a change worth making in isolation today.
 </div>
 
-<h2>Join and Group Join: combining two collections by a shared key, not filtering one</h2>
+<h2>Join and Group Join</h2>
 <p>Filtering (above) asks "which elements of this one collection survive a condition." <code>Join</code> asks a different question: "for each element of one collection, what's the matching element of a completely different collection." Real, verified production usage — combining stores with the dealer each one belongs to:</p>
 <pre class="code-block">stores = stores.Join(dealers, Function(s) s.DealerId, Function(d) d.Id,
                       Function(Store, Dealer) New With {Store, Dealer})</pre>
@@ -153,7 +163,7 @@ Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.lin
 <p class="code-cite">Module: BackOffice/Web · File: WebForms/CompanyEdit.aspx.vb:202 (the identical shape repeats in Dealer.aspx.vb, DealerEdit.aspx.vb, ProductEdit.aspx.vb, PurchaseOrderEdit.aspx.vb, PaymentEnquiry.aspx.vb)</p>
 <p><code>Into Group</code> is what makes this a <em>group</em> join rather than a plain one: instead of producing one flat result row per matching pair, each <code>user</code> gets a <code>Group</code> — the (possibly empty) collection of every <code>compUser</code> that matched. This is the query-syntax route to what <code>Join</code>'s inner-only behavior can't do on its own: keeping every element from the first collection even when zero matches exist on the second.</p>
 
-<h2>The Array/IEnumerable trap: why <code>[Enum].GetValues(...).Where(...)</code> doesn't compile</h2>
+<h2>The Array/IEnumerable Trap</h2>
 <p><code>[Enum].GetValues(GetType(T))</code> returns the non-generic <code>System.Array</code> type — and <code>Array</code> only implements the non-generic <code>IEnumerable</code>, not <code>IEnumerable(Of T)</code>. <code>Where</code>, like every LINQ method, is written against <code>IEnumerable(Of T)</code>, so it simply isn't visible on a plain <code>Array</code>-typed variable — this is a real, easy compile error to hit, not a hypothetical one.</p>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
@@ -164,12 +174,22 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.linq.en
 Dim arrAllocationActions As IEnumerable(Of EnumAllocateAction) = [Enum].GetValues(GetType(EnumAllocateAction)).Cast(Of EnumAllocateAction)()
 Dim arrFilteredAllocationActions As EnumAllocateAction() = arrAllocationActions.Where(Function(iAllocationAction) Not arrExcludedActions.Contains(iAllocationAction)).ToArray()</pre>
 <p class="code-cite">Module: BackOffice/Web · File: WebForms/StockAllocationCreate.aspx.vb:502-504</p>
-<p>Line by line: <code>arrExcludedActions</code> is a genuine array literal (<code>vb-01</code>'s array-type rule), correctly typed <code>EnumAllocateAction()</code>. <code>arrAllocationActions</code> is the bridge — <code>.Cast(Of EnumAllocateAction)()</code> turns the non-generic <code>Array</code> into an <code>IEnumerable(Of EnumAllocateAction)</code>, which is why it's declared <code>As IEnumerable(Of EnumAllocateAction)</code>, not <code>As Array</code>. <code>arrFilteredAllocationActions</code> applies the exclusion idiom from above, then <code>.ToArray()</code> converts the result back into a real array.</p>
+<p>Line by line:</p>
+<ul>
+<li><code>arrExcludedActions</code> is a genuine array literal (<code>vb-01</code>'s array-type rule), correctly typed <code>EnumAllocateAction()</code>.</li>
+<li><code>arrAllocationActions</code> is the bridge — <code>.Cast(Of EnumAllocateAction)()</code> turns the non-generic <code>Array</code> into an <code>IEnumerable(Of EnumAllocateAction)</code>, which is why it's declared <code>As IEnumerable(Of EnumAllocateAction)</code>, not <code>As Array</code>.</li>
+<li><code>arrFilteredAllocationActions</code> applies the exclusion idiom from above, then <code>.ToArray()</code> converts the result back into a real array.</li>
+</ul>
 <div class="callout warn">
 <span class="callout-title">The wrong way: declaring the Cast(Of T)() result As Array undoes the fix</span>
 <pre class="code-block">' Looks like a small, harmless simplification — it isn't.
 Dim arrAllocationActions As Array = [Enum].GetValues(GetType(EnumAllocateAction)).Cast(Of EnumAllocateAction)()</pre>
-<code>.Cast(Of EnumAllocateAction)()</code> returns <code>IEnumerable(Of EnumAllocateAction)</code>, which is not a <code>System.Array</code> — they're unrelated types, one a lazy enumerator and the other a concrete array class. With <code>Option Strict On</code> this is a compile error; with <code>Option Strict Off</code> (BackOffice's real default — see <a href="vb-01-syntax.html">vb-01</a>), it compiles but throws an <code>InvalidCastException</code> the moment it runs. And even setting that aside, re-typing the variable <code>As Array</code> puts you right back where you started: <code>.Where</code> won't be visible on it, for the exact same reason it wasn't visible on the original <code>[Enum].GetValues(...)</code> call. The variable name (<code>arr...</code>) staying the same across the fix is itself worth noticing — this codebase's Hungarian notation is a loose, approximate convention (per <a href="conv-01-naming.html">Fiuu Code Conventions → Naming</a>), not a strictly type-accurate one; the real file above keeps the <code>arr</code> prefix on <code>arrAllocationActions</code> even though its actual declared type is <code>IEnumerable(Of T)</code>, not an array.
+<ul>
+<li><code>.Cast(Of EnumAllocateAction)()</code> returns <code>IEnumerable(Of EnumAllocateAction)</code>, which is not a <code>System.Array</code> — they're unrelated types, one a lazy enumerator and the other a concrete array class.</li>
+<li>With <code>Option Strict On</code> this is a compile error; with <code>Option Strict Off</code> (BackOffice's real default — see <a href="vb-01-syntax.html">vb-01</a>), it compiles but throws an <code>InvalidCastException</code> the moment it runs.</li>
+<li>Re-typing the variable <code>As Array</code> puts you right back where you started: <code>.Where</code> won't be visible on it, for the exact same reason it wasn't visible on the original <code>[Enum].GetValues(...)</code> call.</li>
+<li>The variable name (<code>arr...</code>) staying the same across the fix is itself worth noticing — this codebase's Hungarian notation is a loose, approximate convention (per <a href="conv-01-naming.html">Fiuu Code Conventions → Naming</a>), not a strictly type-accurate one; the real file above keeps the <code>arr</code> prefix on <code>arrAllocationActions</code> even though its actual declared type is <code>IEnumerable(Of T)</code>, not an array.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

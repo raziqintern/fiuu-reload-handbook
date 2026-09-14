@@ -17,7 +17,7 @@
 <h1>Classes, Objects &amp; Interfaces</h1>
 <p class="lede">This is the lesson that matters most before you open real reload code — the whole codebase is organised around exactly these three ideas.</p>
 
-<h2>A class with properties and a constructor</h2>
+<h2>Classes, Properties, and Constructors</h2>
 <div class="tryit" data-lang="csharp">
 <pre class="tryit-src">public class Terminal
 {
@@ -44,10 +44,16 @@ class Program
 <pre class="tryit-output-src">TNG-0042 - 7-Eleven KL - True</pre>
 </div>
 
-<p>A <strong>class</strong> is a blueprint; <code>new Terminal(...)</code> creates an <strong>object</strong> (an instance) from it. <code>{ get; set; }</code> is a shorthand C# property — a field with an automatic getter/setter, far more common in real code than writing a private field plus manual getter/setter methods by hand.</p>
+<ul>
+<li>A <strong>class</strong> is a blueprint; <code>new Terminal(...)</code> creates an <strong>object</strong> (an instance) from it.</li>
+<li><code>{ get; set; }</code> is a shorthand C# property — a field with an automatic getter/setter, far more common in real code than writing a private field plus manual getter/setter methods by hand.</li>
+</ul>
 
-<h2>Interfaces: a contract, separate from the implementation</h2>
-<p>An interface declares <em>what</em> a class can do, without saying <em>how</em>. This matters because it lets code depend on the contract instead of a specific class — you can swap the implementation later without touching every place that uses it.</p>
+<h2>Interfaces</h2>
+<ul>
+<li>An interface declares <em>what</em> a class can do, without saying <em>how</em>.</li>
+<li>This matters because it lets code depend on the contract instead of a specific class — you can swap the implementation later without touching every place that uses it.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/types/interfaces">Interfaces reference</a> defines the contract precisely: <em>"An interface defines a contract: a group of related methods, properties, events, and indexers that a class or struct must implement."</em> Two hard rules make that separation real, not just conventional: <em>"Interfaces can't contain instance fields, instance constructors, or finalizers"</em> — there's nowhere to put implementation, only signatures — and <em>"You can't instantiate an interface directly."</em> <code>new ITerminalService()</code> simply doesn't compile; an interface is a shape a class fills in, never a thing you can create on its own.
@@ -105,7 +111,10 @@ Per the same Microsoft reference: <em>"A class or struct that implements an inte
 </ul>
 
 <h2>Better ways</h2>
-<p>Auto-properties (<code>{ get; set; }</code>) are convenient but let any caller freely overwrite a value that maybe shouldn't be freely overwritable — <code>t.IsOnline = false</code> from anywhere, any time. A more deliberate design exposes a method (<code>t.GoOffline()</code>) instead of a public setter when the change is really a meaningful action with its own rules, not just a raw field write — the same encapsulation idea from <a href="design-01-oop-pillars.html">Software Design → OOP Pillars</a>.</p>
+<ul>
+<li>Auto-properties (<code>{ get; set; }</code>) are convenient but let any caller freely overwrite a value that maybe shouldn't be freely overwritable — <code>t.IsOnline = false</code> from anywhere, any time.</li>
+<li>A more deliberate design exposes a method (<code>t.GoOffline()</code>) instead of a public setter when the change is really a meaningful action with its own rules, not just a raw field write — the same encapsulation idea from <a href="design-01-oop-pillars.html">Software Design → OOP Pillars</a>.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">

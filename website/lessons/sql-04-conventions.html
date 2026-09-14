@@ -28,10 +28,14 @@ dbo.AllocationOrderItems_Del_By_AllocationOrderId</pre>
 
 <div class="callout real">
 <span class="callout-title">This naming is load-bearing, not decorative</span>
-The C# side references these procedures through generated constant holders whose member names mirror the SQL name exactly — <code>Fiuu.Provider.Database.TNG.StoredProcedures.TerminalActivities_Ins</code> calls the stored procedure named <code>TerminalActivities_Ins</code>. The SQL object name and the C# constant are kept in lockstep by convention, with no codegen step visible in this repo enforcing it. Rename one without the other and the C# code silently calls a procedure that no longer exists.
+<ul>
+<li>The C# side references these procedures through generated constant holders whose member names mirror the SQL name exactly — <code>Fiuu.Provider.Database.TNG.StoredProcedures.TerminalActivities_Ins</code> calls the stored procedure named <code>TerminalActivities_Ins</code>.</li>
+<li>The SQL object name and the C# constant are kept in lockstep by convention, with no codegen step visible in this repo enforcing it.</li>
+<li>Rename one without the other and the C# code silently calls a procedure that no longer exists.</li>
+</ul>
 </div>
 
-<h2>Every real procedure body follows the same shape</h2>
+<h2>Standard Procedure Body Shape</h2>
 <pre class="code-block">USE [TRANSACTION]
 GO
 SET ANSI_NULLS ON
@@ -51,9 +55,14 @@ END
 GO</pre>
 <p class="code-cite">reload_db/MAINT/TRANSACTION/StoredProcedure/Celcom.Transactions_Ins.sql</p>
 
-<p>Consistent elements across every procedure sampled: <code>CREATE OR ALTER PROCEDURE</code> (not the older <code>IF EXISTS ... DROP</code> pattern), leading-comma parameter lists, and <code>SET NOCOUNT ON;</code> as the very first statement in the body.</p>
+<p>Consistent elements across every procedure sampled:</p>
+<ul>
+<li><code>CREATE OR ALTER PROCEDURE</code> (not the older <code>IF EXISTS ... DROP</code> pattern)</li>
+<li>Leading-comma parameter lists</li>
+<li><code>SET NOCOUNT ON;</code> as the very first statement in the body</li>
+</ul>
 
-<h2>NOLOCK on every read — a deliberate, universal choice</h2>
+<h2>NOLOCK</h2>
 <div class="tryit" data-lang="sql">
 <pre class="tryit-src">-- Real reload_db style (SQL Server syntax — this specific hint
 -- isn't meaningful in the SQLite engine here, but the shape is real):
@@ -61,24 +70,34 @@ GO</pre>
 
 SELECT * FROM TerminalActivities;</pre>
 </div>
-<p><code>WITH (NOLOCK)</code> appears on essentially every read stored procedure in the sampled codebase. It tells SQL Server "don't wait for locks, just read whatever's there even if it's mid-transaction" — a deliberate throughput-over-consistency trade-off for a high-volume transactional system. The cost: you can occasionally read a row that's about to be rolled back, or momentarily miss a row mid-insert. Worth knowing before you assume a read result is always perfectly consistent.</p>
+<ul>
+<li><code>WITH (NOLOCK)</code> appears on essentially every read stored procedure in the sampled codebase.</li>
+<li>It tells SQL Server "don't wait for locks, just read whatever's there even if it's mid-transaction" — a deliberate throughput-over-consistency trade-off for a high-volume transactional system.</li>
+<li><strong>The cost:</strong> you can occasionally read a row that's about to be rolled back, or momentarily miss a row mid-insert. Worth knowing before you assume a read result is always perfectly consistent.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-table">Table Hints (Transact-SQL) reference</a> defines <code>NOLOCK</code> as exactly equivalent to <code>READUNCOMMITTED</code>, and spells out the trade-off precisely: <em>"Specifies that dirty reads are allowed. No shared locks are issued to prevent other transactions from modifying data read by the current transaction, and exclusive locks set by other transactions don't block the current transaction from reading the locked data. Allowing dirty reads can cause higher concurrency, but at the cost of reading data modifications that then are rolled back by other transactions."</em> The same reference also notes a real restriction worth knowing: <em>"READUNCOMMITTED and NOLOCK can't be specified for tables modified by insert, update, or delete operations"</em> — <code>NOLOCK</code> is a read-side hint only, never valid on the table an <code>UPDATE</code>/<code>DELETE</code>/<code>INSERT</code> is actually writing to.
+<ul>
+<li>Microsoft's <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-table">Table Hints (Transact-SQL) reference</a> defines <code>NOLOCK</code> as exactly equivalent to <code>READUNCOMMITTED</code>, and spells out the trade-off precisely: <em>"Specifies that dirty reads are allowed. No shared locks are issued to prevent other transactions from modifying data read by the current transaction, and exclusive locks set by other transactions don't block the current transaction from reading the locked data. Allowing dirty reads can cause higher concurrency, but at the cost of reading data modifications that then are rolled back by other transactions."</em></li>
+<li>The same reference also notes a real restriction worth knowing: <em>"READUNCOMMITTED and NOLOCK can't be specified for tables modified by insert, update, or delete operations"</em> — <code>NOLOCK</code> is a read-side hint only, never valid on the table an <code>UPDATE</code>/<code>DELETE</code>/<code>INSERT</code> is actually writing to.</li>
+</ul>
 </div>
 
-<h2>The <code>M</code>-prefix, on the SQL side too</h2>
+<h2>The <code>M</code>-Prefix</h2>
 <p>Foreign keys into a lookup/status table are prefixed <code>M</code> (for "Master") in the database, matching the C# side you'll see in the <a href="conv-01-naming.html">Conventions track</a>: <code>MServiceTypeId</code>, <code>MWorkFlowStatusId</code>, <code>MSourceTypeId</code>. Same convention, same intent, both layers.</p>
 
-<h2>Patch scripts: real, but inconsistently tagged</h2>
+<h2>Patch Script Ticket Tags</h2>
 <p>Column-naming and stored-procedure style are consistent; <em>ticket references in patch-script filenames</em> are not. The same "add a column" operation appears under at least six different spellings across real filenames:</p>
 <pre class="code-block">dbo.AllocationOrders_AddColumn_GIT-790.sql
 dbo.AllocationOrderItems_Add_Column_GIT_1382.sql
 dbo.ApiStockOrders_Add_Column_RMSO-219.sql
 dbo.ReconMOLPayDetails_Temp_Alter_Column_GIT#1114.sql</pre>
-<p>At least four ticket-tag spellings are in simultaneous use (<code>RMSO-nnn</code>, <code>GIT-nnn</code>, <code>GIT_nnn</code>, <code>GITnnnn</code>), with no single "correct" format ever unified. If you're searching for every script touching a given ticket, you cannot rely on one consistent grep pattern.</p>
+<ul>
+<li>At least four ticket-tag spellings are in simultaneous use (<code>RMSO-nnn</code>, <code>GIT-nnn</code>, <code>GIT_nnn</code>, <code>GITnnnn</code>), with no single "correct" format ever unified.</li>
+<li>If you're searching for every script touching a given ticket, you cannot rely on one consistent grep pattern.</li>
+</ul>
 
-<h2>A reserved word among the database names</h2>
+<h2>TRANSACTION as a Reserved Word</h2>
 <p>One of the databases in this estate is literally named <code>TRANSACTION</code> — a reserved T-SQL keyword. Querying it unbracketed doesn't fail with one clear message; it breaks the parser and produces a wall of unrelated-looking errors instead:</p>
 <pre class="code-block">-- Fails: "Incorrect syntax near 'TRANSACTION'", plus a cascade of
 -- "The multi-part identifier '...' could not be bound" on every column
@@ -88,11 +107,17 @@ SELECT * FROM TRANSACTION.dbo.OfflineSalesOrders;
 SELECT * FROM [TRANSACTION].dbo.OfflineSalesOrders;</pre>
 <div class="callout tip">
 <span class="callout-title">Only the database name needs the brackets</span>
-Once you're inside the query, the columns themselves (<code>o.Id</code>, <code>o.InvoiceNo</code>) don't need bracketing — only <code>[TRANSACTION]</code> does, since that's the one identifier colliding with a T-SQL keyword. If your SSMS session is already connected directly to the <code>TRANSACTION</code> database, you can drop the prefix entirely and just write <code>dbo.OfflineSalesOrders</code>.
+<ul>
+<li>Once you're inside the query, the columns themselves (<code>o.Id</code>, <code>o.InvoiceNo</code>) don't need bracketing — only <code>[TRANSACTION]</code> does, since that's the one identifier colliding with a T-SQL keyword.</li>
+<li>If your SSMS session is already connected directly to the <code>TRANSACTION</code> database, you can drop the prefix entirely and just write <code>dbo.OfflineSalesOrders</code>.</li>
+</ul>
 </div>
 
-<h2>A real optimization: making an expensive join conditional</h2>
-<p>A stored procedure searching <code>INVENTORY.dbo.Stocks</code> unconditionally joined out to <code>VoidTransactions</code> on <em>every</em> call, purely to support one optional void-date filter — meaning every search paid that join's cost even when nobody asked for it. The fix is a pattern worth recognising whenever a search procedure has several optional filter parameters:</p>
+<h2>Conditional Joins</h2>
+<ul>
+<li>A stored procedure searching <code>INVENTORY.dbo.Stocks</code> unconditionally joined out to <code>VoidTransactions</code> on <em>every</em> call, purely to support one optional void-date filter — meaning every search paid that join's cost even when nobody asked for it.</li>
+<li>The fix is a pattern worth recognising whenever a search procedure has several optional filter parameters:</li>
+</ul>
 <pre class="code-block">-- Before: VoidTransactions joined on every call, filter used or not
 SELECT ...
 FROM [INVENTORY].[dbo].[Stocks] WITH (NOLOCK)
@@ -121,7 +146,12 @@ END</pre>
 <p class="code-cite">reload_db/MAINT/INVENTORY/StoredProcedure/dbo.Stocks_Sel_By_Search.sql</p>
 <div class="callout tip">
 <span class="callout-title">The general shape</span>
-When a search procedure has an optional filter that needs its own join, don't join unconditionally and gate only the <em>result</em> with a <code>WHERE @param IS NULL OR ...</code> clause — the join still runs on every call either way. Land the base result in a <code>#temp</code> table first, then branch (<code>IF @param IS NOT NULL</code>) into whichever version of the final <code>SELECT</code> actually needs the extra join. It's the same underlying instinct as SQL Server's own <code>OPTION (RECOMPILE)</code> query hint — per <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-query">Microsoft's Query Hints reference</a>, it forces the optimizer to build a fresh plan for one statement based on the actual parameter values passed that call, instead of reusing a cached plan optimized for a different, earlier call's values (a problem called <em>parameter sniffing</em> — a plan cached for a search that matched 3 rows performs badly reused for one matching 3 million). Don't make every call pay for a filter almost nobody uses on any given search — whether that's a conditional join or a recompile hint, both trade a little per-call overhead for avoiding a plan that's wrong for the actual data.
+<ul>
+<li>When a search procedure has an optional filter that needs its own join, don't join unconditionally and gate only the <em>result</em> with a <code>WHERE @param IS NULL OR ...</code> clause — the join still runs on every call either way.</li>
+<li>Land the base result in a <code>#temp</code> table first, then branch (<code>IF @param IS NOT NULL</code>) into whichever version of the final <code>SELECT</code> actually needs the extra join.</li>
+<li>It's the same underlying instinct as SQL Server's own <code>OPTION (RECOMPILE)</code> query hint — per <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-query">Microsoft's Query Hints reference</a>, it forces the optimizer to build a fresh plan for one statement based on the actual parameter values passed that call, instead of reusing a cached plan optimized for a different, earlier call's values (a problem called <em>parameter sniffing</em> — a plan cached for a search that matched 3 rows performs badly reused for one matching 3 million).</li>
+<li>Don't make every call pay for a filter almost nobody uses on any given search — whether that's a conditional join or a recompile hint, both trade a little per-call overhead for avoiding a plan that's wrong for the actual data.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>
@@ -135,7 +165,12 @@ When a search procedure has an optional filter that needs its own join, don't jo
 <p><code>SCOPE_IDENTITY()</code> is the safer alternative to <code>@@IDENTITY</code> for retrieving a just-inserted row's id — it returns the id from the current scope's insert specifically, immune to a trigger on the table inserting its own row and returning the wrong id instead.</p>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's <a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/scope-identity-transact-sql"><code>SCOPE_IDENTITY</code> reference</a> spells out exactly why this matters with a real worked example: insert into a table <code>TZ</code> whose trigger inserts into a second table <code>TY</code>, and <em>"SCOPE_IDENTITY returns the last identity value in the same scope. This was the insert on table TZ"</em> (result: <code>4</code>) while <em>"@@IDENTITY returns the last identity value inserted to TY by the trigger... This fired because of an earlier insert on TZ"</em> (result: <code>115</code>) — two different numbers, from the exact same statement, because <code>@@IDENTITY</code> isn't scoped to the insert you actually asked about.
+<ul>
+<li>Microsoft's <a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/scope-identity-transact-sql"><code>SCOPE_IDENTITY</code> reference</a> spells out exactly why this matters with a real worked example: insert into a table <code>TZ</code> whose trigger inserts into a second table <code>TY</code>.</li>
+<li><em>"SCOPE_IDENTITY returns the last identity value in the same scope. This was the insert on table TZ"</em> (result: <code>4</code>).</li>
+<li><em>"@@IDENTITY returns the last identity value inserted to TY by the trigger... This fired because of an earlier insert on TZ"</em> (result: <code>115</code>).</li>
+<li>Two different numbers, from the exact same statement, because <code>@@IDENTITY</code> isn't scoped to the insert you actually asked about.</li>
+</ul>
 </div>
 
 <h2>Check your understanding</h2>

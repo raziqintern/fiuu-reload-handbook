@@ -17,10 +17,13 @@
 <h1>Nullable Types</h1>
 <p class="lede">Value types normally can't be <code>null</code> — an <code>int</code> is always some actual number. Sometimes "no value at all" is itself a meaningful, distinct state you need to represent.</p>
 
-<h2>The problem: not every missing value is zero</h2>
-<p>If a database column allows <code>NULL</code>, mapping it straight to a plain <code>int</code> loses information: is the value genuinely <code>0</code>, or was it actually absent? <code>Nullable&lt;T&gt;</code> (written <code>T?</code>) wraps a value type so it can hold either a real value or nothing, distinctly.</p>
+<h2>Nullable&lt;T&gt;</h2>
+<ul>
+<li><strong>The problem:</strong> if a database column allows <code>NULL</code>, mapping it straight to a plain <code>int</code> loses information — is the value genuinely <code>0</code>, or was it actually absent?</li>
+<li><strong>The fix:</strong> <code>Nullable&lt;T&gt;</code> (written <code>T?</code>) wraps a value type so it can hold either a real value or nothing, distinctly.</li>
+</ul>
 
-<h2>Example: HasValue, ??, and ?.</h2>
+<h2>HasValue, ??, and ?.</h2>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">int? maybeAmount = null;
@@ -50,14 +53,22 @@ True
 </div>
 </div>
 
-<p><code>.HasValue</code> tells you whether there's really a value inside. Reading <code>.Value</code> when <code>HasValue</code> is <code>false</code> throws — so <code>??</code> (C#) / <code>If(x, fallback)</code> (VB.NET) is the safe way to read a nullable with a default.</p>
+<ul>
+<li><code>.HasValue</code> tells you whether there's really a value inside.</li>
+<li>Reading <code>.Value</code> when <code>HasValue</code> is <code>false</code> throws.</li>
+<li>So <code>??</code> (C#) / <code>If(x, fallback)</code> (VB.NET) is the safe way to read a nullable with a default.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/nullable-value-types">Nullable value types reference</a> states the exact failure mode: <em>"Nullable&lt;T&gt;.Value gets the value of an underlying type if HasValue is true. If HasValue is false, the Value property throws an InvalidOperationException."</em> It also confirms what an uninitialized nullable actually is: <em>"The default value of a nullable value type represents null. It's an instance whose HasValue property returns false."</em>
 </div>
 <div class="callout warn">
 <span class="callout-title">What if you compare a nullable to null with &lt; or &gt;? Both directions come back false</span>
-This is a genuinely surprising, documented rule — the reference is explicit: <em>"For the comparison operators &lt;, &gt;, &lt;=, and &gt;=, if one or both operands are null, the result is false... Don't assume that because a particular comparison (for example, &lt;=) returns false, the opposite comparison (&gt;) returns false."</em> Its own example proves it: with <code>int? a = 10;</code>, <strong>both</strong> <code>a >= null</code> and <code>a < null</code> print <code>False</code> — <code>null</code> isn't "less than everything" or "greater than everything," it simply makes every relational comparison false. Only <code>==</code>/<code>!=</code> behave the way you'd naturally expect against <code>null</code>.
+<ul>
+<li>This is a genuinely surprising, documented rule — the reference is explicit: <em>"For the comparison operators &lt;, &gt;, &lt;=, and &gt;=, if one or both operands are null, the result is false... Don't assume that because a particular comparison (for example, &lt;=) returns false, the opposite comparison (&gt;) returns false."</em></li>
+<li>Its own example proves it: with <code>int? a = 10;</code>, <strong>both</strong> <code>a >= null</code> and <code>a < null</code> print <code>False</code> — <code>null</code> isn't "less than everything" or "greater than everything," it simply makes every relational comparison false.</li>
+<li>Only <code>==</code>/<code>!=</code> behave the way you'd naturally expect against <code>null</code>.</li>
+</ul>
 </div>
 
 <div class="tryit" data-lang="csharp">
@@ -70,7 +81,7 @@ Console.WriteLine(a + " == null is " + (a == null));</pre>
 10 == null is False</pre>
 </div>
 
-<h2>Example: the null-conditional operator avoids the crash entirely</h2>
+<h2>The Null-Conditional Operator (?.)</h2>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">public class Terminal
@@ -98,7 +109,11 @@ End Sub</pre>
 </div>
 </div>
 
-<p><code>t?.Id</code> means "if <code>t</code> is null, the whole expression is null — don't even try to read <code>.Id</code>." This is C#/VB.NET's native defense against exactly the class of bug you saw in <a href="js-05-dom-debug.html">JavaScript Basics → DOM, Events &amp; the Console</a>'s "Cannot read properties of undefined" — here it's called a <code>NullReferenceException</code>, and <code>?.</code> lets you skip past a possibly-null reference instead of crashing on it.</p>
+<ul>
+<li><code>t?.Id</code> means "if <code>t</code> is null, the whole expression is null — don't even try to read <code>.Id</code>."</li>
+<li>This is C#/VB.NET's native defense against exactly the class of bug you saw in <a href="js-05-dom-debug.html">JavaScript Basics → DOM, Events &amp; the Console</a>'s "Cannot read properties of undefined."</li>
+<li>Here it's called a <code>NullReferenceException</code>, and <code>?.</code> lets you skip past a possibly-null reference instead of crashing on it.</li>
+</ul>
 
 <div class="callout real">
 <span class="callout-title">This is a real, named pattern in reload's own conventions</span>

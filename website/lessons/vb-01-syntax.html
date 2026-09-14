@@ -17,26 +17,34 @@
 <h1>Syntax, Types & Option Strict</h1>
 
 <div class="callout real">
-<span class="callout-title">Where this fits — corrected</span>
-An earlier version of this track claimed reload has "zero VB.NET" because <code>class-library</code> is C#. That was true of <code>class-library</code> alone and false about reload as a whole: the entire <strong>BackOffice WebForms UI</strong> — the app most of the real bugs in the Debugging Reload track happen on — is written in VB.NET (<code>.aspx.vb</code> code-behind, 1,000+ files). If your work touches BackOffice at all, this track is not optional background reading — it's what the code in front of you is written in.
+<span class="callout-title">Where this fits</span>
+<ul>
+<li>The <strong>BackOffice WebForms UI</strong> — where most of the real bugs in Debugging Reload happen — is written in VB.NET (<code>.aspx.vb</code>, 1,000+ files).</li>
+<li>If your work touches BackOffice at all, this track is what the code in front of you is written in — not optional background reading.</li>
+</ul>
 </div>
 
-<p class="lede">VB.NET and C# compile to the same underlying .NET runtime and can do almost everything the same way — but VB.NET has its own real idioms (explicit <code>MustOverride</code>/<code>Overloads</code> keywords, a <code>Handles</code> clause for event wiring, per-project type-safety switches) that don't map onto a single C# keyword, and this specific codebase leans on several of them. This track covers those on their own terms, not just as a C# translation exercise.</p>
+<p class="lede">VB.NET and C# share the same .NET runtime and can do almost everything the same way. This track covers VB.NET's own real idioms — <code>MustOverride</code>/<code>Overloads</code>, <code>Handles</code>, per-project type-safety switches — on their own terms, not as a translation exercise.</p>
 
-<h2>Option Strict, Option Explicit, Option Infer — three independent switches, and this codebase runs with one of them off</h2>
-<p>These three compiler options control how forgiving VB.NET is about types, and each is set independently — knowing all three exist, and which combination a given project actually uses, matters more than memorizing what each one does in isolation:</p>
+<h2>Option Strict, Option Explicit, Option Infer</h2>
+<p>Three independent compiler switches. Know all three exist, and which combination a given project uses — that matters more than memorizing each one in isolation.</p>
 <table>
 <tr><th>Option</th><th>When <code>On</code></th><th>When <code>Off</code></th></tr>
-<tr><td><code>Option Explicit</code></td><td>Every variable must be declared before use (a typo'd variable name is a compile error)</td><td>An undeclared variable is silently created on first use — <code>On</code> is the VB.NET default project-wide</td></tr>
-<tr><td><code>Option Strict</code></td><td>Narrowing/implicit type conversions (e.g. <code>Object</code> to <code>String</code>, <code>Double</code> to <code>Integer</code>) must be written explicitly, and late binding (calling a member on an <code>Object</code>-typed variable without knowing at compile time whether it exists) is a compile error</td><td>The compiler silently inserts narrowing conversions and allows late binding — errors that would be compile-time with <code>Strict On</code> instead surface as a runtime exception, or don't surface at all</td></tr>
-<tr><td><code>Option Infer</code></td><td><code>Dim x = 5</code> infers <code>x As Integer</code> without needing <code>As Integer</code> written out</td><td>A variable declared without <code>As Type</code> is typed <code>Object</code> instead of inferred</td></tr>
+<tr><td><code>Option Explicit</code></td><td>Every variable must be declared before use (typo = compile error)</td><td>Undeclared variable is silently created on first use — <code>On</code> is the VB.NET default project-wide</td></tr>
+<tr><td><code>Option Strict</code></td><td>Narrowing conversions (<code>Object</code>→<code>String</code>, <code>Double</code>→<code>Integer</code>) must be explicit; late binding is a compile error</td><td>Compiler silently inserts narrowing conversions and allows late binding — errors surface at runtime, or not at all</td></tr>
+<tr><td><code>Option Infer</code></td><td><code>Dim x = 5</code> infers <code>Integer</code></td><td>A variable with no <code>As Type</code> is typed <code>Object</code></td></tr>
 </table>
 
 <div class="callout real">
-<span class="callout-title">Real, verified: BackOffice's own project file runs with Option Strict Off</span>
-<code>Fiuu.App.BackOffice.Web.vbproj</code> sets <code>&lt;OptionExplicit&gt;On&lt;/OptionExplicit&gt;</code>, <code>&lt;OptionStrict&gt;Off&lt;/OptionStrict&gt;</code>, and <code>&lt;OptionInfer&gt;On&lt;/OptionInfer&gt;</code> at the project level — this is the default every hand-written <code>.aspx.vb</code> file in BackOffice inherits unless it declares its own <code>Option Strict On</code> at the top (most don't). The auto-generated <code>*.designer.vb</code> files are the exception: they each explicitly declare <code>Option Strict On</code> + <code>Option Explicit On</code> locally, overriding the project default just for that one generated file.
+<span class="callout-title">Real, verified: BackOffice runs with Option Strict Off</span>
+<ul>
+<li><code>Fiuu.App.BackOffice.Web.vbproj</code> sets <code>&lt;OptionExplicit&gt;On&lt;/OptionExplicit&gt;</code>, <code>&lt;OptionStrict&gt;Off&lt;/OptionStrict&gt;</code>, <code>&lt;OptionInfer&gt;On&lt;/OptionInfer&gt;</code> at the project level.</li>
+<li>Every hand-written <code>.aspx.vb</code> file inherits this unless it declares its own <code>Option Strict On</code> — most don't.</li>
+<li>Exception: auto-generated <code>*.designer.vb</code> files each explicitly declare <code>Option Strict On</code> + <code>Option Explicit On</code> locally.</li>
+</ul>
 </div>
-<p>Concretely, what "the compiler won't catch it" actually looks like — the same risky line, compiled twice with the only difference being the <code>Option Strict</code> setting at the top of the file:</p>
+
+<p>Same risky line, compiled twice — only the <code>Option Strict</code> setting differs:</p>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="vbnet">
 <pre class="tryit-src">Option Strict Off
@@ -55,34 +63,48 @@ Dim n As Integer = o   ' same line, Option Strict On this time</pre>
 'Object' to 'Integer'." Caught before the code ever runs.</pre>
 </div>
 </div>
-<p>Practically: in most BackOffice hand-written code (which runs with <code>Option Strict Off</code>, per the real project file above), this exact shape of mistake compiles and ships, then fails as a runtime <code>InvalidCastException</code> instead of a build error — the compiler simply isn't watching for it. Treat any type conversion in this codebase as unverified by the compiler unless you've confirmed the specific file opts into <code>Option Strict On</code>.</p>
+<ul>
+<li>In most BackOffice code (Option Strict Off), this exact mistake compiles and ships, then fails as a runtime <code>InvalidCastException</code>.</li>
+<li>Treat any type conversion as unverified by the compiler unless the specific file opts into <code>Option Strict On</code>.</li>
+</ul>
 
-<h2>A declaration statement can name a shared type once for a whole list</h2>
-<p><code>Dim</code>'s grammar isn't "one name, one type" — it's a comma-separated <em>list</em> of variable names, where a name that has no <code>As</code> clause of its own inherits the type of the next one that does. This is a general grammar rule about how the statement parses, not a special case for any particular type.</p>
+<h2>Dim Statement: Declaring Multiple Variables</h2>
+<ul>
+<li><code>Dim</code>'s grammar is a comma-separated <em>list</em> of names — a name with no <code>As</code> clause inherits the type of the next one that has one.</li>
+<li>General grammar rule, not a special case for any particular type.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/dim-statement">Dim Statement reference</a>, "Declaring multiple variables" section, states it exactly: <em>"You can specify different data types for different variables by using a separate <code>As</code> clause for each variable you declare. Each variable takes the data type specified in the first <code>As</code> clause encountered after its <code>variablename</code> part."</em> Its own example: <code>Dim a, b, c As Single, x, y As Double, i As Integer</code> — <code>a</code>, <code>b</code>, <code>c</code> are all <code>Single</code>; <code>x</code>, <code>y</code> are both <code>Double</code>.
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/dim-statement">Dim Statement reference</a>: <em>"You can specify different data types for different variables by using a separate <code>As</code> clause for each variable you declare. Each variable takes the data type specified in the first <code>As</code> clause encountered after its <code>variablename</code> part."</em> Example: <code>Dim a, b, c As Single, x, y As Double, i As Integer</code> — <code>a</code>, <code>b</code>, <code>c</code> are <code>Single</code>; <code>x</code>, <code>y</code> are <code>Double</code>.
 </div>
-<p>Real, verified applications of this same rule in BackOffice — each is one instance of the identical grammar, just with a different shared type:</p>
+<p>Real, verified BackOffice usage — same grammar, different shared type each time:</p>
 <pre class="code-block">Dim iQty, iMaxQty As Integer
 Dim dtStartDate, dtEndDate As DateTime
 Dim sM2MServiceProviderColumnName, sM2MSIMCardSerialNoColumnName As String</pre>
 <p class="code-cite">Module: BackOffice/Web · Files: WebForms/OfflineSalesCreate.aspx.vb:147; WebForms/ReportStockMovementSummary.aspx.vb:193; WebForms/M2MSIMCardSerialNoBulkCreate.aspx.vb:67</p>
 
 <div class="callout warn">
-<span class="callout-title">Why this specific rule is worth knowing explicitly: VB6 parsed the same-looking line differently</span>
-In classic VB6, <code>Dim x, y As Integer</code> only gave <code>Integer</code> to <code>y</code> — <code>x</code> silently became a <code>Variant</code> (VB6's untyped catch-all), with no error and no warning. VB.NET's grammar (quoted above) is what actually changed: every name now resolves to a real type via the next <code>As</code> clause, with no untyped fallback in the language at all. If you ever read genuinely old VB6 code (not VB.NET) side-by-side with this codebase, don't assume identical syntax means identical behavior — the grammar itself was revised, not just cleaned up stylistically.
+<span class="callout-title">VB6 parsed this differently</span>
+<ul>
+<li>Classic VB6: <code>Dim x, y As Integer</code> only gave <code>Integer</code> to <code>y</code> — <code>x</code> silently became <code>Variant</code>, no error.</li>
+<li>VB.NET fixed this: every name resolves to a real type via the next <code>As</code> clause, no untyped fallback.</li>
+<li>Don't assume identical VB6/VB.NET syntax means identical behavior — the grammar itself changed.</li>
+</ul>
 </div>
 
-<h2>An array is a type of its own, built from any other type</h2>
-<p>This is the root idea everything below is one instance of — it's not a <code>String</code>-specific quirk, it's a general rule of the VB.NET type system: <strong>for any type <code>T</code>, <code>T()</code> is a distinct type meaning "an array of <code>T</code>."</strong> This applies uniformly — <code>Integer</code> and <code>Integer()</code>, <code>Boolean</code> and <code>Boolean()</code>, <code>String</code> and <code>String()</code>, even a class you wrote yourself and an array of it, are all the same relationship, every time. A single <code>T</code> holds one value; <code>T()</code> holds a reference to an ordered, indexed collection of them. Learn this once as a general mechanism and you already know how it works for every type in the language — there's nothing extra to learn per-type.</p>
+<h2>Arrays</h2>
+<ul>
+<li><strong>Root rule:</strong> for any type <code>T</code>, <code>T()</code> is a distinct type meaning "an array of <code>T</code>." Not a <code>String</code>-specific quirk.</li>
+<li>Applies uniformly: <code>Integer</code>/<code>Integer()</code>, <code>Boolean</code>/<code>Boolean()</code>, <code>String</code>/<code>String()</code>, even your own classes.</li>
+<li>A single <code>T</code> holds one value; <code>T()</code> holds a reference to an ordered, indexed collection of them.</li>
+</ul>
 
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/dim-statement">Dim Statement reference</a> states the rule directly: <em>"To specify that a variable holds an array, follow its <code>variablename</code> immediately with parentheses."</em> The dedicated <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/arrays/">Arrays in Visual Basic</a> guide confirms the two declaration positions are fully interchangeable and shows the same construction applied across multiple types — <code>Integer</code>, <code>Double</code>, <code>String</code> — not as separate features, but as the one array mechanism used consistently.
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/dim-statement">Dim Statement reference</a>: <em>"To specify that a variable holds an array, follow its <code>variablename</code> immediately with parentheses."</em> The <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/arrays/">Arrays in Visual Basic</a> guide confirms both declaration positions are interchangeable, across <code>Integer</code>, <code>Double</code>, <code>String</code> — one mechanism, not per-type features.
 </div>
 
-<p>Two syntax positions, same meaning — VB.NET lets the array parentheses sit on either the type or the variable name:</p>
+<p>Two syntax positions, same meaning:</p>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">' Both lines declare exactly the same thing: a variable holding
 ' a reference to an array of Integer. Try changing the type in
@@ -98,27 +120,34 @@ Console.WriteLine(scoresA.GetType().Name)</pre>
 Int32[]</pre>
 </div>
 
-<h3>The same rule, three different types — proving it's general, not String-specific</h3>
+<h3>Arrays of Any Type</h3>
 <pre class="code-block">Dim flags As Boolean() = {True, False, True}      ' an array of Boolean
 Dim prices As Double() = {9.9, 12.5, 3.0}          ' an array of Double
 Dim names As String() = {"Alice", "Bob"}           ' an array of String</pre>
-<p>Nothing about the array mechanism changes between these three lines except which type comes before the <code>()</code> — that's the whole concept. Once you've internalized this, a method returning <code>Boolean()</code> or <code>Double()</code> is exactly as unsurprising as one returning <code>String()</code>.</p>
+<p>Nothing changes between these three lines except the type before <code>()</code>. A method returning <code>Boolean()</code> is exactly as unsurprising as one returning <code>String()</code>.</p>
 
 <div class="callout real">
-<span class="callout-title">Real application of this rule in BackOffice</span>
+<span class="callout-title">Real application in BackOffice</span>
 <pre class="code-block">Dim names As String() = [Enum].GetNames(GetType(Fiuu.CEPP.Models.Interfaces.EnumVoidSupportType))
 Dim arrEmail As String() = Split(sEmailAddress, ";")</pre>
 <p class="code-cite">Module: BackOffice/Web · File: WebForms/DealerCreate.aspx.vb:512,553</p>
-<code>[Enum].GetNames(...)</code> and <code>Split(...)</code> both return <code>String()</code> because "a list of strings" is what they fundamentally produce — an enum's names, or a delimited value's pieces. This is the general array rule appearing in real code, not a special case of it.
+<code>[Enum].GetNames(...)</code> and <code>Split(...)</code> both return <code>String()</code> — "a list of strings" is what they fundamentally produce.
 </div>
 
 <div class="callout warn">
-<span class="callout-title">What actually breaks when the distinction is missed</span>
-Passing a <code>String()</code> where a method expects a plain <code>String</code> (or vice versa) is a real type mismatch — with <code>Option Strict On</code>, the compiler catches it. With <code>Option Strict Off</code> (BackOffice's real project default — see above), some of these mismatches compile anyway and either fail at runtime or silently call <code>.ToString()</code> on the array, producing the literal text <code>System.String[]</code> instead of the values you meant. Seeing <code>"System.String[]"</code> anywhere in output or a log is the exact signature of this — reach for <code>String.Join(", ", arr)</code> when you want the array's contents rendered as one string, for any array type, not just <code>String()</code>.
+<span class="callout-title">What breaks when the distinction is missed</span>
+<ul>
+<li>Passing <code>String()</code> where a plain <code>String</code> is expected is a real type mismatch.</li>
+<li>Option Strict On: compiler catches it. Option Strict Off (BackOffice's default): some mismatches compile anyway, either failing at runtime or silently rendering <code>System.String[]</code> instead of the values.</li>
+<li>Seeing <code>"System.String[]"</code> in output/logs is the exact signature of this. Fix: <code>String.Join(", ", arr)</code>.</li>
+</ul>
 </div>
 
-<h2>Sizing an array: the number in parentheses is the highest index, not the count</h2>
-<p>This only applies once you already have an array type (above) — it's about <em>how big</em> one is, not whether something is an array at all. Per the same <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/arrays/">official Arrays guide</a>: <em>"When you use Visual Basic syntax to define the size of an array, you specify its highest index, not the total number of elements."</em> VB.NET arrays are always zero-based, so <code>Dim scores(9) As Integer</code> creates <strong>10</strong> elements, indices <code>0</code> through <code>9</code> inclusive — this is documented, consistent behavior, not an edge case:</p>
+<h2>Array Bounds and Size</h2>
+<ul>
+<li>Per the <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/arrays/">official Arrays guide</a>: <em>"When you use Visual Basic syntax to define the size of an array, you specify its highest index, not the total number of elements."</em></li>
+<li>VB.NET arrays are zero-based: <code>Dim scores(9) As Integer</code> creates <strong>10</strong> elements, indices 0–9.</li>
+</ul>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">Dim scores(9) As Integer
 Console.WriteLine("Length: " & scores.Length)
@@ -126,13 +155,20 @@ Console.WriteLine("Last valid index: " & scores.GetUpperBound(0))</pre>
 <pre class="tryit-output-src">Length: 10
 Last valid index: 9</pre>
 </div>
-<p>This generalizes exactly like the type rule above: <code>Dim buffer(255) As Byte</code> is a 256-byte buffer regardless of which type sits before it — the "N means N+1 elements" rule is a property of VB.NET array declaration syntax itself, not of <code>Byte</code> specifically. Getting this off by one when translating a size from a spec, or from C# (where <code>new byte[256]</code> unambiguously means 256), is a real, easy mistake in either direction.</p>
+<ul>
+<li>Generalizes to every type: <code>Dim buffer(255) As Byte</code> is a 256-byte buffer.</li>
+<li>Easy off-by-one trap when translating a size from a spec, or from C# (<code>new byte[256]</code> unambiguously means 256).</li>
+</ul>
 
-<h2>Static — a local variable that survives past the end of its own method</h2>
-<p>This is a different axis from <em>where a variable is visible</em> (scope) — it's about <em>how long it continues to exist</em> (lifetime). By default in VB.NET, as in nearly every language, a local variable's lifetime is tied to its scope: it's created on entering its procedure and destroyed on leaving it. <code>Static</code> decouples the two — the variable's scope stays local to the one procedure, but its lifetime extends far beyond a single call.</p>
+<h2>Static Local Variables</h2>
+<ul>
+<li>Different axis from <em>scope</em> (where visible) — this is about <em>lifetime</em> (how long it exists).</li>
+<li>By default, a local variable's lifetime is tied to its scope: created on entry, destroyed on exit.</li>
+<li><code>Static</code> decouples the two: scope stays local, lifetime extends far beyond one call.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/dim-statement">Dim Statement reference</a>, "Static local variable lifetime" section, specifies exactly how long: for a procedure in a plain module, the variable is "initialized the first time the procedure is called" and "stops existing when your program stops execution." For a non-<code>Shared</code> procedure in a class, it lives only as long as that specific object instance does.
+Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/dim-statement">Dim Statement reference</a>, "Static local variable lifetime": in a plain module, the variable is <em>"initialized the first time the procedure is called"</em> and <em>"stops existing when your program stops execution."</em> In a class's non-<code>Shared</code> procedure, it lives only as long as that object instance.
 </div>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">Sub TrackCalls()
@@ -151,43 +187,58 @@ This method has been called 2 time(s)
 This method has been called 3 time(s)</pre>
 </div>
 <div class="callout warn">
-<span class="callout-title">The initializer only runs once — a common source of confusion</span>
-<code>callCount As Integer = 0</code> only executes the first time <code>TrackCalls</code> is ever called; on every later call, that line is skipped entirely and <code>callCount</code> keeps whatever value it already had. This is fundamentally different from a normal local variable, whose initializer re-runs on every single call. A <code>Static</code> local is effectively a private field in disguise — scoped so only this one method can see it, but living exactly as long as a field would.
+<span class="callout-title">The initializer only runs once</span>
+<ul>
+<li><code>callCount As Integer = 0</code> executes only on the first call ever — later calls skip it and keep the existing value.</li>
+<li>A normal local's initializer re-runs every call; <code>Static</code> doesn't.</li>
+<li>Effectively a private field in disguise — scoped to one method, but living as long as a field would.</li>
+</ul>
 </div>
-<p>Real-world use is narrow and specific: a call counter, a one-time-setup flag inside a frequently-called method, memoizing an expensive calculation across calls to the same method on the same instance. Reach for an actual class-level field instead when more than one method needs to see or share the value — <code>Static</code> is deliberately private to the one method it's declared in.</p>
+<ul>
+<li><strong>Real use is narrow:</strong> a call counter, a one-time-setup flag, memoizing a per-instance calculation.</li>
+<li>Reach for a real class-level field instead once more than one method needs the value.</li>
+</ul>
 
-<h2>Building your own values: <code>New</code>, object initializers, and the collection types that hold many of them</h2>
-<p>Everything so far declares a value the language already knows how to build (an <code>Integer</code>, a <code>String()</code>). The next step is the same declaration grammar applied to types <em>you</em> define, and to the built-in generic collection types that hold many of them at once — a custom class, a <code>Dictionary(Of TKey, TValue)</code>, a <code>List(Of T)</code>. The root mechanism is one thing: <code>New SomeType(...)</code> calls a constructor and produces an instance; everything below is a variation on that single idea, not four unrelated features.</p>
+<h2>Objects and Collections</h2>
+<p>Same declaration grammar, applied to types you define and to generic collection types. Root mechanism: <code>New SomeType(...)</code> calls a constructor and produces an instance.</p>
 
-<h3>A custom class: <code>New</code>, with or without setting properties inline</h3>
+<h3>Object Initializers</h3>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/objects-and-classes/object-initializers-named-and-anonymous-types">Object Initializers reference</a> describes the <code>With</code> syntax directly: <em>"Object initializers provide a simple way to call the constructor of a type and then set the values of some or all properties in a single statement."</em> Its own example makes the equivalence explicit — <code>Dim cust1 As New Customer With {.Name = "Toni Poe", .City = "Louisville"}</code> is stated to be identical to constructing the object first and then assigning each property in separate statements afterward; the initializer is convenience syntax for the same two steps, not a different mechanism.
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/objects-and-classes/object-initializers-named-and-anonymous-types">Object Initializers reference</a>: <em>"Object initializers provide a simple way to call the constructor of a type and then set the values of some or all properties in a single statement."</em> Its example — <code>Dim cust1 As New Customer With {.Name = "Toni Poe", .City = "Louisville"}</code> — is stated as identical to constructing first, then assigning properties separately. Convenience syntax, not a different mechanism.
 </div>
-<p>Both forms are real, verified BackOffice code, in the same file — a plain <code>New</code> with no properties set inline, and a <code>New ... With {}</code> setting one property as part of construction:</p>
+<p>Both real, verified, same BackOffice file:</p>
 <pre class="code-block">razerAccountBalance = New RazerAccount
 
 Dim prepayNationGetBalanceRequest As New Fiuu.Reloads.Pinless.Models.PrepayNationGetBalanceRequest With {
     .CorrelationId = Date.Now.ToString("yyyymmddHHmmss")
 }</pre>
 <p class="code-cite">Module: BackOffice/Web · File: WebForms/RazerAccountBalance.aspx.vb:291-293,300</p>
-<p><code>RazerAccount</code> and <code>PrepayNationGetBalanceRequest</code> are both classes this codebase defines itself — not framework types — and <code>New</code> works on them exactly the way it works on <code>Dictionary</code> or <code>List</code> below: it calls the class's constructor and hands back a reference to the new instance. The only difference between the two lines above is whether any properties are also being set as part of that one statement.</p>
+<ul>
+<li><code>RazerAccount</code> and <code>PrepayNationGetBalanceRequest</code> are classes this codebase defines itself, not framework types.</li>
+<li><code>New</code> works on them exactly like <code>Dictionary</code>/<code>List</code> below: calls the constructor, hands back a reference.</li>
+</ul>
 
-<h3>Dictionary(Of TKey, TValue): looking a value up by a key, not by position</h3>
-<p>An array or a list holds things in <em>order</em> — you get an item back by its position. A <code>Dictionary(Of TKey, TValue)</code> holds things by an arbitrary <em>key</em> instead — you get a value back by whatever key you stored it under, regardless of insertion order.</p>
+<h3>Dictionary(Of TKey, TValue)</h3>
+<ul>
+<li>An array/list holds things in <em>order</em> — get an item by position.</li>
+<li>A <code>Dictionary(Of TKey, TValue)</code> holds things by an arbitrary <em>key</em> — get a value by whatever key it was stored under, regardless of insertion order.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.dictionary-2">Dictionary&lt;TKey,TValue&gt; reference</a> states what it is and why it's fast: <em>"The Dictionary&lt;TKey,TValue&gt; generic class provides a mapping from a set of keys to a set of values."</em> and <em>"Retrieving a value by using its key is very fast, close to O(1), because the Dictionary&lt;TKey,TValue&gt; class is implemented as a hash table."</em> That's the concrete reason to reach for one instead of a <code>List(Of T)</code> you'd search linearly: looking something up by key stays fast regardless of how many entries exist, where scanning a list for a match gets slower as the list grows.
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.dictionary-2">Dictionary&lt;TKey,TValue&gt; reference</a>: <em>"provides a mapping from a set of keys to a set of values"</em> and <em>"Retrieving a value by using its key is very fast, close to O(1), because the Dictionary&lt;TKey,TValue&gt; class is implemented as a hash table."</em> That's the reason to reach for one instead of scanning a <code>List(Of T)</code> — lookup stays fast regardless of size, where a list scan gets slower as it grows.
 </div>
 <pre class="code-block">Dim dcSerialNo_CancellationReason As New Dictionary(Of String, String)()</pre>
 <p class="code-cite">Module: BackOffice/Web · File: WebForms/StockAllocationCreate.aspx.vb:169</p>
-<p>This maps a serial number (the key) to its cancellation reason (the value) during stock allocation cancellation — exactly the shape a dictionary is for: "given this one identifier, what's the associated value," not "give me the third one."</p>
+<p>Maps a serial number (key) to its cancellation reason (value) — "given this identifier, what's the associated value," not "give me the third one."</p>
 
-<h3>Enumerable collections: <code>List(Of T)</code>, <code>IEnumerable(Of T)</code>, and <code>For Each</code></h3>
-<p><code>For Each</code> doesn't work on every type — it works on anything that implements the pattern .NET calls <em>enumerable</em>. Knowing the name of that pattern is what makes a method signature like <code>Function GetSupplierProducts(...) As IEnumerable(Of ISupplierProducts)</code> readable at a glance instead of mysterious.</p>
+<h3>IEnumerable(Of T) and For Each</h3>
+<ul>
+<li><code>For Each</code> only works on types implementing the <em>enumerable</em> pattern — that's why <code>Function GetSupplierProducts(...) As IEnumerable(Of ISupplierProducts)</code> is readable at a glance.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ienumerable-1">IEnumerable&lt;T&gt; reference</a> names it directly: <em>"IEnumerable&lt;T&gt; is the base interface for collections in the System.Collections.Generic namespace such as List&lt;T&gt;, Dictionary&lt;TKey,TValue&gt;, and Stack&lt;T&gt;... Collections that implement IEnumerable&lt;T&gt; can be enumerated by using the <code>foreach</code> statement"</em> — VB.NET's <code>For Each</code> is the same mechanism under a different keyword. <code>Dictionary(Of TKey, TValue)</code> above is itself one of these — it can be looped with <code>For Each</code> too, yielding key/value pairs, even though its whole point is key-based lookup rather than sequential order.
+Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.ienumerable-1">IEnumerable&lt;T&gt; reference</a>: <em>"IEnumerable&lt;T&gt; is the base interface for collections in the System.Collections.Generic namespace such as List&lt;T&gt;, Dictionary&lt;TKey,TValue&gt;, and Stack&lt;T&gt;... Collections that implement IEnumerable&lt;T&gt; can be enumerated by using the <code>foreach</code> statement"</em> — VB.NET's <code>For Each</code> is the same mechanism, different keyword. <code>Dictionary</code> is one of these too — loopable with <code>For Each</code>, yielding key/value pairs.
 </div>
 <pre class="code-block">Dim dealergrouplist As New List(Of IDealerGroup)
 ...
@@ -197,7 +248,7 @@ For Each po In POList
     ...
 Next</pre>
 <p class="code-cite">Module: BackOffice/Web · File: Services/PurchaseOrderListService.vb:31,34,38</p>
-<p>A declared parameter or return type can also be the interface itself, <code>IEnumerable(Of T)</code>, rather than the concrete <code>List(Of T)</code> — this promises only "you can loop over this," without committing to how it's stored internally:</p>
+<p>A declared type can also be the interface itself — <code>IEnumerable(Of T)</code> promises only "you can loop over this," without committing to internal storage:</p>
 <pre class="code-block">Dim items As IEnumerable(Of IFunction)
 
 Dim supplierProducts As IEnumerable(Of ISupplierProducts) =
@@ -206,8 +257,12 @@ Dim supplierProducts As IEnumerable(Of ISupplierProducts) =
         .Where(Function(f) f.Product IsNot Nothing)</pre>
 <p class="code-cite">Module: BackOffice/Web · Files: Services/MenuService.vb:33; WebForms/PurchaseOrderCreate.aspx.vb:116</p>
 <div class="callout warn">
-<span class="callout-title">What if you picked the wrong collection for the job?</span>
-Reaching for a <code>List(Of T)</code> and calling <code>.Contains(...)</code> or a hand-written loop to find a match by some identifier still works — it's not a compile error, and for a handful of items the difference is invisible. It becomes a real, measurable cost as the list grows, because every lookup has to walk the list from the start until it finds (or fails to find) a match. A <code>Dictionary(Of TKey, TValue)</code> keyed on that same identifier turns the identical lookup into the near-constant-time operation the official docs describe above — the fix isn't "write faster code," it's picking the collection whose actual purpose matches what you're doing with it.
+<span class="callout-title">Picking the wrong collection for the job</span>
+<ul>
+<li><code>List(Of T)</code> + <code>.Contains(...)</code> or a hand-written loop still works — not a compile error, invisible for a handful of items.</li>
+<li>Real, measurable cost as the list grows: every lookup walks the list from the start.</li>
+<li><code>Dictionary(Of TKey, TValue)</code> keyed on the same identifier turns it near-constant-time. The fix is picking the right collection, not "faster code."</li>
+</ul>
 </div>
 
 <div class="tryit" data-lang="vbnet">
@@ -252,7 +307,7 @@ MYR
 False</pre>
 </div>
 
-<h2>The surface differences</h2>
+<h2>VB.NET vs. C#: Quick Reference</h2>
 <table>
 <tr><th>Concept</th><th>C#</th><th>VB.NET</th></tr>
 <tr><td>Declare a variable</td><td><code>int amount = 25;</code></td><td><code>Dim amount As Integer = 25</code></td></tr>
@@ -265,7 +320,6 @@ False</pre>
 
 <h2>Try it yourself</h2>
 <p><code>&amp;</code> for string concatenation is the one habit that trips up C# developers reading VB.NET most often:</p>
-
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">Module Program
     Sub Main()
@@ -281,14 +335,14 @@ End Module</pre>
 
 <h2>Best practice</h2>
 <ul>
-<li><strong>Match the surrounding file's casing convention.</strong> VB.NET is case-insensitive, so <code>amount</code> and <code>Amount</code> are the same identifier to the compiler — but a file mixing both looks like two different variables to a human reader, which is exactly the confusing situation case-insensitivity can quietly create.</li>
-<li><strong>Opt new BackOffice files into <code>Option Strict On</code> when the change justifies it.</strong> It turns silent, potentially lossy conversions into compile errors you fix immediately instead of runtime surprises later. Don't retrofit it onto an existing large file casually: turning it on can surface a wave of pre-existing conversion warnings unrelated to your change.</li>
-<li><strong>Use <code>String.Join</code> to render an array, never string concatenation.</strong> As shown above, <code>&amp; someArray</code> silently produces <code>System.String[]</code> instead of the values — <code>String.Join(", ", someArray)</code> is the correct, general-purpose fix for any array type.</li>
-<li><strong>Reach for <code>Dictionary(Of TKey, TValue)</code> when the actual operation is "find the value for this key," and <code>List(Of T)</code> when it's "give me every item, in order."</strong> Using a list plus a linear scan for what is really a key lookup is a real, measurable performance cost once the collection isn't tiny — not a stylistic preference.</li>
+<li><strong>Match the surrounding file's casing convention.</strong> VB.NET is case-insensitive, so a file mixing <code>amount</code>/<code>Amount</code> looks like two variables to a human reader.</li>
+<li><strong>Opt new BackOffice files into <code>Option Strict On</code> when the change justifies it.</strong> Don't retrofit it onto an existing large file casually — it can surface a wave of pre-existing warnings.</li>
+<li><strong>Use <code>String.Join</code> to render an array, never string concatenation.</strong> <code>String.Join(", ", someArray)</code> is the correct, general-purpose fix for any array type.</li>
+<li><strong>Reach for <code>Dictionary(Of TKey, TValue)</code> for "find the value for this key," and <code>List(Of T)</code> for "give me every item, in order."</strong> A list plus a linear scan for a key lookup is a real, measurable cost once the collection isn't tiny.</li>
 </ul>
 
 <h2>Better ways</h2>
-<p>The comment marker in <a href="../../conventions/comment-style.md">Fiuu Code Conventions → Comment Style</a>'s real example — <code>// TODO: might not be correct. Was : Exit For</code> — is a tell for code mechanically ported from VB.NET to C# without a careful rewrite. If you ever do this kind of port yourself, treat it as a rewrite opportunity, not a find-and-replace exercise — the two languages' idioms (exception-only control flow vs. VB's historical <code>On Error</code> style, for one) don't map one-to-one.</p>
+<p>The comment marker in <a href="../../conventions/comment-style.md">Fiuu Code Conventions → Comment Style</a>'s real example — <code>// TODO: might not be correct. Was : Exit For</code> — is a tell for code mechanically ported from VB.NET to C# without a careful rewrite. Treat a port like this as a rewrite opportunity, not find-and-replace — the two languages' idioms don't map one-to-one.</p>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">

@@ -17,7 +17,7 @@
 <h1>Arrays &amp; Time Complexity</h1>
 <p class="lede">The most common data structure in any language, and the clearest place to see O(1) and O(n) side by side in the same data type.</p>
 
-<h2>Example: index access is O(1) — search is O(n)</h2>
+<h2>Index Access vs. Search</h2>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">int[] amounts = { 10, 25, 100, 5, 60, 30, 15, 90, 45, 20 };
@@ -47,7 +47,11 @@ Console.WriteLine(Array.IndexOf(amounts, 90))</pre>
 </div>
 </div>
 
-<p><code>amounts[3]</code> (VB.NET: <code>amounts(3)</code>) is instant no matter how large the array is — the array knows exactly where element 3 lives in memory. <code>Array.IndexOf</code> has no such shortcut: it has to check element 0, then 1, then 2... until it finds <code>90</code> (or gives up). In the worst case (the value isn't there, or it's the very last element), that's <code>n</code> checks.</p>
+<ul>
+<li><code>amounts[3]</code> (VB.NET: <code>amounts(3)</code>) is instant no matter how large the array is — the array knows exactly where element 3 lives in memory.</li>
+<li><code>Array.IndexOf</code> has no such shortcut: it has to check element 0, then 1, then 2... until it finds <code>90</code> (or gives up).</li>
+<li>In the worst case (the value isn't there, or it's the very last element), that's <code>n</code> checks.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.array.indexof"><code>Array.IndexOf</code> reference</a> states this in its own Remarks, in the same Big O terms as the previous lesson: <em>"This method is an O(n) operation, where n is the Length of array."</em> Not a rule of thumb applied from outside — the method's own documentation names its complexity directly.
@@ -55,7 +59,11 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.array.i
 
 <div class="callout real">
 <span class="callout-title">This is exactly what LINQ's FirstOrDefault does</span>
-Recall <a href="cs-06-collections-linq.html">C# Fundamentals → Collections &amp; LINQ</a>. Later, <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a> shows a real reviewer comment about exactly this on <code>lstStocks.FirstOrDefault(...)</code>: <code>FirstOrDefault</code> with a condition is a linear, O(n) scan through the list — for a small in-memory list this is irrelevant, but it's worth knowing it's not a magic O(1) lookup the way indexing is.
+<ul>
+<li>Recall <a href="cs-06-collections-linq.html">C# Fundamentals → Collections &amp; LINQ</a>.</li>
+<li>Later, <a href="dbg-03-review-checklist.html">Debugging Reload → What Reviewers Actually Flag</a> shows a real reviewer comment about exactly this on <code>lstStocks.FirstOrDefault(...)</code>.</li>
+<li><code>FirstOrDefault</code> with a condition is a linear, O(n) scan through the list — for a small in-memory list this is irrelevant, but it's worth knowing it's not a magic O(1) lookup the way indexing is.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

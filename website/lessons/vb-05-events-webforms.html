@@ -17,7 +17,7 @@
 <h1>Events: WithEvents, Handles &amp; AddHandler</h1>
 <p class="lede">Every <code>Handles Me.Load</code> and <code>Handles btnExcel.Click</code> in every BackOffice page relies on a mechanism this lesson makes explicit — and knowing the alternative (<code>AddHandler</code>) matters the moment you need to wire up something the designer didn't generate for you.</p>
 
-<h2>WithEvents is what makes Handles possible</h2>
+<h2>WithEvents and Handles</h2>
 <p><code>Handles</code> only works on a variable declared <code>WithEvents</code> — this isn't automatic for every object, it's a specific declaration that tells the compiler "this variable can raise events I might want to handle." Every WebForms control on a page gets exactly this treatment, generated for you:</p>
 <pre class="code-block">Protected WithEvents form1 As Global.System.Web.UI.HtmlControls.HtmlForm
 Protected WithEvents ScriptManager1 As Global.System.Web.UI.ScriptManager
@@ -36,8 +36,12 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/langu
 <code>btnExcel_OnClick</code> could be renamed to anything at all without breaking the wiring, because <code>Handles btnExcel.Click</code> — not the method's name — is what tells the compiler this method runs when <code>btnExcel</code> raises <code>Click</code>. The <code>_OnClick</code> naming is a strong, near-universal convention in this codebase, purely for human readability; the compiler doesn't need it to work.
 </div>
 
-<h2>AddHandler / RemoveHandler — for everything Handles can't reach</h2>
-<p><code>Handles</code> needs a <code>WithEvents</code> variable known at compile time — a control declared in markup and generated into the designer file qualifies. It can't handle events on <strong>shared (static) members</strong>, events on a <strong>Structure</strong>, or anything created <strong>dynamically at runtime</strong> (a control built in code, not markup). For those, <code>AddHandler</code>/<code>RemoveHandler</code> are the only option — a real, verified example from this exact codebase:</p>
+<h2>AddHandler and RemoveHandler</h2>
+<ul>
+<li><code>Handles</code> needs a <code>WithEvents</code> variable known at compile time — a control declared in markup and generated into the designer file qualifies.</li>
+<li>It can't handle events on <strong>shared (static) members</strong>, events on a <strong>Structure</strong>, or anything created <strong>dynamically at runtime</strong> (a control built in code, not markup).</li>
+</ul>
+<p>For those, <code>AddHandler</code>/<code>RemoveHandler</code> are the only option — a real, verified example from this exact codebase:</p>
 <pre class="code-block">AddHandler My.Application.Shutdown, AddressOf AutoSaveSettings</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/My Project/Settings.Designer.vb:47</p>
 <p><code>My.Application.Shutdown</code> is a shared application-lifecycle event — there's no per-instance <code>WithEvents</code> variable to attach <code>Handles</code> to, so <code>AddHandler</code> (paired with <code>AddressOf</code> to point at the handler method) is the only mechanism that reaches it.</p>

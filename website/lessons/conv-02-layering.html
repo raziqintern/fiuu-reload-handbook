@@ -17,7 +17,7 @@
 <h1>Layering: Provider / Service / Model</h1>
 <p class="lede">This is the single most important mental model for reading reload's C# code. Full source: <a href="../../conventions/layering-and-architecture.md">conventions/layering-and-architecture.md</a>.</p>
 
-<h2>The shape, repeated per module</h2>
+<h2>The Model/Provider/Service Layers</h2>
 <p>Each business module (<code>Reloads/TNG</code>, <code>Secure/Astro</code>, ...) repeats the same three-layer split:</p>
 <table>
 <tr><th>Layer</th><th>Responsibility</th><th>Example</th></tr>
@@ -26,7 +26,7 @@
 <tr><td><strong>Service</strong></td><td>Business logic, implements <code>I&lt;Name&gt;Service</code>, orchestrates Providers + other Services</td><td><code>Reloads/TNG/Services/TerminalService.cs</code></td></tr>
 </table>
 
-<h2>Providers are new'd up directly; Services are resolved via a locator</h2>
+<h2>Provider Instantiation vs. the Service Locator</h2>
 <pre class="code-block">public class TerminalService : ITerminalService
 {
     private TerminalProvider _provider;
@@ -50,13 +50,21 @@
 
 <div class="callout warn">
 <span class="callout-title">If you're used to constructor injection, this will look wrong — it isn't a bug</span>
-Modern .NET tutorials teach constructor injection almost exclusively. This codebase deliberately (if implicitly) uses the lazy-property service-locator pattern instead. Don't "fix" it to constructor injection in a PR unless that's the actual scope of the change — it's a working, consistent, if dated, pattern across the whole estate.
+<ul>
+<li>Modern .NET tutorials teach constructor injection almost exclusively.</li>
+<li>This codebase deliberately (if implicitly) uses the lazy-property service-locator pattern instead.</li>
+<li>Don't "fix" it to constructor injection in a PR unless that's the actual scope of the change — it's a working, consistent, if dated, pattern across the whole estate.</li>
+</ul>
 </div>
 
-<h2>No repository/unit-of-work abstraction, no <a class="term" data-term="orm">ORM</a></h2>
-<p>There's no generic <code>IRepository&lt;T&gt;</code>, no Entity Framework <code>DbContext</code>, and no transaction spanning multiple Provider calls. Each Provider method opens a connection, executes exactly one stored procedure, and returns. If a real operation needs multiple writes to stay consistent, that atomicity is expected to live inside the stored procedure itself — not orchestrated in C#.</p>
+<h2>No Repository/Unit-of-Work Abstraction, No <a class="term" data-term="orm">ORM</a></h2>
+<ul>
+<li>There's no generic <code>IRepository&lt;T&gt;</code>, no Entity Framework <code>DbContext</code>, and no transaction spanning multiple Provider calls.</li>
+<li>Each Provider method opens a connection, executes exactly one stored procedure, and returns.</li>
+<li>If a real operation needs multiple writes to stay consistent, that atomicity is expected to live inside the stored procedure itself — not orchestrated in C#.</li>
+</ul>
 
-<h2>Consistency isn't uniform — know where it breaks down</h2>
+<h2>Consistency Across Modules</h2>
 <table>
 <tr><th>Aspect</th><th>Consistency</th></tr>
 <tr><td>Model/Provider/Service split</td><td>Very consistent across all modules sampled</td></tr>
@@ -68,7 +76,11 @@ Modern .NET tutorials teach constructor injection almost exclusively. This codeb
 
 <div class="callout tip">
 <span class="callout-title">Practical takeaway</span>
-When you open a module you haven't seen before, look for the Model/Provider/Service split first — it'll almost certainly be there. Don't assume anything else (base classes, DI style, inheritance) is shared with the last module you read; check that module's own conventions before copying a pattern across module boundaries.
+<ul>
+<li>When you open a module you haven't seen before, look for the Model/Provider/Service split first — it'll almost certainly be there.</li>
+<li>Don't assume anything else (base classes, DI style, inheritance) is shared with the last module you read.</li>
+<li>Check that module's own conventions before copying a pattern across module boundaries.</li>
+</ul>
 </div>
 
 <h2>Best practice — for working inside this specific codebase</h2>

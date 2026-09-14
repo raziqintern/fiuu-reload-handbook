@@ -33,7 +33,7 @@ End If</pre>
 
 <p>Notice <code>ElseIf</code> is one word (unlike C#'s <code>else if</code>, two words), and the whole block closes with <code>End If</code> instead of a closing brace.</p>
 
-<h2>Comparison and logical operators — and the short-circuit distinction that actually matters</h2>
+<h2>Comparison and Logical Operators</h2>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/operators/andalso-operator">AndAlso Operator reference</a> defines short-circuiting precisely: <em>"A logical operation is said to be short-circuiting if the compiled code can bypass the evaluation of one expression depending on the result of another expression."</em> Its own remarks contrast it directly with the non-short-circuit form: <em>"In a Boolean comparison, the <code>And</code> operator always evaluates both expressions, which could include making procedure calls. The AndAlso Operator performs short-circuiting, which means that if <code>expression1</code> is <code>False</code>, then <code>expression2</code> is not evaluated."</em>
@@ -55,8 +55,11 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/langu
 <code>If obj IsNot Nothing And obj.IsValid Then</code> looks reasonable but is dangerous: <code>And</code> evaluates <em>both</em> sides regardless of the first result, so if <code>obj</code> actually is <code>Nothing</code>, <code>obj.IsValid</code> still runs and throws a <code>NullReferenceException</code> — the <code>IsNot Nothing</code> check accomplished nothing. <code>AndAlso</code> would short-circuit and never evaluate the right side once the left side is <code>False</code>. <strong>Default to <code>AndAlso</code>/<code>OrElse</code> in new code</strong>; reach for plain <code>And</code>/<code>Or</code> only in the rare case where you specifically need both sides evaluated regardless (e.g. two independent method calls with side effects, where you genuinely want both to run).
 </div>
 
-<h2>Arithmetic operators — VB.NET has two division operators, not one</h2>
-<p>C# has a single <code>/</code> that behaves differently depending on the operand types (integer <code>/</code> integer truncates; anything with a <code>double</code> keeps the fraction). VB.NET instead has <strong>two distinct operators</strong> that always mean the same thing regardless of type — you pick which behavior you want by which symbol you write, not by what type happens to be involved.</p>
+<h2>Arithmetic Operators</h2>
+<ul>
+<li>C# has a single <code>/</code> that behaves differently depending on the operand types (integer <code>/</code> integer truncates; anything with a <code>double</code> keeps the fraction).</li>
+<li>VB.NET instead has <strong>two distinct operators</strong> that always mean the same thing regardless of type — you pick which behavior you want by which symbol you write, not by what type happens to be involved.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/operators/integer-division-operator">\ Operator reference</a> states the distinction directly: <em>"The result is the integer quotient of expression1 divided by expression2, which discards any remainder and retains only the integer portion. This is known as truncation."</em> — contrasted explicitly with its sibling: <em>"The / Operator (Visual Basic) returns the full quotient, which retains the remainder in the fractional portion."</em> Its own worked example: <code>11 \ 4</code>, <code>9 \ 3</code>, <code>100 \ 3</code>, and <code>67 \ -3</code> return <code>2</code>, <code>3</code>, <code>33</code>, and <code>-22</code> respectively — the remainder is simply gone, not rounded.
@@ -82,7 +85,7 @@ r = sum Mod 10</pre>
 Both operators are real, documented, and fully supported — the example row above is straight from Microsoft's own reference, not fabricated — but a grep of BackOffice and CEPP found no genuine use of either in this codebase's own code. <code>Mod</code> and <code>/</code> cover the div/remainder needs that come up in practice here; know <code>\</code> and <code>^</code> exist and what they mean if you encounter them (in a spec, a StackOverflow answer, or code from elsewhere), but don't expect to find them in this specific repo.
 </div>
 
-<h2>Exit — leaving early, and which keyword matches which block</h2>
+<h2>Exit Statement</h2>
 <p>VB.NET's early-exit keyword changes depending on what you're inside — there's no single <code>break</code>/<code>return</code> pair covering every case:</p>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
@@ -108,7 +111,7 @@ End If</pre>
 Validate-and-bail-early at the top of a method (as in the real example above) keeps validation flat and readable — six independent <code>If invalid Then ... Exit Sub</code> checks in sequence, rather than six levels of nested <code>If</code>/<code>Else</code>. This is the same "fail fast, avoid deep nesting" idea C# guard clauses use with an early <code>return;</code> — VB.NET just spells it with the keyword matching the block you're actually in.
 </div>
 
-<h3>Exiting a Function early from inside an If — two real, different shapes in the same codebase</h3>
+<h3>Exit Function vs. Return</h3>
 <p><code>Exit Function</code> inside a <code>Function</code> works the same way <code>Exit Sub</code> does inside a <code>Sub</code> — it leaves immediately — but a <code>Function</code> has to leave <em>something</em> behind as its return value, and that's exactly where the two real patterns below diverge.</p>
 <pre class="code-block">Private Function IsEmailFieldValid(sEmailAddress As String) As Boolean
     For Each sEmail In arrEmail
@@ -135,7 +138,7 @@ Validate-and-bail-early at the top of a method (as in the real example above) ke
 A bare <code>Exit Function</code> returns whatever the function's own implicit return value currently holds — for a <code>Boolean</code> function, that's its type's default, <code>False</code>, unless something earlier in the method explicitly set it to something else first. Here that's exactly the intent (validation failed → return <code>False</code>), but it works by relying on the default rather than stating it — <code>Return False</code> in the same spot would say the same thing more explicitly, at no cost. Prefer an explicit <code>Return value</code> over a bare <code>Exit Function</code> whenever the returned value matters to the reader, precisely because <code>Exit Function</code> alone hides what's actually being returned.
 </div>
 
-<h2>For loops are inclusive on both ends</h2>
+<h2>For...Next: Inclusive Bounds</h2>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">For i As Integer = 1 To 3
     Console.WriteLine("Attempt " & i)
@@ -194,24 +197,33 @@ Console.WriteLine("Batch valid? " & allValid)</pre>
 Batch valid? False</pre>
 </div>
 
-<h2>Other loop shapes: Do Until/While, and For Each over your own objects</h2>
-<p><code>For</code>/<code>For Each</code> both assume you know in advance what you're iterating over — a count, or a collection. <code>Do While</code>/<code>Do Until</code> exist for the opposite case: keep looping <em>until some condition changes</em>, with no predetermined number of iterations. Real, verified usage — reading a file stream in fixed-size chunks until there's nothing left to read:</p>
+<h2>Do Until / Do While</h2>
+<ul>
+<li><code>For</code>/<code>For Each</code> both assume you know in advance what you're iterating over — a count, or a collection.</li>
+<li><code>Do While</code>/<code>Do Until</code> exist for the opposite case: keep looping <em>until some condition changes</em>, with no predetermined number of iterations.</li>
+</ul>
+<p>Real, verified usage — reading a file stream in fixed-size chunks until there's nothing left to read:</p>
 <pre class="code-block">Dim sourceBytes As Integer = 1
 Do Until (sourceBytes <= 0)
     sourceBytes = fs.Read(buffer, 0, buffer.Length)
     strmZipOutputStream.Write(buffer, 0, sourceBytes)
 Loop</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/ReportChannelPartner.aspx.vb:199-202</p>
-<p><code>fs.Read(...)</code> returns however many bytes it actually managed to read — a number nobody can know ahead of time, since it depends on how much of the file is left. That's exactly the shape <code>Do Until</code> fits and a counting <code>For</code> loop can't: the number of iterations is discovered one at a time, by the loop's own condition, not decided before the loop starts. <code>Do While (condition)</code> is the same construct with the test inverted — keep going <em>while</em> true instead of <em>until</em> true; pick whichever phrasing reads more naturally for the specific condition.</p>
+<ul>
+<li><code>fs.Read(...)</code> returns however many bytes it actually managed to read — a number nobody can know ahead of time, since it depends on how much of the file is left.</li>
+<li>That's exactly the shape <code>Do Until</code> fits and a counting <code>For</code> loop can't: the number of iterations is discovered one at a time, by the loop's own condition, not decided before the loop starts.</li>
+<li><code>Do While (condition)</code> is the same construct with the test inverted — keep going <em>while</em> true instead of <em>until</em> true; pick whichever phrasing reads more naturally for the specific condition.</li>
+</ul>
 
-<p><code>For Each</code> works identically whether the collection holds a primitive type or a class this codebase defines itself — the mechanism doesn't care what <code>T</code> is, only that the collection is enumerable (see <a href="vb-01-syntax.html">VB.NET Fundamentals → Syntax, Types &amp; Option Strict</a> for why). Three real, verified examples looping over custom objects, not primitives:</p>
+<p><code>For Each</code> works identically whether the collection holds a primitive type or a class this codebase defines itself — the mechanism doesn't care what <code>T</code> is, only that the collection is enumerable (see <a href="vb-01-syntax.html">VB.NET Fundamentals → Syntax, Types &amp; Option Strict</a> for why).</p>
+<p>Three real, verified examples looping over custom objects, not primitives:</p>
 <pre class="code-block">For Each data As CommissionDealerColumn In dataList
 For Each product As IProduct In lstProduct
 For Each configDetail As ConfigDetails In _backOfficeConfigDetails</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/Commission.aspx.vb:628; WebForms/ProductCreate.aspx.vb:414; Helpers/HelperFunction.vb:15</p>
 <p>Each loop variable (<code>data</code>, <code>product</code>, <code>configDetail</code>) is a full object of that type inside the loop body — its properties and methods are all available exactly as if you'd written <code>Dim data As CommissionDealerColumn = dataList(i)</code> yourself, just without an index variable to manage.</p>
 
-<h2>Select Case — VB's switch, with real differences worth knowing</h2>
+<h2>Select Case</h2>
 <p>Real code from <code>TerminalFirmwareVersionList.aspx.vb</code>'s grid command handler:</p>
 <pre class="code-block">Select Case e.CommandName
     Case "Action", "Detail"
@@ -226,7 +238,12 @@ End Select</pre>
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/statements/select-case-statement">Select...Case Statement reference</a> confirms fall-through is not just absent from this example but structurally impossible: <em>"If <code>testexpression</code> matches any <code>Case</code> <code>expressionlist</code> clause, the statements following that <code>Case</code> statement run up to the next <code>Case</code>, <code>Case Else</code>, or <code>End Select</code> statement. Control then passes to the statement following <code>End Select</code>."</em> There is no syntax in the language for opting back into fall-through, unlike C-style <code>switch</code> where it's the default you opt out of with <code>break;</code>. The same reference also documents the range/comparison forms used below: <em>"Use the <code>To</code> keyword to specify the boundaries of a range... Use the <code>Is</code> keyword with a comparison operator... to specify a restriction on the match values."</em>
 </div>
-<p>Three real differences from a C-style <code>switch</code>: a single <code>Case</code> can list several values comma-separated (<code>Case "Action", "Detail"</code> matches either, no separate case label needed); there's no fall-through at all, ever — each <code>Case</code> implicitly breaks, so there's no VB equivalent of a missing <code>break;</code> bug; and a <code>Case</code> can be a range or comparison, not just an exact match:</p>
+<p>Three real differences from a C-style <code>switch</code>:</p>
+<ul>
+<li>A single <code>Case</code> can list several values comma-separated (<code>Case "Action", "Detail"</code> matches either, no separate case label needed).</li>
+<li>There's no fall-through at all, ever — each <code>Case</code> implicitly breaks, so there's no VB equivalent of a missing <code>break;</code> bug.</li>
+<li>A <code>Case</code> can be a range or comparison, not just an exact match:</li>
+</ul>
 <pre class="code-block">Select Case amount
     Case Is <= 0
         Console.WriteLine("Invalid amount")

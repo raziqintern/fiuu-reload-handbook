@@ -17,8 +17,12 @@
 <h1>What Reviewers Actually Flag</h1>
 <p class="lede">Grounded in 3,620 real review comments read across the 24 highest-discussion merge requests in reload's history. Every rule below is backed by an actual, quoted comment — not a generic best-practices list. Full source: <a href="../../gitlab-analysis/reload-mr-review-checklist.md">gitlab-analysis/reload-mr-review-checklist.md</a>.</p>
 
-<h2>Two reviewers, two different jobs</h2>
-<p>A human lead reviewer (1,398 of the sampled comments) catches style, business-logic, and "did you check the spec" issues. An AI review bot, added mid-2025 (1,090 of the sampled comments), catches mechanical correctness issues — type mismatches, null-dereference risks, stale references, typos. Knowing which kind of issue you're looking at tells you which kind of review is likely to catch it before it ships.</p>
+<h2>Two Reviewers, Two Different Jobs</h2>
+<ul>
+<li>A human lead reviewer (1,398 of the sampled comments) catches style, business-logic, and "did you check the spec" issues.</li>
+<li>An AI review bot, added mid-2025 (1,090 of the sampled comments), catches mechanical correctness issues — type mismatches, null-dereference risks, stale references, typos.</li>
+<li>Knowing which kind of issue you're looking at tells you which kind of review is likely to catch it before it ships.</li>
+</ul>
 
 <h2>What the human reviewer catches, quoted directly</h2>
 
@@ -66,12 +70,20 @@ public class StockAdjustment
 <h2>Judging whether a fix actually matches the reported bug</h2>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Google's published <a href="https://google.github.io/eng-practices/review/reviewer/looking-for.html">Engineering Practices — What to Look For in a Code Review</a> names this as the reviewer's first and most important question, ahead of style: <em>"Does this CL do what the developer intended? Is what the developer intended good for the users of this code?"</em> The reload MR history quoted throughout this lesson is a real, local instance of exactly that question — every "does this actually fix the issue" judgment call below is applying this same general reviewer responsibility, not a codebase-specific quirk.
+<ul>
+<li>Google's published <a href="https://google.github.io/eng-practices/review/reviewer/looking-for.html">Engineering Practices — What to Look For in a Code Review</a> names this as the reviewer's first and most important question, ahead of style: <em>"Does this CL do what the developer intended? Is what the developer intended good for the users of this code?"</em></li>
+<li>The reload MR history quoted throughout this lesson is a real, local instance of exactly that question — every "does this actually fix the issue" judgment call below is applying this same general reviewer responsibility, not a codebase-specific quirk.</li>
+</ul>
 </div>
 <p>Reviewing an existing MR against its linked issue is a different skill from spotting a style nit — it's about whether the diff really addresses the <em>exact</em> reported symptom, not a paraphrase of the MR title. Working from MR !1906 against issue #2461 (a search filter throwing <code>Object variable or With block variable not set</code> for every status except "All"/"Approved"): the fix wraps the crashing line in a null guard, which directly neutralizes the exact <code>file:line</code> from the issue's own stack trace — a small diff, and a <strong>complete</strong> fix, not a partial one just because it's short.</p>
 <div class="callout tip">
 <span class="callout-title">Three verdicts, not two</span>
-Grade a fix against its issue as <strong>fixes it completely</strong> (the exact reported symptom and repro steps now behave correctly), <strong>partially fixes it</strong> (say precisely what part of the original symptom still reproduces), or <strong>doesn't address it</strong> (say what the diff does instead). Don't default to "partial" just because the diff is small, or because reading the surrounding code turned up other things worth mentioning — a narrowly-scoped diff that exactly matches the reported symptom is a complete fix; confusing "narrowly scoped" with "incomplete" is the most common way to get this judgment wrong.
+<ul>
+<li><strong>Fixes it completely</strong> — the exact reported symptom and repro steps now behave correctly.</li>
+<li><strong>Partially fixes it</strong> — say precisely what part of the original symptom still reproduces.</li>
+<li><strong>Doesn't address it</strong> — say what the diff does instead.</li>
+<li>Don't default to "partial" just because the diff is small, or because reading the surrounding code turned up other things worth mentioning — a narrowly-scoped diff that exactly matches the reported symptom is a complete fix; confusing "narrowly scoped" with "incomplete" is the most common way to get this judgment wrong.</li>
+</ul>
 </div>
 <p>Reading the file around the diff (not just the diff hunk) in that same review turned up a second call site with the identical unguarded pattern, reachable only via grid paging/sorting — not the button the issue reported. That's a real finding, but it belongs in its own section, explicitly labelled as <strong>out of scope for this MR</strong> and worth its own ticket — not folded into the verdict on whether this MR fixes issue #2461, and not treated as evidence the MR is deficient.</p>
 

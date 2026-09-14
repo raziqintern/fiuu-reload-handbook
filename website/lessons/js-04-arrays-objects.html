@@ -17,7 +17,7 @@
 <h1>Arrays &amp; Objects</h1>
 <p class="lede">Every <a class="term" data-term="api">API</a> response you'll ever inspect in the Network tab is one of these two shapes. Recognising them on sight is a real, daily-use skill.</p>
 
-<h2>Objects: key/value data</h2>
+<h2>Objects</h2>
 <div class="tryit" data-lang="js">
 <pre class="tryit-src">const terminal = {
   terminalId: "TNG-0042",
@@ -33,7 +33,7 @@ terminal.lastAmount = 30.0; // objects are mutable after creation
 console.log(terminal);</pre>
 </div>
 
-<h2>Arrays: ordered lists</h2>
+<h2>Arrays</h2>
 <div class="tryit" data-lang="js">
 <pre class="tryit-src">const amounts = [10, 25.5, 100, 5];
 
@@ -48,14 +48,23 @@ const large = amounts.filter((a) => a > 20);
 console.log("Over 20:", large);</pre>
 </div>
 
-<p><code>.filter()</code>, <code>.map()</code>, and <code>.reduce()</code> are the three you'll see constantly: filter keeps items matching a condition, map transforms every item into something else, reduce collapses the whole array into one value.</p>
+<ul>
+<li><code>.filter()</code>, <code>.map()</code>, and <code>.reduce()</code> are the three you'll see constantly.</li>
+<li><code>filter</code> keeps items matching a condition.</li>
+<li><code>map</code> transforms every item into something else.</li>
+<li><code>reduce</code> collapses the whole array into one value.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce"><code>Array.prototype.reduce()</code> reference</a> is precise about the role of that <code>0</code> at the end: <em>"The first time that the callback is run there is no 'return value of the previous calculation'. If supplied, an initial value may be used in its place. Otherwise the array element at index 0 is used as the initial value and iteration starts from the next element."</em>
 </div>
 <div class="callout warn">
 <span class="callout-title">What if the array is empty? The initial value stops being optional</span>
-<code>amounts.reduce((sum, a) => sum + a, 0)</code> on an empty array simply returns <code>0</code> — the initial value the code supplied, with the callback never called at all. Drop the <code>0</code> — <code>amounts.reduce((sum, a) => sum + a)</code> — and per the documented fallback rule above, an empty array has no element at index 0 to use instead, so it throws <code>TypeError: Reduce of empty array with no initial value</code>. Always supply an initial value for <code>reduce</code> unless you're certain the array can never be empty.
+<ul>
+<li><code>amounts.reduce((sum, a) => sum + a, 0)</code> on an empty array simply returns <code>0</code> — the initial value the code supplied, with the callback never called at all.</li>
+<li>Drop the <code>0</code> — <code>amounts.reduce((sum, a) => sum + a)</code> — and per the documented fallback rule above, an empty array has no element at index 0 to use instead, so it throws <code>TypeError: Reduce of empty array with no initial value</code>.</li>
+<li>Always supply an initial value for <code>reduce</code> unless you're certain the array can never be empty.</li>
+</ul>
 </div>
 <div class="tryit" data-lang="js">
 <pre class="tryit-src">const noTransactions = [];
@@ -72,7 +81,7 @@ try {
 }</pre>
 </div>
 
-<h2>Arrays of objects — the shape of most real data</h2>
+<h2>Arrays of Objects</h2>
 <div class="tryit" data-lang="js">
 <pre class="tryit-src">const transactions = [
   { transNo: "TXN-1001", amount: 10.0, status: "Success" },
@@ -100,7 +109,10 @@ When you inspect a Network request in DevTools and see a response body, it's alm
 </ul>
 
 <h2>Better ways</h2>
-<p>Chaining several array methods (<code>.filter(...).map(...)</code>) reads cleanly for two or three steps, but a long chain of five or six can get hard to debug, since you can't easily inspect the intermediate results. For anything that complex, breaking it into named intermediate variables (<code>const pending = ...; const pendingIds = pending.map(...)</code>) trades a few extra lines for something you can actually step through.</p>
+<ul>
+<li>Chaining several array methods (<code>.filter(...).map(...)</code>) reads cleanly for two or three steps, but a long chain of five or six can get hard to debug, since you can't easily inspect the intermediate results.</li>
+<li>For anything that complex, breaking it into named intermediate variables (<code>const pending = ...; const pendingIds = pending.map(...)</code>) trades a few extra lines for something you can actually step through.</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">

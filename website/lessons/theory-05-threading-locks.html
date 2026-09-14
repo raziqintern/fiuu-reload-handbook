@@ -17,15 +17,21 @@
 <h1>Threading, Locks &amp; Race Conditions</h1>
 <p class="lede">Async/await (previous lesson) is about not blocking a thread. This lesson is about what happens when <em>multiple</em> threads genuinely run at the same time and touch the same data.</p>
 
-<h2>What a race condition actually is</h2>
-<p>Imagine two threads both run <code>counter++</code> on a shared variable. That one line is really three steps: read the current value, add one, write it back. If both threads read the same starting value before either writes back, one increment is silently lost — the final count is wrong, and which run loses an increment (or whether it happens at all) is unpredictable. This is a <strong>race condition</strong>: correctness depends on timing that isn't guaranteed.</p>
+<h2>Race Conditions</h2>
+<p>Imagine two threads both run <code>counter++</code> on a shared variable.</p>
+<ul>
+<li>That one line is really three steps: read the current value, add one, write it back.</li>
+<li>If both threads read the same starting value before either writes back, one increment is silently lost — the final count is wrong.</li>
+<li>Which run loses an increment (or whether it happens at all) is unpredictable.</li>
+</ul>
+<p>This is a <strong>race condition</strong>: correctness depends on timing that isn't guaranteed.</p>
 
 <div class="callout warn">
 <span class="callout-title">Why this can't be usefully "predicted and revealed"</span>
-Unlike every other example on this site, a genuine race condition's wrong output isn't one fixed, reproducible value — it depends on real thread scheduling, which varies run to run. The honest teaching move here is to show you the <em>fix</em>'s deterministic behavior below, not to fake a specific "wrong number" as if it were guaranteed.
+<p>Unlike every other example on this site, a genuine race condition's wrong output isn't one fixed, reproducible value — it depends on real thread scheduling, which varies run to run. The honest teaching move here is to show you the <em>fix</em>'s deterministic behavior below, not to fake a specific "wrong number" as if it were guaranteed.</p>
 </div>
 
-<h2>Example: lock / SyncLock serializes access to a critical section</h2>
+<h2>lock / SyncLock Statement</h2>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">static readonly object _lockObj = new object();
@@ -82,13 +88,24 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-re
 </div>
 <div class="callout warn">
 <span class="callout-title">What if you lock on the wrong kind of object? Deadlock risk, not a syntax error</span>
-The same reference's own guidelines section warns specifically against three common choices: <em>"avoid using the following instances as lock objects: this, as callers might also lock this. Type instances, as they might be obtained by the typeof operator or reflection. string instances, including string literals, as they might be interned."</em> All three compile without complaint — the real risk is that some other, completely unrelated piece of code might independently lock the exact same object (<code>this</code>, a shared <code>Type</code>, or an interned string with the same text), creating lock contention or a deadlock that has nothing to do with the logic you're protecting. A dedicated, private object created solely to be a lock — exactly like <code>_lockObj</code>/<code>lockObj</code> above — sidesteps this entirely, because nothing else in the program could possibly be locking on it.
+<p>The same reference's own guidelines section warns specifically against three common choices: <em>"avoid using the following instances as lock objects: this, as callers might also lock this. Type instances, as they might be obtained by the typeof operator or reflection. string instances, including string literals, as they might be interned."</em></p>
+<ul>
+<li>All three compile without complaint.</li>
+<li>The real risk is that some other, completely unrelated piece of code might independently lock the exact same object (<code>this</code>, a shared <code>Type</code>, or an interned string with the same text), creating lock contention or a deadlock that has nothing to do with the logic you're protecting.</li>
+<li>A dedicated, private object created solely to be a lock — exactly like <code>_lockObj</code>/<code>lockObj</code> above — sidesteps this entirely, because nothing else in the program could possibly be locking on it.</li>
+</ul>
 </div>
 
-<h2>The real cost of a lock: it can turn a small slowdown into a queue</h2>
+<h2>Lock Contention and Serialization Points</h2>
 <div class="callout real">
 <span class="callout-title">This is exactly what happened in a real reload incident</span>
-This is issue #2592, which gets a full worked-example treatment later in <a href="dbg-04-trace-a-bug.html">Debugging Reload → Worked Example</a> — the short version here: every TNG reload transaction opened a certificate file and RSA-decrypted a session key from scratch, twice, and never released the handle — a resource leak. That alone would just get progressively slower. What made it a multi-hour queue instead of a mild slowdown: <strong>this all happened inside a per-account lock.</strong> As the leak made each lookup slightly slower, every other transaction for that same account had to wait behind it — the lock, which exists to keep things safe, was also what let a small per-request slowdown compound into a serialized backlog.
+<p>This is issue #2592, which gets a full worked-example treatment later in <a href="dbg-04-trace-a-bug.html">Debugging Reload → Worked Example</a>.</p>
+<ul>
+<li>Every TNG reload transaction opened a certificate file and RSA-decrypted a session key from scratch, twice, and never released the handle — a resource leak.</li>
+<li>That alone would just get progressively slower.</li>
+<li><strong>What made it a multi-hour queue instead of a mild slowdown: this all happened inside a per-account lock.</strong></li>
+<li>As the leak made each lookup slightly slower, every other transaction for that same account had to wait behind it — the lock, which exists to keep things safe, was also what let a small per-request slowdown compound into a serialized backlog.</li>
+</ul>
 </div>
 
 <p>The lesson isn't "don't use locks" — the increment example above needed one. It's that a lock makes whatever's inside it a serialization point: anything slow inside a lock doesn't just cost that one caller, it costs every other thread waiting for the same lock.</p>

@@ -17,7 +17,7 @@
 <h1>Classes, Inheritance &amp; Interfaces</h1>
 <p class="lede">VB.NET's OOP keywords are more explicit than C#'s in exactly the places that matter for reading BackOffice code — <code>MustOverride</code>/<code>Overrides</code> instead of C#'s <code>abstract</code>/<code>override</code>, and <code>Implements</code> written twice: once on the class, once again on every member.</p>
 
-<h2>Property instead of get/set, New instead of a matching-name constructor</h2>
+<h2>Properties and Constructors</h2>
 <div class="tryit" data-lang="vbnet">
 <pre class="tryit-src">Public Class Terminal
     Public Property TerminalId As String
@@ -39,10 +39,18 @@ Module Program
 End Module</pre>
 <pre class="tryit-output-src">TNG-0042 - 7-Eleven KL - True</pre>
 </div>
-<p>Compare this to the C# version in <a href="cs-04-classes.html">C# Fundamentals → Classes</a> — same three properties, same constructor logic. <code>Public Property X As T</code> is VB's equivalent of C#'s <code>public T X { get; set; }</code>; the constructor is always named <code>New</code> instead of repeating the class name; <code>Me</code> is VB's <code>this</code>.</p>
+<p>Compare this to the C# version in <a href="cs-04-classes.html">C# Fundamentals → Classes</a> — same three properties, same constructor logic.</p>
+<ul>
+<li><code>Public Property X As T</code> is VB's equivalent of C#'s <code>public T X { get; set; }</code>.</li>
+<li>The constructor is always named <code>New</code> instead of repeating the class name.</li>
+<li><code>Me</code> is VB's <code>this</code>.</li>
+</ul>
 
-<h2>MustInherit &amp; MustOverride — real, verified, and central to how BackOffice enforces access control</h2>
-<p>VB.NET's abstract-class keyword is <code>MustInherit</code> (not <code>abstract</code>), and an abstract member is <code>MustOverride</code> (not an abstract method with no body). This isn't a hypothetical translation — it's the actual base class every access-controlled BackOffice page inherits from:</p>
+<h2>MustInherit and MustOverride</h2>
+<ul>
+<li>VB.NET's abstract-class keyword is <code>MustInherit</code> (not <code>abstract</code>), and an abstract member is <code>MustOverride</code> (not an abstract method with no body).</li>
+<li>This isn't a hypothetical translation — it's the actual base class every access-controlled BackOffice page inherits from:</li>
+</ul>
 <pre class="code-block">Public MustInherit Class RestrictedPage
     ...
     Protected MustOverride ReadOnly Property ModuleName As ModuleNames
@@ -82,7 +90,7 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/langu
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/modifiers/shadows">Shadows reference</a> defines the mechanism precisely: <em>"Specifies that a declared programming element redeclares and hides an identically named element... in a base class."</em> Critically, it also documents that a shadowing member doesn't even need a compatible signature: <em>"If you shadow a property or procedure with another property or procedure, the parameters and the return type do not have to match those in the base class property or procedure."</em> This is the real difference from <code>Overrides</code>: an <code>Overrides</code> member must honor the base member's contract (same signature, substitutable via polymorphism); a <code>Shadows</code> member is simply a new, independent member that reuses the name — calling code that holds a reference typed as the <em>base</em> class still reaches the base member, not the shadowed one.
 </div>
 
-<h2>A fuller worked example: <code>RestrictedPage</code>'s whole inheritance chain, not just the abstract members</h2>
+<h2>RestrictedPage's Inheritance Chain</h2>
 <p><code>RestrictedPage</code> is worth reading end-to-end once, because it demonstrates every inheritance keyword this lesson covers inside one real, shipped class — not <code>MustOverride</code> alone.</p>
 <pre class="code-block">Public MustInherit Class RestrictedPage
     Inherits System.Web.UI.Page
@@ -121,7 +129,7 @@ Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/p
 This is the mechanism behind every "you don't have permission" redirect in BackOffice: <code>OnLoad</code> (which every page inherits, unmodified) calls the <code>Overridable</code> <code>OnAuthenticate</code>, which calls <code>Profiles.CheckAccessRight(...)</code> using the <code>MustOverride</code> <code>ModuleName</code>/<code>PageAction</code> values the concrete page was forced to supply. A page author never has to remember to call a permission check manually — it runs automatically as part of the page lifecycle every derived page already participates in, purely because it inherits from <code>RestrictedPage</code>. This is what "the compiler enforces it" (from the <code>MustOverride</code> section above) actually buys in production: the permission check isn't something a developer could forget to wire up, because it's baked into a lifecycle method nobody overrides.
 </div>
 
-<h2>Implements — written on the class, then again on every member</h2>
+<h2>Implements</h2>
 <p>The biggest real syntax difference from C# interfaces: VB.NET makes you say <code>Implements</code> twice — once declaring the class implements the interface, and again on each member that satisfies it, naming exactly which interface member it fulfills:</p>
 <pre class="code-block">Public Interface ITerminalService
     Function Login(terminalId As String) As Boolean

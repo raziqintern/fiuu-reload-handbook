@@ -17,7 +17,7 @@
 <h1>Type Conversion: CType, DirectCast &amp; TryCast</h1>
 <p class="lede">VB.NET has three named ways to explicitly convert a value's type, each with a different answer to "what relationship must the two types have, and what happens if the conversion turns out to be impossible at runtime." This lesson also covers <code>Shared</code> members and <code>Enum</code>, since the real example that grounds the casts needs both.</p>
 
-<h2>Explicit conversion is one idea, three mechanisms</h2>
+<h2>Three Conversion Mechanisms</h2>
 <p>Converting a value from one type to another is a single concept — but VB.NET gives you three keywords for it because they make fundamentally different trade-offs between generality, speed, and failure behavior. Per Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/operators/ctype-operator">CType Operator reference</a>, which documents all three side by side:</p>
 <table>
 <tr><th>Keyword</th><th>Data types</th><th>Argument relationship required</th><th>Run-time failure</th></tr>
@@ -25,9 +25,12 @@
 <tr><td><code>DirectCast</code></td><td>Any data types</td><td>One type must <strong>inherit from or implement</strong> the other</td><td>Throws <code>InvalidCastException</code></td></tr>
 <tr><td><code>TryCast</code></td><td>Reference types only</td><td>One type must <strong>inherit from or implement</strong> the other</td><td>Returns <code>Nothing</code></td></tr>
 </table>
-<p><code>DirectCast</code> and <code>TryCast</code> both require a real inheritance/interface relationship between the two types — they're for "I have an <code>Object</code> that I know is actually a <code>GridView</code>," not for genuinely converting data. <code>CType</code> is the general-purpose one: it also handles conversions where no such relationship exists at all — <code>String</code> to <code>Integer</code>, a boxed enum value to its underlying <code>Integer</code>, or a class's own user-defined conversion operator.</p>
+<ul>
+<li><code>DirectCast</code> and <code>TryCast</code> both require a real inheritance/interface relationship between the two types — they're for "I have an <code>Object</code> that I know is actually a <code>GridView</code>," not for genuinely converting data.</li>
+<li><code>CType</code> is the general-purpose one: it also handles conversions where no such relationship exists at all — <code>String</code> to <code>Integer</code>, a boxed enum value to its underlying <code>Integer</code>, or a class's own user-defined conversion operator.</li>
+</ul>
 
-<h2>Enums: a named set of integer constants</h2>
+<h2>Enums</h2>
 <p>Before the casts, the type they're most often converting: <code>Public Enum</code> is VB's syntax for a small, closed set of named values backed by an integer — the same concept as C#'s <code>enum</code>. Two real ones:</p>
 <pre class="code-block">Public Enum ErrorType
     ' ... named integer constants
@@ -39,10 +42,14 @@ End Enum</pre>
 <p class="code-cite">Module: BackOffice/Web · Files: error.aspx.vb:6; Fiuu.CEPP.Models.Interfaces (EnumWalletType)</p>
 <div class="callout tip">
 <span class="callout-title">The question this naturally raises: why not just use plain integers?</span>
-Nothing stops you from writing <code>If walletType = 3 Then</code> instead of <code>If walletType = EnumWalletType.Consignment Then</code> — both compile, both run identically. The difference shows up when someone else reads the code six months later: <code>3</code> carries no information at all without cross-referencing the enum's definition, while <code>EnumWalletType.Consignment</code> is self-explanatory at the call site. The enum also gives the compiler something to check — assign an out-of-range plain integer and nothing complains; assign a name that isn't a member of the enum and it won't compile at all.
+<ul>
+<li>Nothing stops you from writing <code>If walletType = 3 Then</code> instead of <code>If walletType = EnumWalletType.Consignment Then</code> — both compile, both run identically.</li>
+<li>The difference shows up when someone else reads the code six months later: <code>3</code> carries no information at all without cross-referencing the enum's definition, while <code>EnumWalletType.Consignment</code> is self-explanatory at the call site.</li>
+<li>The enum also gives the compiler something to check — assign an out-of-range plain integer and nothing complains; assign a name that isn't a member of the enum and it won't compile at all.</li>
+</ul>
 </div>
 
-<h2>CType: the general-purpose conversion, real usage on a boxed enum value</h2>
+<h2>CType: The General-Purpose Conversion</h2>
 <p>Populating a dropdown from every value of an enum, filtered and sorted — real, production code:</p>
 <pre class="code-block">ddlWalletType.DataSource = (From item In [Enum].GetValues(GetType(EnumWalletType))
                             Where CType(item, Integer) &lt;&gt; EnumWalletType.Consignment
@@ -76,7 +83,7 @@ Case 3: compile-time error — commented out above because it would stop the
 It's tempting to read "CType: any data types" as "CType never fails" — case 2 above is exactly why that's wrong. <code>CType</code> being more general than <code>DirectCast</code>/<code>TryCast</code> means it accepts a wider range of type <em>pairs</em>, not that every individual <em>value</em> passed through it will actually convert successfully. Always ask "is this specific value valid for the target type," not just "is this pair of types allowed."
 </div>
 
-<h2>DirectCast: casting where the framework already forces a type down to Object</h2>
+<h2>DirectCast: When the Framework Forces Object</h2>
 <p>Two real lines, from two different real problems, both solved by <code>DirectCast</code>:</p>
 <pre class="code-block">gvCommissions.DataSource = DirectCast(ViewState("CommDetails"), DataTable)</pre>
 <p class="code-cite">Module: BackOffice/Web · File: WebForms/Commission.aspx.vb:63</p>
@@ -84,14 +91,19 @@ It's tempting to read "CType: any data types" as "CType never fails" — case 2 
 <p class="code-cite">Module: BackOffice/Web · File: WebForms/CommissionEdit.aspx.vb:537</p>
 <div class="callout real">
 <span class="callout-title">The context that makes both of these necessary, not just stylistic</span>
-<code>ViewState</code> is ASP.NET's built-in per-page dictionary for surviving a postback (see <a href="../lessons/dbg-06-postback-state-trap.html">Debugging Reload → The Postback State Trap</a> for what postbacks actually are) — its indexer is typed <code>As Object</code> no matter what you actually stored in it, because <code>ViewState</code> has to be able to hold anything, for any page, ever written. Earlier in this same method, something did <code>ViewState("CommDetails") = someDataTable</code> — but the compiler has no memory of that by the time this line reads it back; all it sees is <code>Object</code>. Likewise, a WebForms event handler's <code>sender</code> parameter is <em>always</em> typed <code>Object</code> in the framework's own method signature — <code>Sub GridView1_RowCommand(sender As Object, e As GridViewCommandEventArgs)</code> — regardless of which specific control actually raised the event. <code>DirectCast</code> is correct in both cases because the surrounding code is the reason the real type is known with certainty: the same class wrote the <code>ViewState</code> value it's now reading, and the same markup file wired up the specific control that's now arriving as <code>sender</code>.
+<ul>
+<li><strong>ViewState is always typed Object:</strong> <code>ViewState</code> is ASP.NET's built-in per-page dictionary for surviving a postback (see <a href="../lessons/dbg-06-postback-state-trap.html">Debugging Reload → The Postback State Trap</a> for what postbacks actually are) — its indexer is typed <code>As Object</code> no matter what you actually stored in it, because <code>ViewState</code> has to be able to hold anything, for any page, ever written.</li>
+<li>Earlier in this same method, something did <code>ViewState("CommDetails") = someDataTable</code> — but the compiler has no memory of that by the time this line reads it back; all it sees is <code>Object</code>.</li>
+<li>Likewise, a WebForms event handler's <code>sender</code> parameter is <em>always</em> typed <code>Object</code> in the framework's own method signature — <code>Sub GridView1_RowCommand(sender As Object, e As GridViewCommandEventArgs)</code> — regardless of which specific control actually raised the event.</li>
+<li><code>DirectCast</code> is correct in both cases because the surrounding code is the reason the real type is known with certainty: the same class wrote the <code>ViewState</code> value it's now reading, and the same markup file wired up the specific control that's now arriving as <code>sender</code>.</li>
+</ul>
 </div>
 <div class="callout warn">
 <span class="callout-title">The wrong scenario: when that certainty is misplaced</span>
 Imagine <code>CommissionEdit.aspx.vb</code> had two different grids on the page, and a shared row-command handler wired to both by mistake — one a <code>GridView</code>, the other a <code>DataList</code>. <code>DirectCast(sender, GridView)</code> works perfectly for clicks from the first grid, and throws <code>InvalidCastException</code> the instant a click comes from the second — because a <code>DataList</code> genuinely doesn't inherit from or implement <code>GridView</code>, no matter how confident the code was. This is the real risk <code>DirectCast</code> carries: it doesn't verify your certainty, it just fails loudly the moment that certainty turns out to be wrong. That's a deliberate trade-off (see Best practice below), not a flaw — but it's the concrete failure mode to have in mind before reaching for it.
 </div>
 
-<h2>TryCast: when "the cast might fail" is the normal case, not a bug</h2>
+<h2>TryCast: When Failure Is Expected</h2>
 <pre class="code-block">Dim tpSAPSetting As TabPanel = TryCast(FindControlRecursive(SAPSettingTabId), AjaxControlToolkit.TabPanel)
 Dim tpSAPDealerSetting As TabPanel = TryCast(FindControlRecursive(SAPDealerSettingTabId), AjaxControlToolkit.TabPanel)
 
@@ -110,10 +122,10 @@ Dim result = TryCast(n, Integer)</pre>
 Reaching for <code>TryCast</code> out of habit on a value-type target is the one scenario where you're forced back to <code>CType</code> even when "might fail gracefully" is exactly the behavior you wanted — there's no <code>Nothing</code>-returning safe cast for value types in VB.NET; <code>Integer?</code> (see <a href="theory-03-nullable-types.html">C#/.NET Deep Dives → Nullable Types</a>, which applies to VB.NET equally) combined with a manual check is the nearest equivalent.
 </div>
 
-<h2>Beyond casting: the other real ways this codebase converts data</h2>
+<h2>Other Ways to Convert Data</h2>
 <p><code>CType</code>/<code>DirectCast</code>/<code>TryCast</code> answer "how do I treat this value as a different type." A separate, equally common question is "how do I turn this raw piece of data — a query-string value, a database column, a form field — into a properly-typed value in the first place." VB.NET and this codebase use several real, distinct mechanisms for that, not just one.</p>
 
-<h3>The <code>C*</code> family: VB's own dedicated conversion functions</h3>
+<h3>The <code>C*</code> Family</h3>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/functions/type-conversion-functions">Type Conversion Functions reference</a> recommends these over the .NET-wide alternatives, for two concrete reasons: <em>"These functions are compiled inline, meaning the conversion code is part of the code that evaluates the expression... which improves performance"</em> and <em>"you should use the Visual Basic type conversion functions in preference to the .NET Framework methods such as ToString()... the .NET Framework conversion methods do not always produce the same results as the Visual Basic functions, for example when converting Boolean to Integer."</em>
@@ -125,7 +137,7 @@ ElseIf CDate(dtStartDate) &lt; DateAdd(DateInterval.Month, -3, CDate(dtEndDate))
 Return If(ViewState("IsActionCompleted") IsNot Nothing, CBool(ViewState("IsActionCompleted")), False)</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/Reloads/TerminalServer/Console/MessageHandlers/BillPaymentEndOfShiftHandler.vb:42; MessageHandlerBase.vb:1130; reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/OfflineSalesList.aspx.vb:275; InCommGiftCard.aspx.vb:236</p>
 
-<h3><code>TryParse</code>: convert-or-tell-me, no exception involved</h3>
+<h3><code>TryParse</code></h3>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 <code>Integer.TryParse</code>, <code>Decimal.TryParse</code>, and their siblings exist specifically to avoid throwing. Per Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.int32.tryparse">Int32.TryParse reference</a>: <em>"The TryParse method is like the Parse method, except the TryParse method does not throw an exception if the conversion fails. It eliminates the need to use exception handling to test for a FormatException in the event that <code>s</code> is invalid and cannot be successfully parsed."</em>
@@ -136,15 +148,18 @@ End If</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/BillPaymentVoidRepostCreate.aspx.vb:105</p>
 <p>This is the right tool specifically when "the input might not be a valid number" is an expected, routine possibility (user-typed text in a textbox) rather than a genuine bug — the same "expected failure, not exceptional" territory <code>TryCast</code> occupies for reference-type casts, just for parsing text instead.</p>
 
-<h3>Converting between a collection and an array: <code>.ToList()</code> / <code>.ToArray()</code></h3>
+<h3><code>.ToList()</code> / <code>.ToArray()</code></h3>
 <pre class="code-block">Dim lstProductGroup As List(Of IProductGroup) =
     ServiceLocator.Country(Profiles.User.CountryId).ProductService.GetProductGroups().ToList()</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/CommissionEdit.aspx.vb:135</p>
 <pre class="code-block">Dim iSelectedDealers = String.Join(",", selectedDealers.ToArray())</pre>
 <p class="code-cite">reload/web/DEV/NET/Applications/BackOffice/Web/WebForms/DealerParticipation.aspx.vb:337</p>
-<p><code>GetProductGroups()</code> returns an <code>IEnumerable(Of IProductGroup)</code> (see <a href="vb-01-syntax.html">Syntax, Types &amp; Option Strict</a> for why a method might promise only "enumerable" rather than a concrete collection) — <code>.ToList()</code> converts that promise into a real, concrete <code>List(Of T)</code> when the caller specifically needs list-only operations. <code>.ToArray()</code> is the same idea in the other direction — useful here because <code>String.Join</code>'s classic overload wants an array, not an arbitrary enumerable.</p>
+<ul>
+<li><code>GetProductGroups()</code> returns an <code>IEnumerable(Of IProductGroup)</code> (see <a href="vb-01-syntax.html">Syntax, Types &amp; Option Strict</a> for why a method might promise only "enumerable" rather than a concrete collection) — <strong><code>.ToList()</code></strong> converts that promise into a real, concrete <code>List(Of T)</code> when the caller specifically needs list-only operations.</li>
+<li><strong><code>.ToArray()</code></strong> is the same idea in the other direction — useful here because <code>String.Join</code>'s classic overload wants an array, not an arbitrary enumerable.</li>
+</ul>
 
-<h3>The DBNullTo* family: converting a database column that might be NULL</h3>
+<h3>The DBNullTo* Family</h3>
 <p>A <code>DataRow</code> column typed <code>DBNull.Value</code> can't be cast directly to <code>Integer</code>/<code>String</code>/<code>DateTime</code> — attempting it throws. This codebase's shared helper (<code>Fiuu.MasterFramework.Database.Conversion</code>, deliberately not named <code>Convert</code> to avoid colliding with <code>System.Convert</code>) collapses "is it <code>DBNull</code>, and if not, convert it" into one call:</p>
 <pre class="code-block">Id = Conversion.DBNullToInt64(dr["Id"])
 ReferenceId = Conversion.DBNullToString(dr["ReferenceId"])
@@ -155,7 +170,7 @@ TransactionDate = Conversion.DBNullToDateTime(dr["TransactionDate"]).ToString("y
 This is exactly the same shape of problem <a href="conv-05-data-access.html">Fiuu Code Conventions → Data Access</a> covers for Pattern 1's hand-mapped <code>DataRow</code> reads — a field-by-field conversion helper stepping in for exactly the columns Dapper (Pattern 3) would map automatically. If you're ever writing this kind of field-by-field mapping in VB.NET yourself, the same DBNull-guard-then-convert shape applies, whether you reuse this exact helper, write your own, or reach for <code>If(dr.IsDBNull(...), default, dr.GetInt32(...))</code> inline.
 </div>
 
-<h2>When to write <code>As Type</code> explicitly, and when to let inference do it</h2>
+<h2><code>As Type</code> vs. Inference</h2>
 <p><a href="vb-01-syntax.html">Syntax, Types &amp; Option Strict</a> already covers what <code>Option Infer</code> does mechanically — <code>Dim x = 5</code> infers <code>Integer</code> without an <code>As</code> clause. The remaining question is a judgment call: when should you write the type out anyway, even though the compiler doesn't require it?</p>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
@@ -174,7 +189,7 @@ Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/p
 <code>Dim total = 0</code> followed later by <code>total += someDecimalValue</code> infers <code>total</code> as <code>Integer</code> from the literal <code>0</code> — any fractional part silently truncates on every addition, with no compiler warning, because nothing about the declaration itself looks wrong. Writing <code>Dim total As Decimal = 0</code> up front avoids the whole class of bug. This is the concrete version of "you want a different type than what would be inferred" from the table above — it's easy to trigger by accident with a bare numeric literal that happens to look like the type you actually needed, but isn't.
 </div>
 
-<h2>Shared: one copy for the whole class, not one per instance</h2>
+<h2>Shared: One Copy Per Class</h2>
 <p>Per Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/language-reference/modifiers/shared">Shared reference</a>: <em>"Sharing a member of a class or structure makes it available to every instance, rather than non-shared, where each instance keeps its own copy."</em> This is VB's name for what C# calls <code>static</code> — same concept, different keyword.</p>
 <div class="callout tip">
 <span class="callout-title">The question this naturally raises: what would it look like if it weren't shared?</span>
@@ -203,12 +218,18 @@ Console.WriteLine("Shared — every reference sees: " & SharedCounter.Count)</pr
 <pre class="tryit-output-src">Non-shared — a: 2, b: 1
 Shared — every reference sees: 3</pre>
 </div>
-<p>Two separate <code>NonSharedCounter</code> objects each keep their own independent <code>Count</code> — incrementing <code>a</code> twice never touches <code>b</code>. There's only ever <em>one</em> <code>SharedCounter.Count</code> in memory, no matter how many (or how few — even zero) instances of the class exist; every increment, from anywhere, changes the same value everyone else sees.</p>
+<ul>
+<li>Two separate <code>NonSharedCounter</code> objects each keep their own independent <code>Count</code> — incrementing <code>a</code> twice never touches <code>b</code>.</li>
+<li>There's only ever <em>one</em> <code>SharedCounter.Count</code> in memory, no matter how many (or how few — even zero) instances of the class exist; every increment, from anywhere, changes the same value everyone else sees.</li>
+</ul>
 <p>Now the real, verified pattern — a <code>Shared</code> factory method, overloaded by parameter type:</p>
 <pre class="code-block">Public Shared Function Parse(stock As IStockInfo) As IAllocationStock
 Public Shared Function Parse(stock As IAllocationOrderItem) As IAllocationStock</pre>
 <p class="code-cite">Module: BackOffice/Web · File: Models/AllocationStock.vb:33,50</p>
-<p>Called as <code>AllocationStock.Parse(someStock)</code> — through the <em>class</em> name, never through an instance variable — which is exactly the point: no <code>AllocationStock</code> object needs to exist yet to call the method that builds one. This pairs naturally with the <code>Overloads</code> keyword from <a href="vb-03-procedures.html">Procedures</a>: both <code>Parse</code> overloads must (and do) declare <code>Overloads</code> since they share a name in the same class.</p>
+<ul>
+<li>Called as <code>AllocationStock.Parse(someStock)</code> — through the <em>class</em> name, never through an instance variable — which is exactly the point: no <code>AllocationStock</code> object needs to exist yet to call the method that builds one.</li>
+<li>This pairs naturally with the <code>Overloads</code> keyword from <a href="vb-03-procedures.html">Procedures</a>: both <code>Parse</code> overloads must (and do) declare <code>Overloads</code> since they share a name in the same class.</li>
+</ul>
 <div class="callout warn">
 <span class="callout-title">The wrong scenario: making a factory method non-Shared by mistake</span>
 If <code>Parse</code> were declared without <code>Shared</code>, every call site would first need an existing <code>AllocationStock</code> instance to call it on — <code>someExistingStock.Parse(newStock)</code> — which makes no sense for a method whose entire job is <em>producing</em> the instance in the first place. This is the concrete tell for "this should probably be <code>Shared</code>": if calling the method requires an instance you don't actually have yet (or one that's logically unrelated to what the method returns), the method belongs on the class, not on an instance.

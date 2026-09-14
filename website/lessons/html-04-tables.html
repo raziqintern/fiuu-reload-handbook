@@ -46,9 +46,12 @@
 &lt;/html&gt;</pre>
 </div>
 
-<p><code>&lt;tr&gt;</code> is a row, <code>&lt;th&gt;</code> a header cell, <code>&lt;td&gt;</code> a data cell. That's genuinely the whole vocabulary — everything else in a real admin table (sorting, pagination, row highlighting) is CSS and JavaScript layered on top of this same three-tag skeleton.</p>
+<ul>
+<li><code>&lt;tr&gt;</code> is a row, <code>&lt;th&gt;</code> a header cell, <code>&lt;td&gt;</code> a data cell — genuinely the whole vocabulary.</li>
+<li>Everything else in a real admin table (sorting, pagination, row highlighting) is CSS and JavaScript layered on top of this same three-tag skeleton.</li>
+</ul>
 
-<h2>Reading real markup: a practical checklist</h2>
+<h2>Reading Real Markup</h2>
 <p>When you open DevTools on an actual reload page and it looks like an unreadable wall of nested <code>&lt;div&gt;</code>s, work outside-in:</p>
 <ol>
 <li>Find the element that's visually wrong (right-click it → <em>Inspect</em>).</li>
@@ -67,7 +70,10 @@ MDN's <a href="https://developer.mozilla.org/en-US/docs/Learn_web_development/Co
 </ul>
 
 <h2>Better ways</h2>
-<p>A large real table (hundreds or thousands of transaction rows) rendered all at once will make a browser tab sluggish. Real admin screens handle this with server-side pagination or a "virtualized" list that only renders the rows currently in view — worth knowing the term for when you eventually need to explain why a report page is slow.</p>
+<ul>
+<li>A large real table (hundreds or thousands of transaction rows) rendered all at once will make a browser tab sluggish.</li>
+<li>Real admin screens handle this with server-side pagination or a "virtualized" list that only renders the rows currently in view — worth knowing the term for when you eventually need to explain why a report page is slow.</li>
+</ul>
 <div class="callout real">
 <span class="callout-title">Real, verified: pagination on a real BackOffice grid</span>
 <code>&lt;mol:GridView runat="server" AllowPaging="True" AllowSorting="True" ID="gvTerminalFirmwareVersion" ... PageSize="100" ...&gt;</code> — this WebForms grid control renders down to a real <code>&lt;table&gt;</code>, but <code>AllowPaging="True"</code> with <code>PageSize="100"</code> means only 100 rows are ever actually rendered into the page at once, no matter how many thousands of rows the underlying query returns. That's the server-side pagination technique in production, not a theoretical example.

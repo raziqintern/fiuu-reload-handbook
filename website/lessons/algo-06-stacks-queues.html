@@ -17,7 +17,7 @@
 <h1>Stacks, Queues &amp; Dictionaries</h1>
 <p class="lede">Three more shapes data comes in, beyond a plain array — each one exists because it makes one specific operation fast and natural. All three are real, built-in .NET collection types.</p>
 
-<h2>Example: Stack&lt;T&gt; — Last In, First Out (LIFO)</h2>
+<h2>Stack&lt;T&gt; — LIFO</h2>
 <p>Think of a stack of plates — you add to the top, and you take from the top.</p>
 
 <div class="tryit" data-lang="dual">
@@ -47,7 +47,7 @@ Undoing: begin transaction</pre>
 </div>
 </div>
 
-<h2>Example: Queue&lt;T&gt; — First In, First Out (FIFO)</h2>
+<h2>Queue&lt;T&gt; — FIFO</h2>
 <p>Think of a line at a counter — first person in line is served first.</p>
 
 <div class="tryit" data-lang="dual">
@@ -83,10 +83,15 @@ Picking the wrong one silently changes your processing order. A retry queue that
 </div>
 <div class="callout warn">
 <span class="callout-title">What if not: calling Pop/Dequeue on an already-empty one?</span>
-Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.stack-1.pop"><code>Stack&lt;T&gt;.Pop</code> reference</a> lists this in its Exceptions table: <em>"InvalidOperationException — The Stack&lt;T&gt; is empty."</em> <code>Queue&lt;T&gt;.Dequeue</code> throws the identical exception under the identical condition. Both operations are also documented as fast regardless of how full the collection is — the same reference states plainly: <em>"Stack&lt;T&gt; is implemented as an array. This method is an O(1) operation."</em> Always check <code>.Count > 0</code> (or catch <code>InvalidOperationException</code> deliberately) before popping/dequeuing from a collection that might legitimately be empty.
+<ul>
+<li>Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.stack-1.pop"><code>Stack&lt;T&gt;.Pop</code> reference</a> lists this in its Exceptions table: <em>"InvalidOperationException — The Stack&lt;T&gt; is empty."</em></li>
+<li><code>Queue&lt;T&gt;.Dequeue</code> throws the identical exception under the identical condition.</li>
+<li>Both operations are also documented as fast regardless of how full the collection is — the same reference states plainly: <em>"Stack&lt;T&gt; is implemented as an array. This method is an O(1) operation."</em></li>
+<li>Always check <code>.Count > 0</code> (or catch <code>InvalidOperationException</code> deliberately) before popping/dequeuing from a collection that might legitimately be empty.</li>
+</ul>
 </div>
 
-<h2>Example: Dictionary&lt;TKey, TValue&gt; — key-based O(1) lookup</h2>
+<h2>Dictionary&lt;TKey, TValue&gt; — O(1) Lookup</h2>
 <p>When you need to look things up by a meaningful key instead of a numeric position, a dictionary gives you roughly O(1) lookup — a real, practical alternative to the O(n) array search from <a href="algo-02-arrays-time.html">Arrays &amp; Time Complexity</a>.</p>
 
 <div class="tryit" data-lang="dual">
@@ -118,7 +123,11 @@ False
 
 <div class="callout real">
 <span class="callout-title">This is a real structure in reload, not a toy example</span>
-Later, in <a href="conv-06-config-secrets.html">Fiuu Code Conventions → Configuration &amp; Secrets</a>, you'll meet <code>SecretsHelper.SecretsDictionary</code> — a <code>Dictionary&lt;string, string&gt;</code> caching resolved AWS Secrets Manager values by label, precisely so a repeated lookup by key doesn't need to re-fetch or re-scan. <code>CEPP</code>'s own logging helper uses a <code>ConcurrentDictionary&lt;string, Logger&gt;</code> the same way — one cached <code>Logger</code> instance per key (its <code>MultipleCountry</code> flag suggests per-country loggers when configured that way), looked up by key instead of searched for. The examples above use exactly these real types.
+<ul>
+<li>Later, in <a href="conv-06-config-secrets.html">Fiuu Code Conventions → Configuration &amp; Secrets</a>, you'll meet <code>SecretsHelper.SecretsDictionary</code> — a <code>Dictionary&lt;string, string&gt;</code> caching resolved AWS Secrets Manager values by label, precisely so a repeated lookup by key doesn't need to re-fetch or re-scan.</li>
+<li><code>CEPP</code>'s own logging helper uses a <code>ConcurrentDictionary&lt;string, Logger&gt;</code> the same way — one cached <code>Logger</code> instance per key (its <code>MultipleCountry</code> flag suggests per-country loggers when configured that way), looked up by key instead of searched for.</li>
+<li>The examples above use exactly these real types.</li>
+</ul>
 </div>
 <p class="code-cite">reload/web/DEV/NET/Components/CEPP/Helpers/LogHelper.cs:15,27</p>
 

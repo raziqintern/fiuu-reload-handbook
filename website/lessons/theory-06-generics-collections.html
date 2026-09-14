@@ -17,10 +17,15 @@
 <h1>Generics &amp; Collections Internals</h1>
 <p class="lede">You've used <code>List&lt;T&gt;</code> and <code>Dictionary&lt;TKey,TValue&gt;</code> since <a href="algo-06-stacks-queues.html">Algorithms &amp; Data Structures</a>. This lesson is why the <code>&lt;T&gt;</code> exists and what's actually happening inside them.</p>
 
-<h2>The problem generics solve</h2>
-<p>Without generics, you'd either write a separate <code>IntList</code>, <code>StringList</code>, <code>TerminalList</code>... for every type (massive duplication), or write one list that stores <code>object</code> (losing type safety, and — per <a href="theory-02-boxing-unboxing.html">Boxing &amp; Unboxing</a> — boxing every value type you put in it). Generics let you write the logic <strong>once</strong>, parameterized by a type, with full compile-time type safety and no boxing.</p>
+<h2>Generic Type Parameters</h2>
+<p>Without generics, you have two options for a list that works with more than one type.</p>
+<ul>
+<li>Write a separate <code>IntList</code>, <code>StringList</code>, <code>TerminalList</code>... for every type — massive duplication.</li>
+<li>Write one list that stores <code>object</code> — losing type safety, and, per <a href="theory-02-boxing-unboxing.html">Boxing &amp; Unboxing</a>, boxing every value type you put in it.</li>
+</ul>
+<p>Generics let you write the logic <strong>once</strong>, parameterized by a type, with full compile-time type safety and no boxing.</p>
 
-<h2>Example: one generic method, two types, no duplication</h2>
+<h2>Generic Methods and Constraints</h2>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">static T Max&lt;T&gt;(T a, T b) where T : IComparable&lt;T&gt;
@@ -54,13 +59,17 @@ banana</pre>
 </div>
 </div>
 
-<p><code>where T : IComparable&lt;T&gt;</code> is a <strong>generic constraint</strong> — it tells the compiler "only allow types that can actually be compared," so <code>a.CompareTo(b)</code> is guaranteed to exist. Without it, the compiler couldn't verify <code>CompareTo</code> is callable on an arbitrary <code>T</code>. The same one method body works for <code>int</code> and <code>string</code> here, and would work for any other comparable type — no copy-pasted overload needed.</p>
+<p><code>where T : IComparable&lt;T&gt;</code> is a <strong>generic constraint</strong> — it tells the compiler "only allow types that can actually be compared," so <code>a.CompareTo(b)</code> is guaranteed to exist.</p>
+<ul>
+<li>Without it, the compiler couldn't verify <code>CompareTo</code> is callable on an arbitrary <code>T</code>.</li>
+<li>The same one method body works for <code>int</code> and <code>string</code> here, and would work for any other comparable type — no copy-pasted overload needed.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/generics/constraints-on-type-parameters">Constraints on type parameters reference</a> explains exactly why the constraint is required here, not optional: <em>"Without any constraints, the type argument could be any type. The compiler can only assume the members of System.Object."</em> <code>CompareTo</code> isn't a member of <code>System.Object</code> — without <code>where T : IComparable&lt;T&gt;</code>, the compiler has no way to know <code>a.CompareTo(b)</code> is even callable, so it simply refuses to compile the method body at all.
 </div>
 
-<h2>What's actually inside List&lt;T&gt; and Dictionary&lt;TKey,TValue&gt;</h2>
+<h2>List&lt;T&gt; and Dictionary&lt;TKey,TValue&gt; Internals</h2>
 <table>
 <tr><th>Type</th><th>Internal structure</th><th>Why it matters</th></tr>
 <tr><td><code>List&lt;T&gt;</code></td><td>A plain array that automatically resizes (typically doubling) when it runs out of room</td><td>Adding to the end is usually O(1), but occasionally O(n) when a resize happens — inserting in the middle is always O(n) (everything after has to shift).</td></tr>
@@ -73,7 +82,11 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collect
 </div>
 <div class="callout warn">
 <span class="callout-title">A hash table needs a good, stable key</span>
-<code>Dictionary</code>'s O(1) lookup depends on the key type having a correct <code>GetHashCode()</code>/<code>Equals()</code> pair. Using a mutable object as a dictionary key, then changing a field that affects its hash code after inserting it, can make that entry unfindable — the dictionary is still looking in the bucket for the <em>old</em> hash. Strings (as reload's real <code>Dictionary&lt;string,string&gt;</code> secrets cache uses) are immutable, which sidesteps this entirely — one more reason immutable keys are the safe default.
+<ul>
+<li><code>Dictionary</code>'s O(1) lookup depends on the key type having a correct <code>GetHashCode()</code>/<code>Equals()</code> pair.</li>
+<li>Using a mutable object as a dictionary key, then changing a field that affects its hash code after inserting it, can make that entry unfindable — the dictionary is still looking in the bucket for the <em>old</em> hash.</li>
+<li>Strings (as reload's real <code>Dictionary&lt;string,string&gt;</code> secrets cache uses) are immutable, which sidesteps this entirely — one more reason immutable keys are the safe default.</li>
+</ul>
 </div>
 <p class="code-cite">reload/class-library/AWSCore/Helpers/SecretsHelper.cs; reload/class-library/Reloads/TNG/Cryptography/LocalKeyStoreProvider.cs</p>
 

@@ -22,16 +22,20 @@
 The shared <code>class-library</code> and most newer components are C#. The BackOffice WebForms UI — where most of the worked bugs in the Debugging Reload track happen — is VB.NET (<code>.aspx.vb</code> code-behind). Most lessons here use C# examples since that's the shared-library convention source; <a href="conv-08-csv-export-escaping.html">CSV Export Escaping</a> is VB.NET specifically, pulled straight from BackOffice code. If you're heading into WebForms work, also see the <a href="vb-01-syntax.html">VB.NET Fundamentals</a> track.
 </div>
 
-<h2>What's rock-solid: PascalCase types, I-prefixed interfaces, layer suffixes</h2>
+<h2>PascalCase Types, I-Prefixed Interfaces, Layer Suffixes</h2>
 <pre class="code-block">public class TerminalService : ITerminalService
 {
     private TerminalProvider _provider;
     public bool Login(Auth auth) { ... }</pre>
 <p class="code-cite">reload/class-library/Reloads/TNG/Services/TerminalService.cs:8</p>
 
-<p>Standard .NET PascalCase for types, public methods, and properties holds with zero exceptions across everything sampled. Interfaces are always <code>I</code>-prefixed. Class-name suffixes double as an architecture signal: <code>*Provider</code> (data access), <code>*Service</code> (business logic), <code>*Model</code>/plain noun (DTOs), <code>*Helper</code> (static utility bag), <code>*Validator</code>, <code>*Exception</code>.</p>
+<ul>
+<li>Standard .NET PascalCase for types, public methods, and properties holds with zero exceptions across everything sampled.</li>
+<li>Interfaces are always <code>I</code>-prefixed.</li>
+<li><strong>Class-name suffixes double as an architecture signal:</strong> <code>*Provider</code> (data access), <code>*Service</code> (business logic), <code>*Model</code>/plain noun (DTOs), <code>*Helper</code> (static utility bag), <code>*Validator</code>, <code>*Exception</code>.</li>
+</ul>
 
-<h2>What isn't: Hungarian notation on locals, module by module</h2>
+<h2>Hungarian Notation on Locals (Module by Module)</h2>
 <p>This is the single biggest naming inconsistency in the codebase. Some modules prefix local variables/parameters the old-school way (<code>s</code> = string, <code>i</code>/<code>l</code> = int/long, <code>dt</code> = DateTime, <code>b</code> = bool):</p>
 
 <pre class="code-block">string sLogFilePath = GetAvailableFileName(string.Format("{0}_{1}", sAppName, DateTime.Now.ToString("yyyyMMdd")));</pre>
@@ -47,10 +51,14 @@ The shared <code>class-library</code> and most newer components are C#. The Back
 
 <div class="callout warn">
 <span class="callout-title">This tracks the author, not the layer</span>
-TNG and InComm/Secure are architecturally identical peers — one uses Hungarian notation heavily, the other doesn't at all. Don't assume you can predict which style a file uses from its module or age; check the file you're actually editing and match <em>its</em> existing style, not a house rule that doesn't exist.
+<ul>
+<li>TNG and InComm/Secure are architecturally identical peers — one uses Hungarian notation heavily, the other doesn't at all.</li>
+<li>Don't assume you can predict which style a file uses from its module or age.</li>
+<li>Check the file you're actually editing and match <em>its</em> existing style, not a house rule that doesn't exist.</li>
+</ul>
 </div>
 
-<h2>The M-prefix: a genuine cross-cutting convention</h2>
+<h2>The M-Prefix Convention</h2>
 <p>Any column that's a foreign key into a lookup/master/status table is prefixed <code>M</code> (for "Master"), in both C# models and SQL, regardless of module:</p>
 
 <pre class="code-block">// the DB-facing param name in the Provider is M-prefixed:
@@ -58,7 +66,11 @@ param.Add("@MTransTypeId", DbType.Int32, activity.TransType);
 param.Add("@MTransStatusId", DbType.Int32, activity.TransStatus);</pre>
 <p class="code-cite">reload/class-library/Reloads/TNG/Providers/TerminalProvider.cs:20-21</p>
 
-<p>Seen across unrelated modules (<code>MServiceTypeId</code>, <code>MSourceTypeId</code>, <code>MDeliveryStatusId</code>, <code>MRequestStageId</code>) — this one really is a house convention, not module-local. Note the model property itself sometimes drops the <code>M</code> and exposes a friendly enum name (<code>TransStatus</code>) while the raw DB parameter keeps <code>MTransStatusId</code> — the mapping is done by hand, field by field, in a <code>Get*Model(DataRow dr)</code> method (more on this in <a href="conv-05-data-access.html">Data Access</a>).</p>
+<ul>
+<li>Seen across unrelated modules (<code>MServiceTypeId</code>, <code>MSourceTypeId</code>, <code>MDeliveryStatusId</code>, <code>MRequestStageId</code>) — this one really is a house convention, not module-local.</li>
+<li>The model property itself sometimes drops the <code>M</code> and exposes a friendly enum name (<code>TransStatus</code>) while the raw DB parameter keeps <code>MTransStatusId</code>.</li>
+<li>The mapping is done by hand, field by field, in a <code>Get*Model(DataRow dr)</code> method (more on this in <a href="conv-05-data-access.html">Data Access</a>).</li>
+</ul>
 
 <h2>Best practice — for working inside this specific codebase</h2>
 <ul>

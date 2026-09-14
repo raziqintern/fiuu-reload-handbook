@@ -17,16 +17,24 @@
 <h1>reload: Topology &amp; Modules</h1>
 <p class="lede">A summary of <a href="../../architecture/reload/00-topology.md">architecture/reload/00-topology.md</a> and <a href="../../architecture/reload/01-overview.md">01-overview.md</a> — the two docs to read in full once you need file-level detail.</p>
 
-<h2>What reload actually is</h2>
-<p>A prepaid top-up / retail payment platform: physical and software point-of-sale terminals at dealers/stores submit transactions (telco airtime reload, e-wallet reload, gift cards, bill payment), which get validated, priced, persisted, and routed to the relevant external partner network — plus a back-office web portal for merchant/dealer/product administration, and a family of scheduled jobs for reporting and reconciliation.</p>
+<h2>What reload Actually Is</h2>
+<ul>
+<li>A prepaid top-up / retail payment platform: physical and software point-of-sale terminals at dealers/stores submit transactions (telco airtime reload, e-wallet reload, gift cards, bill payment).</li>
+<li>Transactions get validated, priced, persisted, and routed to the relevant external partner network.</li>
+<li>Also includes a back-office web portal for merchant/dealer/product administration, and a family of scheduled jobs for reporting and reconciliation.</li>
+</ul>
 
-<h2>The single most important correction to a natural first assumption</h2>
+<h2>reload Is One Monorepo, Not Several Repos</h2>
 <div class="callout warn">
 <span class="callout-title">It's one monorepo, not several separate repos</span>
-It's natural to assume <code>web_api</code>, <code>web_app</code>, <code>reload_portal</code>, <code>terminal_application</code>, and <code>console_app</code> are each their own git repository. They aren't. All of them are subfolders <em>inside the single <code>reload</code> repo</em>, under <code>reload/web/DEV/NET/Applications/</code>. Only <code>reload</code>, <code>reload_db</code>, and the <code>class-library</code> submodule are real, independent repos.
+<ul>
+<li>It's natural to assume <code>web_api</code>, <code>web_app</code>, <code>reload_portal</code>, <code>terminal_application</code>, and <code>console_app</code> are each their own git repository. They aren't.</li>
+<li>All of them are subfolders <em>inside the single <code>reload</code> repo</em>, under <code>reload/web/DEV/NET/Applications/</code>.</li>
+<li>Only <code>reload</code>, <code>reload_db</code>, and the <code>class-library</code> submodule are real, independent repos.</li>
+</ul>
 </div>
 
-<h2>The real applications, mapped to what they're actually called in code</h2>
+<h2>Applications: Common Name vs. Actual Project</h2>
 <table>
 <tr><th>Common name</th><th>Actual project</th><th>What it is</th></tr>
 <tr><td>"web_api"</td><td><code>Reloads/Terminal/Api</code></td><td>The terminal-facing <a class="term" data-term="rest">REST</a> <a class="term" data-term="api">API</a>. A second, smaller <code>BackOffice/Api</code> also exists.</td></tr>
@@ -52,7 +60,12 @@ It's natural to assume <code>web_api</code>, <code>web_app</code>, <code>reload_
 
 <div class="callout tip">
 <span class="callout-title">Why this matters practically</span>
-Don't assume "app X depends on module Y" as a blanket rule — verify it via the actual <code>ProjectReference</code>/<code>HintPath</code> in that app's project file. Some apps (like <code>BackOffice/Web</code>) reference the same module name from both tier 2 and tier 3 simultaneously, for different pieces — this is a live, only partially-completed consolidation, not a finished clean architecture. Per Microsoft's own <a href="https://learn.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=visualstudio">Common MSBuild Project Items reference</a>, these are two genuinely different mechanisms: <code>HintPath</code> is <em>"the relative or absolute path of the assembly"</em> for a direct prebuilt-DLL reference (tier 2's own committed DLLs, or tier 3), while <code>ProjectReference</code> <em>"represents a reference to another project"</em> resolved through that project's real build output — which is why a source-level search for "who uses module Y" can miss a consumer that's actually wired through <code>HintPath</code> to a DLL instead.
+<ul>
+<li>Don't assume "app X depends on module Y" as a blanket rule — verify it via the actual <code>ProjectReference</code>/<code>HintPath</code> in that app's project file.</li>
+<li>Some apps (like <code>BackOffice/Web</code>) reference the same module name from both tier 2 and tier 3 simultaneously, for different pieces — this is a live, only partially-completed consolidation, not a finished clean architecture.</li>
+<li>Per Microsoft's own <a href="https://learn.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items?view=visualstudio">Common MSBuild Project Items reference</a>, these are two genuinely different mechanisms: <code>HintPath</code> is <em>"the relative or absolute path of the assembly"</em> for a direct prebuilt-DLL reference (tier 2's own committed DLLs, or tier 3), while <code>ProjectReference</code> <em>"represents a reference to another project"</em> resolved through that project's real build output.</li>
+<li>That's why a source-level search for "who uses module Y" can miss a consumer that's actually wired through <code>HintPath</code> to a DLL instead.</li>
+</ul>
 </div>
 
 <h2>Request flow, simplified</h2>

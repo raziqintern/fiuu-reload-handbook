@@ -17,10 +17,14 @@
 <h1>Async/Await Fundamentals</h1>
 <p class="lede">Reload constantly calls out to partner APIs (TNG, INCOMM, banks) — slow, network-bound operations. Async/await is how modern .NET code waits for those without freezing everything else.</p>
 
-<h2>The problem it solves</h2>
-<p>A network call might take 200ms. If the calling thread just sits there blocked waiting for it, that thread can't do anything else for those 200ms — on a server handling many requests at once, that's a real scalability problem. <code>async</code>/<code>await</code> lets the thread be released back to do other work while the operation is in flight, then resume this method exactly where it left off once the result is ready.</p>
+<h2>async/await</h2>
+<ul>
+<li>A network call might take 200ms.</li>
+<li>If the calling thread just sits there blocked waiting for it, that thread can't do anything else for those 200ms — on a server handling many requests at once, that's a real scalability problem.</li>
+<li><code>async</code>/<code>await</code> lets the thread be released back to do other work while the operation is in flight, then resume this method exactly where it left off once the result is ready.</li>
+</ul>
 
-<h2>Example: the shape of async code</h2>
+<h2>Task and Await</h2>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">using System.Threading.Tasks;
@@ -70,11 +74,19 @@ Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/asynchronou
 </div>
 <div class="callout warn">
 <span class="callout-title">The rule almost everyone breaks once</span>
-Never call <code>.Result</code> or <code>.Wait()</code> on a <code>Task</code> to force synchronous blocking on async code — this can deadlock in some hosting contexts (classic ASP.NET, some UI frameworks), because the thread that's blocked waiting is sometimes the exact same thread the async method needs back to finish. The fix is to <code>await</code> all the way up the call chain, not to block partway through it.
+<ul>
+<li>Never call <code>.Result</code> or <code>.Wait()</code> on a <code>Task</code> to force synchronous blocking on async code.</li>
+<li>This can deadlock in some hosting contexts (classic ASP.NET, some UI frameworks), because the thread that's blocked waiting is sometimes the exact same thread the async method needs back to finish.</li>
+<li>The fix is to <code>await</code> all the way up the call chain, not to block partway through it.</li>
+</ul>
 </div>
 <div class="callout warn">
 <span class="callout-title">The wrong scenario: async void, outside an event handler</span>
-Microsoft's own guidance is narrow about where <code>async void</code> belongs: <em>"Return 'async void' only from event handlers... Other implementations of async void returning methods don't follow the TAP model and can present challenges: Exceptions thrown in an async void method can't be caught outside of that method [and] async void methods are difficult to test."</em> An <code>async Task</code> method's exception propagates to whoever <code>await</code>s it, exactly like a normal exception; an <code>async void</code> method's exception has nowhere to propagate to — it crashes the process instead of being catchable by the caller. Write <code>async Task FetchAsync()</code>, never <code>async void FetchAsync()</code>, for anything other than a genuine UI event handler.
+<ul>
+<li>Microsoft's own guidance is narrow about where <code>async void</code> belongs: <em>"Return 'async void' only from event handlers... Other implementations of async void returning methods don't follow the TAP model and can present challenges: Exceptions thrown in an async void method can't be caught outside of that method [and] async void methods are difficult to test."</em></li>
+<li>An <code>async Task</code> method's exception propagates to whoever <code>await</code>s it, exactly like a normal exception; an <code>async void</code> method's exception has nowhere to propagate to — it crashes the process instead of being catchable by the caller.</li>
+<li>Write <code>async Task FetchAsync()</code>, never <code>async void FetchAsync()</code>, for anything other than a genuine UI event handler.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

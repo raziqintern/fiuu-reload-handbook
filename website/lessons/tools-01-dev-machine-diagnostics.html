@@ -17,17 +17,30 @@
 <h1>Diagnosing Your Own Dev Machine</h1>
 <p class="lede">Not every blocker is a bug in reload's code. Some of the most time-consuming problems a new engineer hits are entirely local: a machine that isn't set up to log correctly, a deploy failure that looks like a build failure, or a hostname that simply won't resolve. Three real examples, all with a five-minute fix once you know where to look.</p>
 
-<h2>1. Your machine needs to be told about reload's Windows Event Log sources</h2>
-<p>reload's Windows-hosted services and applications write to a custom Windows Event Log rather than (or alongside) file-based logs, under source names following the pattern <code>Fiuu.App.*</code>. On a machine that has never had these sources registered, writes to them fail or silently go nowhere — which looks exactly like "logging isn't working" when actually the log source itself doesn't exist yet on that machine.</p>
+<h2>Registering Windows Event Log Sources</h2>
+<ul>
+<li>reload's Windows-hosted services write to a custom Windows Event Log — not just file-based logs — under source names following the pattern <code>Fiuu.App.*</code>.</li>
+<li>On a machine that has never had these sources registered, writes to them fail or silently go nowhere.</li>
+<li>This looks exactly like "logging isn't working," when actually the log source itself doesn't exist yet on that machine.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Registering it</span>
-A setup script (<code>Register-EventLogSources.ps1</code>) registers every <code>Fiuu.App.*</code> source under the app's event log. It needs administrator rights to create event log sources, and it's written to self-elevate — running it as a normal user triggers a UAC prompt rather than failing outright:
+<ul>
+<li>A setup script (<code>Register-EventLogSources.ps1</code>) registers every <code>Fiuu.App.*</code> source under the app's event log.</li>
+<li>It needs administrator rights to create event log sources, and it's written to self-elevate — running it as a normal user triggers a UAC prompt rather than failing outright:</li>
+</ul>
 <pre class="code-block">powershell -ExecutionPolicy Bypass -File "path\to\Register-EventLogSources.ps1"</pre>
-Accept the UAC prompt; a second, elevated window opens and reports the registration result for each source. This is a one-time, per-machine setup step — worth running early when setting up a new dev machine, before you spend time debugging what looks like a missing-log mystery that's actually a missing-registration one.
+<ul>
+<li>Accept the UAC prompt; a second, elevated window opens and reports the registration result for each source.</li>
+<li>This is a one-time, per-machine setup step — worth running early when setting up a new dev machine, before you spend time debugging what looks like a missing-log mystery that's actually a missing-registration one.</li>
+</ul>
 </div>
 
-<h2>2. "Publish failed" is not the same failure as "build failed" — read past the dialog</h2>
-<p>Visual Studio's generic error dialog ("Publish has encountered an error. Build failed.") conflates two entirely different failure domains into one unhelpful sentence. The actual answer is always further down in the Output window (View → Output, "Show output from: Build"), and the two summary lines at the bottom tell two different stories:</p>
+<h2>Build vs. Publish Failures in Visual Studio</h2>
+<ul>
+<li>Visual Studio's generic error dialog ("Publish has encountered an error. Build failed.") conflates two entirely different failure domains into one unhelpful sentence.</li>
+<li>The actual answer is always further down in the Output window (View → Output, "Show output from: Build"), and the two summary lines at the bottom tell two different stories:</li>
+</ul>
 <pre class="code-block">========== Build: 1 succeeded, 0 failed, 15 up-to-date, 0 skipped ==========
 ========== Publish: 0 succeeded, 1 failed, 0 skipped ==========</pre>
 <p>Compilation can succeed completely while <strong>deployment</strong> — a separate stage, Web Deploy pushing the compiled output to a remote server — fails for a completely unrelated reason. A real example from this exact dialog:</p>
@@ -36,11 +49,20 @@ Accept the UAC prompt; a second, elevated window opens and reports the registrat
 Make sure that the remote computer name is correct and that you are able to connect to that computer. )</pre>
 <div class="callout warn">
 <span class="callout-title">The trap</span>
-Trusting the dialog's "Build failed" framing sends you looking for a syntax error or a broken reference that doesn't exist. The real problem is network reachability to a Web Deploy endpoint (port 8172) — nothing about the C#/VB.NET code is at fault. Always check which of the two summary lines (Build vs. Publish) actually says "failed" before deciding what kind of problem you're chasing.
+<ul>
+<li>Trusting the dialog's "Build failed" framing sends you looking for a syntax error or a broken reference that doesn't exist.</li>
+<li>The real problem is network reachability to a Web Deploy endpoint (port 8172) — nothing about the C#/VB.NET code is at fault.</li>
+<li>Always check which of the two summary lines (Build vs. Publish) actually says "failed" before deciding what kind of problem you're chasing.</li>
+</ul>
 </div>
 
-<h2>3. A hostname that "should" resolve, and doesn't</h2>
-<p>The fix for the deploy failure above is often "use the IP address instead of the hostname" — and that fix works, but it's worth understanding <em>why</em>, not just applying it. A hostname like <code>ec2amaz-e2hp5a7</code> is the auto-generated Windows computer name AWS EC2 assigns a new instance by default. That name typically isn't registered in any real DNS server — it only resolves via NetBIOS name broadcast on the same local network segment. If your machine is on a different subnet, behind a VPN split that doesn't relay that broadcast, or otherwise not on the same local segment as the target box, the name lookup fails silently — even though the machine itself is perfectly reachable by IP.</p>
+<h2>NetBIOS Hostname Resolution Failures</h2>
+<p>The fix for the deploy failure above is often "use the IP address instead of the hostname" — and that fix works, but it's worth understanding <em>why</em>, not just applying it.</p>
+<ul>
+<li>A hostname like <code>ec2amaz-e2hp5a7</code> is the auto-generated Windows computer name AWS EC2 assigns a new instance by default.</li>
+<li>That name typically isn't registered in any real DNS server — it only resolves via NetBIOS name broadcast on the same local network segment.</li>
+<li>If your machine is on a different subnet, behind a VPN split that doesn't relay that broadcast, or otherwise not on the same local segment as the target box, the name lookup fails silently — even though the machine itself is perfectly reachable by IP.</li>
+</ul>
 
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
@@ -50,7 +72,11 @@ Microsoft's own <a href="https://learn.microsoft.com/en-us/previous-versions/win
 <span class="callout-title">Confirm it's a resolution problem before reaching for an IP</span>
 <pre class="code-block">nslookup ec2amaz-e2hp5a7
 Test-NetConnection -ComputerName ec2amaz-e2hp5a7 -Port 8172</pre>
-If <code>nslookup</code> fails to resolve the name at all, that confirms the problem is name resolution, not reachability — and explains why swapping in the IP address fixes it. If you're editing a shared publish profile (checked into a repo, not just your own machine's local copy), think twice before hardcoding an IP: EC2 private IPs can change, and a teammate on a different subnet or VPN path may not reach that same IP the same way you do. A local-only profile is a safer place for that workaround than a shared one.
+<ul>
+<li>If <code>nslookup</code> fails to resolve the name at all, that confirms the problem is name resolution, not reachability — and explains why swapping in the IP address fixes it.</li>
+<li>If you're editing a shared publish profile (checked into a repo, not just your own machine's local copy), think twice before hardcoding an IP: EC2 private IPs can change, and a teammate on a different subnet or VPN path may not reach that same IP the same way you do.</li>
+<li>A local-only profile is a safer place for that workaround than a shared one.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

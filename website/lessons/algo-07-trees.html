@@ -17,15 +17,22 @@
 <h1>Trees &amp; Hierarchies</h1>
 <p class="lede">A tree is what you get when a hierarchy has exactly one parent per item — and reload's real domain has a genuine one, not a contrived teaching example.</p>
 
-<h2>The shape: one root, no cycles, each node has children</h2>
-<p>A tree is a node with a value and a list of child nodes, each of which is itself a tree — the same recursive shape you just spent a whole lesson on. There's exactly one root (no parent), and no node can be its own ancestor.</p>
+<h2>Tree Shape</h2>
+<ul>
+<li>A tree is a node with a value and a list of child nodes, each of which is itself a tree — the same recursive shape you just spent a whole lesson on.</li>
+<li>There's exactly one root (no parent), and no node can be its own ancestor.</li>
+</ul>
 
 <div class="callout real">
 <span class="callout-title">This isn't a contrived example — it's CEPP's actual structure</span>
-You'll trace this in full later, in the Architecture Map track: <code>CEPP</code>, reload's master-data hub, organizes its org hierarchy as <strong>Company → Dealers → Stores → Terminals</strong> — a real, four-level tree. Every terminal belongs to exactly one store, every store to exactly one dealer, every dealer to exactly one company. That's a tree, not a graph, specifically because there's no scenario where a terminal belongs to two stores at once.
+<ul>
+<li>You'll trace this in full later, in the Architecture Map track: <code>CEPP</code>, reload's master-data hub, organizes its org hierarchy as <strong>Company → Dealers → Stores → Terminals</strong> — a real, four-level tree.</li>
+<li>Every terminal belongs to exactly one store, every store to exactly one dealer, every dealer to exactly one company.</li>
+<li>That's a tree, not a graph, specifically because there's no scenario where a terminal belongs to two stores at once.</li>
+</ul>
 </div>
 
-<h2>Example: counting terminals with a recursive traversal</h2>
+<h2>Recursive Traversal Example</h2>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">public class OrgNode
@@ -101,11 +108,18 @@ End Sub</pre>
 <p>Notice this is the exact same shape as <a href="algo-05-recursion.html">Recursion</a>'s base-case/recursive-case pattern: a leaf node (no children) is the base case; a branch node recurses into each child and combines the results. Trees and recursion are a natural pair because a tree is, by definition, recursively structured — a tree is a node plus a list of smaller trees.</p>
 <div class="callout warn">
 <span class="callout-title">What if the structure isn't actually a tree? A cycle turns the base case into an infinite loop</span>
-The recursive traversal above has no explicit "have I visited this node before" check — it relies entirely on there being no way back up to an ancestor, which is the actual definition of a tree, not just a convenient assumption. If a bug (or bad data — a store's parent dealer ID accidentally pointing back down to one of its own stores) ever created a cycle, <code>CountTerminals</code> would recurse into that cycle forever, with no leaf node ever reached to stop it — exactly the missing-base-case failure from <a href="algo-05-recursion.html">Recursion</a>, and just as uncatchable once it throws <code>StackOverflowException</code>. This is precisely why the "no node can be its own ancestor" rule matters in practice, not just in the definition.
+<ul>
+<li>The recursive traversal above has no explicit "have I visited this node before" check — it relies entirely on there being no way back up to an ancestor, which is the actual definition of a tree, not just a convenient assumption.</li>
+<li>If a bug (or bad data — a store's parent dealer ID accidentally pointing back down to one of its own stores) ever created a cycle, <code>CountTerminals</code> would recurse into that cycle forever, with no leaf node ever reached to stop it — exactly the missing-base-case failure from <a href="algo-05-recursion.html">Recursion</a>, and just as uncatchable once it throws <code>StackOverflowException</code>.</li>
+<li>This is precisely why the "no node can be its own ancestor" rule matters in practice, not just in the definition.</li>
+</ul>
 </div>
 
-<h2>A special case you've already met: the binary search tree</h2>
-<p>A <strong>binary tree</strong> is a tree where every node has at most two children. A <strong>binary search tree</strong> keeps them ordered (left child smaller, right child larger) — which means <a href="algo-03-searching.html">Binary Search</a>'s halve-the-remaining-space idea is really just walking down one of these, left or right, at each step.</p>
+<h2>Binary Search Trees</h2>
+<ul>
+<li>A <strong>binary tree</strong> is a tree where every node has at most two children.</li>
+<li>A <strong>binary search tree</strong> keeps them ordered (left child smaller, right child larger) — which means <a href="algo-03-searching.html">Binary Search</a>'s halve-the-remaining-space idea is really just walking down one of these, left or right, at each step.</li>
+</ul>
 
 <h2>Best practice</h2>
 <ul>

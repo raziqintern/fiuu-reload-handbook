@@ -19,7 +19,11 @@
 
 <div class="callout tip">
 <span class="callout-title">Refresher: postback, IsPostBack, ViewState</span>
-A Web Forms page submits back to <em>itself</em> on almost every user action (a button click, a dropdown change, a grid pager link) — this is a <strong>postback</strong>. <code>IsPostBack</code> tells you whether the current request is the very first load (<code>False</code>) or one of these round-trips (<code>True</code>), which is why setup code almost always sits inside <code>If Not IsPostBack Then ... End If</code> — so it only runs once. Between postbacks, ASP.NET has no memory of anything by itself; <strong>ViewState</strong> is what makes control properties (a selected tab, a grid's current page) survive anyway — it serializes them into a hidden field and restores them automatically, before your own code in <code>Page_Load</code> even runs.
+<ul>
+<li><strong>Postback:</strong> a Web Forms page submits back to <em>itself</em> on almost every user action (a button click, a dropdown change, a grid pager link).</li>
+<li><strong><code>IsPostBack</code>:</strong> tells you whether the current request is the very first load (<code>False</code>) or one of these round-trips (<code>True</code>) — which is why setup code almost always sits inside <code>If Not IsPostBack Then ... End If</code>, so it only runs once.</li>
+<li><strong>ViewState:</strong> between postbacks, ASP.NET has no memory of anything by itself; ViewState is what makes control properties (a selected tab, a grid's current page) survive anyway — it serializes them into a hidden field and restores them automatically, before your own code in <code>Page_Load</code> even runs.</li>
+</ul>
 </div>
 
 <h2>The symptom, as it was reported</h2>

@@ -33,7 +33,10 @@ FROM Terminals
 WHERE MStatusId = 1;</pre>
 </div>
 
-<p><code>SELECT columns FROM table WHERE condition</code> is the whole shape of a read query. <code>*</code> means "all columns" — fine for exploring, but real code should always name the columns it actually needs.</p>
+<ul>
+<li><code>SELECT columns FROM table WHERE condition</code> is the whole shape of a read query.</li>
+<li><code>*</code> means "all columns" — fine for exploring, but real code should always name the columns it actually needs.</li>
+</ul>
 
 <h2>INSERT: adding a row</h2>
 <div class="tryit" data-lang="sql">
@@ -54,11 +57,18 @@ SELECT * FROM Terminals;</pre>
 
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
-Microsoft's <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/update-transact-sql">UPDATE (Transact-SQL) reference</a> defines <code>WHERE</code>'s actual job precisely: <em>"WHERE Specifies the conditions that limit the rows that are updated."</em> It's a limiting clause, not a required one — its own first example, "Using a simple UPDATE statement," has no <code>WHERE</code> at all, and Microsoft's own description of what it does says plainly: it <em>"updates a single column for all rows in the Person.Address table."</em> No <code>WHERE</code> means no limit, which means every row.
+<ul>
+<li>Microsoft's <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/update-transact-sql">UPDATE (Transact-SQL) reference</a> defines <code>WHERE</code>'s actual job precisely: <em>"WHERE Specifies the conditions that limit the rows that are updated."</em></li>
+<li>It's a limiting clause, not a required one — its own first example, "Using a simple UPDATE statement," has no <code>WHERE</code> at all, and Microsoft's own description of what it does says plainly: it <em>"updates a single column for all rows in the Person.Address table."</em></li>
+<li>No <code>WHERE</code> means no limit, which means every row.</li>
+</ul>
 </div>
 <div class="callout warn">
 <span class="callout-title">Always have a WHERE on UPDATE and DELETE</span>
-Leave off the <code>WHERE</code> clause on an <code>UPDATE</code> or <code>DELETE</code> and it applies to <em>every row in the table</em> — one of the most common, most damaging mistakes in SQL. Try removing the <code>WHERE TerminalId = 2</code> line above and re-running to see every terminal get deactivated at once.
+<ul>
+<li>Leave off the <code>WHERE</code> clause on an <code>UPDATE</code> or <code>DELETE</code> and it applies to <em>every row in the table</em> — one of the most common, most damaging mistakes in SQL.</li>
+<li>Try removing the <code>WHERE TerminalId = 2</code> line above and re-running to see every terminal get deactivated at once.</li>
+</ul>
 </div>
 
 <h2>Try it yourself</h2>

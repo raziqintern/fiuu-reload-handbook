@@ -17,8 +17,11 @@
 <h1>reload_db: Topology &amp; Modules</h1>
 <p class="lede">You covered the SQL-level conventions of reload_db in the SQL track. This lesson zooms out to the whole-estate picture. Full source: <a href="../../architecture/reload_db/00-overview.md">architecture/reload_db/00-overview.md</a>.</p>
 
-<h2>reload_db is a change-management repo, not a deployable app</h2>
-<p><code>reload_db</code> is its own independent git repository, separate from <code>reload</code>. It contains no application code — just <code>MAINT/&lt;DatabaseName&gt;/</code> folders of hand-written SQL patch scripts, one folder per database, plus a couple of console tools used to apply those scripts against a live database.</p>
+<h2>reload_db: A Change-Management Repo, Not a Deployable App</h2>
+<ul>
+<li><code>reload_db</code> is its own independent git repository, separate from <code>reload</code>.</li>
+<li>It contains no application code — just <code>MAINT/&lt;DatabaseName&gt;/</code> folders of hand-written SQL patch scripts, one folder per database, plus a couple of console tools used to apply those scripts against a live database.</li>
+</ul>
 
 <h2>One SQL Server instance, 20 real databases</h2>
 <p>Recapping from the SQL track: reload_db is <strong>20 separate, actively-patched databases</strong> on one instance, not one database with many tables. The full list and roles are in <a href="sql-03-reload-db-shape.html">SQL &amp; reload_db → How reload_db Is Organised</a> — worth re-checking that table any time you're trying to figure out which database owns a piece of data you're chasing.</p>
@@ -90,8 +93,11 @@
 </div>
 <p>Only 3 of the ~20 databases are shown for clarity — the rest (INCOMM, RESTORIFY, PREPAID, and the others from the table above) sit alongside <code>TNG</code>/<code>BILL_PAYMENT</code>/<code>TICKET</code> in the same role: provider-specific integrations feeding the same downstream reporting path.</p>
 
-<h2>How the application side actually connects</h2>
-<p>No connection strings live in any <code>web.config</code>/<code>app.config</code> anywhere in the <code>reload</code> repo. Two separate, unrelated mechanisms exist instead:</p>
+<h2>Application-Side Database Connections</h2>
+<ul>
+<li>No connection strings live in any <code>web.config</code>/<code>app.config</code> anywhere in the <code>reload</code> repo.</li>
+<li>Two separate, unrelated mechanisms exist instead:</li>
+</ul>
 <table>
 <tr><th>What</th><th>Mechanism</th></tr>
 <tr><td>SQL Server connection strings</td><td>Read from a flat text file named <code>&lt;alias&gt;.txt</code> (e.g. <code>LOGGING.txt</code>) in a hardcoded local directory (<code>d:\db\</code> or <code>c:\db\</code>) — see <a href="conv-06-config-secrets.html">Conventions → Configuration &amp; Secrets</a>.</td></tr>
@@ -104,10 +110,13 @@
 The "cached in-process" detail on the partner-credential side isn't an incidental implementation choice — AWS's own <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/best-practices.html">Secrets Manager best practices</a> guide states it directly: <em>"To use your secrets most efficiently, we recommend you use one of the following supported Secrets Manager caching components to cache your secrets and update them only when required."</em> Fetching a fresh secret from Secrets Manager on every single transaction would work correctly but add real, avoidable latency and API cost to every reload — caching once per process and reusing it is the documented, recommended shape, not a shortcut this codebase happened to take.
 </div>
 
-<h2>The estate is still being actively corrected</h2>
+<h2>Schema Vault Gaps: EINVOICE and SAP</h2>
 <div class="callout real">
 <span class="callout-title">Two whole databases were missing from the team's own documentation</span>
-The original internal vault claimed "16 separate databases." Tracing the live <code>MAINT/</code> folders directly found <strong>at least 20</strong> — the vault's 16 plus <code>EINVOICE</code> and <code>SAP</code>, both genuine, actively-patched databases with zero mentions anywhere in the team's existing 260KB schema vault. This is a useful reminder: even "official" internal documentation here can lag behind what's actually running in production — cross-check against the live <code>MAINT/</code> scripts, not just whatever doc you find first.
+<ul>
+<li>The original internal vault claimed "16 separate databases." Tracing the live <code>MAINT/</code> folders directly found <strong>at least 20</strong> — the vault's 16 plus <code>EINVOICE</code> and <code>SAP</code>, both genuine, actively-patched databases with zero mentions anywhere in the team's existing 260KB schema vault.</li>
+<li>This is a useful reminder: even "official" internal documentation here can lag behind what's actually running in production — cross-check against the live <code>MAINT/</code> scripts, not just whatever doc you find first.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

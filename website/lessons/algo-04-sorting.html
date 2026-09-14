@@ -17,7 +17,7 @@
 <h1>Sorting: How &amp; Why</h1>
 <p class="lede">You'll essentially never hand-write a sort algorithm in real code — but understanding how one works is what lets you predict and debug the built-in one's behavior.</p>
 
-<h2>Example: the built-in sort, and why C#/VB.NET dodge a common trap</h2>
+<h2>The Built-in Sort</h2>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">int[] nums = { 10, 1, 21, 2 };
@@ -39,15 +39,26 @@ MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference
 </div>
 <div class="callout tip">
 <span class="callout-title">A trap this codebase's languages don't have</span>
-JavaScript's default <code>.sort()</code> converts numbers to text and compares them alphabetically — <code>[10, 1, 21, 2].sort()</code> gives the surprising <code>[1, 10, 2, 21]</code> unless you pass an explicit numeric comparator. C#/VB.NET don't have this trap: <code>int[]</code> is statically typed, so <code>Array.Sort</code> only ever compares actual integers numerically. The equivalent C#/VB.NET failure mode is different — sorting a custom class without implementing <code>IComparable</code> or supplying a comparer is a compile error, not a silent wrong answer.
+<ul>
+<li>JavaScript's default <code>.sort()</code> converts numbers to text and compares them alphabetically — <code>[10, 1, 21, 2].sort()</code> gives the surprising <code>[1, 10, 2, 21]</code> unless you pass an explicit numeric comparator.</li>
+<li>C#/VB.NET don't have this trap: <code>int[]</code> is statically typed, so <code>Array.Sort</code> only ever compares actual integers numerically.</li>
+<li>The equivalent C#/VB.NET failure mode is different — sorting a custom class without implementing <code>IComparable</code> or supplying a comparer is a compile error, not a silent wrong answer.</li>
+</ul>
 </div>
 <div class="callout warn">
 <span class="callout-title">What if not: two equal elements — does Array.Sort keep their original relative order?</span>
-Microsoft's own reference calls this out specifically: <em>"This implementation performs an unstable sort; that is, if two elements are equal, their order might not be preserved. In contrast, a stable sort preserves the order of elements that are equal."</em> Sorting a list of transactions by amount, where several transactions happen to share the exact same amount, is not guaranteed to leave those tied transactions in their original order — <code>Array.Sort</code> doesn't promise that. If preserving original order among ties actually matters, <code>Enumerable.OrderBy</code> (LINQ) is the one to reach for instead — Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.orderby">reference</a> states plainly: <em>"This method performs a stable sort; that is, if the keys of two elements are equal, the order of the elements is preserved."</em>
+<ul>
+<li>Microsoft's own reference calls this out specifically: <em>"This implementation performs an unstable sort; that is, if two elements are equal, their order might not be preserved. In contrast, a stable sort preserves the order of elements that are equal."</em></li>
+<li>Sorting a list of transactions by amount, where several transactions happen to share the exact same amount, is not guaranteed to leave those tied transactions in their original order — <code>Array.Sort</code> doesn't promise that.</li>
+<li>If preserving original order among ties actually matters, <code>Enumerable.OrderBy</code> (LINQ) is the one to reach for instead — Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.linq.enumerable.orderby">reference</a> states plainly: <em>"This method performs a stable sort; that is, if the keys of two elements are equal, the order of the elements is preserved."</em></li>
+</ul>
 </div>
 
-<h2>How a sort actually works: bubble sort, the simplest one</h2>
-<p>Bubble sort repeatedly walks through the list, swapping any two adjacent elements that are out of order, until a full pass makes no swaps. It's O(n²) — genuinely slow for large lists — but it's the clearest way to see the mechanism.</p>
+<h2>Bubble Sort</h2>
+<ul>
+<li>Bubble sort repeatedly walks through the list, swapping any two adjacent elements that are out of order, until a full pass makes no swaps.</li>
+<li>It's O(n²) — genuinely slow for large lists — but it's the clearest way to see the mechanism.</li>
+</ul>
 
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
@@ -105,7 +116,10 @@ End Sub</pre>
 
 <div class="callout tip">
 <span class="callout-title">Why you'll never actually use bubble sort in real code</span>
-Real language built-ins (<code>Array.Sort</code>, C#'s <code>List&lt;T&gt;.Sort</code>) use well-tested algorithms achieving O(n log n) — dramatically faster than bubble sort's O(n²) on any list bigger than a handful of items. The value of learning bubble sort isn't to use it — it's understanding "sorting compares and rearranges elements" well enough to reason about correctness when you use the built-in.
+<ul>
+<li>Real language built-ins (<code>Array.Sort</code>, C#'s <code>List&lt;T&gt;.Sort</code>) use well-tested algorithms achieving O(n log n) — dramatically faster than bubble sort's O(n²) on any list bigger than a handful of items.</li>
+<li>The value of learning bubble sort isn't to use it — it's understanding "sorting compares and rearranges elements" well enough to reason about correctness when you use the built-in.</li>
+</ul>
 </div>
 
 <h2>Best practice</h2>

@@ -36,7 +36,7 @@ End Sub</pre>
 <pre class="tryit-output-src">2</pre>
 </div>
 
-<h2>Access modifiers — six levels, not just Public/Private</h2>
+<h2>Access Modifiers</h2>
 <p>Every procedure declaration so far has quietly included an access modifier (<code>Public</code>, <code>Private</code>) without stopping to name what it does. The underlying question every one of them answers is the same: <strong>"what code, from where, is allowed to see and call this?"</strong> — and VB.NET has six distinct answers, not two.</p>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
@@ -74,7 +74,7 @@ End Class</pre>
 It's natural to read <code>Protected Friend</code> as "must be both a derived class <em>and</em> in the same assembly" — that's backwards. Per the official definition above, it's satisfied by <em>either</em> condition alone: a derived class in a completely different assembly can access it, and so can unrelated code in the same assembly that isn't derived from anything. <code>Private Protected</code> is the one that actually requires both conditions together — it's the narrower combination, despite reading like it should be the more permissive one from the word order alone. Don't guess from the words; check which one is the union and which is the intersection.
 </div>
 
-<h2>Optional parameters — a default value, right in the signature</h2>
+<h2>Optional Parameters</h2>
 <p>Real, verified examples from BackOffice — this pattern is common here, not a rarity:</p>
 <pre class="code-block">Public Sub ShowConfirmMessage(ByVal message As String, Optional id As String = "", Optional extField As String = "")
 Private Sub LoadWalletType(Optional dealer As IDealer = Nothing)
@@ -84,14 +84,21 @@ Private Function GetCSVContents(stockReinstateList As List(Of Reinstate), stockP
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/procedures/optional-parameters">Optional Parameters guide</a> states the grammar rules directly: <em>"Every optional parameter in the procedure definition must specify a default value... Every parameter following an optional parameter in the procedure definition must also be optional."</em> There's no way to mark a parameter optional without also giving it a fallback, and no way to follow an optional parameter with a required one — both are compile errors, not conventions.
 </div>
-<p>A caller can omit any trailing optional argument and the default fills in automatically. What if you need to know whether the caller actually supplied the value, versus silently got the default? The same guide is explicit that VB.NET cannot tell you this directly: <em>"A procedure cannot detect at run time whether a given argument has been omitted or the calling code has explicitly supplied the default value."</em> Its documented workaround is a sentinel default unlikely to occur naturally — the guide's own example defaults an <code>office</code> parameter to the string <code>"QJZ"</code> specifically so the body can check <code>If office = "QJZ" Then</code> and treat that as "not supplied."</p>
+<ul>
+<li>A caller can omit any trailing optional argument and the default fills in automatically.</li>
+<li>VB.NET cannot tell whether the caller actually supplied the value, versus silently got the default: <em>"A procedure cannot detect at run time whether a given argument has been omitted or the calling code has explicitly supplied the default value."</em></li>
+<li>Its documented workaround is a sentinel default unlikely to occur naturally — the guide's own example defaults an <code>office</code> parameter to the string <code>"QJZ"</code> specifically so the body can check <code>If office = "QJZ" Then</code> and treat that as "not supplied."</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">When to reach for Optional vs. a genuine method overload</span>
 <code>Optional</code> parameters are the right tool when omitting an argument means "use this one sensible default" — <code>id</code> defaulting to an empty string, a start index defaulting to <code>0</code>. Reach for <code>Overloads</code> instead (below) when the different call shapes represent genuinely different <em>behavior</em>, not just a default value for the same behavior — e.g. one overload that looks up a record by ID vs. one that takes the record object directly, rather than the same lookup with a parameter defaulted.
 </div>
 
-<h2>ByRef — the same keyword you'd ask about in code review</h2>
-<p><code>ByRef</code> passes a variable by reference instead of by value — the callee can reassign it and the caller sees the new value after the call returns. It's VB's version of C#'s <code>ref</code>/<code>out</code>, and it's the historical VB default before VB.NET made <code>ByVal</code> the default (unlike VB6, where <code>ByRef</code> was implicit if you wrote nothing):</p>
+<h2>ByRef and ByVal</h2>
+<ul>
+<li><code>ByRef</code> passes a variable by reference instead of by value — the callee can reassign it and the caller sees the new value after the call returns.</li>
+<li>It's VB's version of C#'s <code>ref</code>/<code>out</code>, and it's the historical VB default before VB.NET made <code>ByVal</code> the default (unlike VB6, where <code>ByRef</code> was implicit if you wrote nothing).</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/visual-basic/programming-guide/language-features/procedures/passing-arguments-by-value-and-by-reference">Passing Arguments by Value and by Reference guide</a> confirms the default explicitly — <em>"The default in Visual Basic is to pass arguments by value"</em> — and states the actual decision rule as one of intent, not habit: <em>"If the procedure has a genuine need to change the underlying element in the calling code, declare the corresponding parameter ByRef... The advantage of passing an argument ByVal is that it protects a variable from being changed by the procedure."</em>
@@ -120,13 +127,17 @@ Console.WriteLine(n)</pre>
 only changes the local copy, and the caller never sees it.</pre>
 </div>
 </div>
-<p>The main real use is a "hand back more than one value" pattern — a <code>Function</code> returns one value directly, but a <code>Sub</code> (or a <code>Function</code> that also needs a second output) can use one or more <code>ByRef</code> parameters to hand back additional results. Prefer a genuine <code>Function</code> return value when there's only one thing to hand back — a <code>ByRef</code> parameter existing purely to fake a return value on a <code>Sub</code> is a sign it should be a <code>Function</code> instead.</p>
+<ul>
+<li>The main real use is a "hand back more than one value" pattern — a <code>Function</code> returns one value directly, but a <code>Sub</code> (or a <code>Function</code> that also needs a second output) can use one or more <code>ByRef</code> parameters to hand back additional results.</li>
+<li>Prefer a genuine <code>Function</code> return value when there's only one thing to hand back — a <code>ByRef</code> parameter existing purely to fake a return value on a <code>Sub</code> is a sign it should be a <code>Function</code> instead.</li>
+</ul>
 <div class="callout warn">
 <span class="callout-title">ByRef on a reference type doesn't mean what it looks like it means</span>
 <code>ByRef</code> vs <code>ByVal</code> on a <code>String</code> or object parameter is a genuinely separate question from mutating the object's own contents — with <code>ByVal obj As SomeClass</code>, the caller's reference is copied, but it still points at the <em>same object</em>, so calling a method that mutates that object's internal state (e.g. setting one of its properties) is still visible to the caller. What <code>ByVal</code> actually protects here is only the caller's variable being <em>reassigned to point at a different object entirely</em> — <code>ByRef</code> is needed only if the callee should be able to make the caller's variable reference a new object.</div>
 
-<h2>Overloads — plain same-class overloading doesn't need it; shadowing a base member does</h2>
-<p>It's tempting to assume VB.NET requires an explicit keyword everywhere C# infers overloading automatically — it doesn't, for the ordinary case. Real, verified same-class overloading with no <code>Overloads</code> keyword anywhere:</p>
+<h2>Overloads</h2>
+<p>It's tempting to assume VB.NET requires an explicit keyword everywhere C# infers overloading automatically — it doesn't, for the ordinary case.</p>
+<p>Real, verified same-class overloading with no <code>Overloads</code> keyword anywhere:</p>
 <pre class="code-block">Private Function GetDataRowIndex(ByVal sender As Object,
                                  ByVal e As System.Web.UI.WebControls.GridViewUpdateEventArgs) As Integer
     Dim grv As GridView = CType(sender, GridView)

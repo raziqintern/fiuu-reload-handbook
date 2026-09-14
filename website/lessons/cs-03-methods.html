@@ -32,14 +32,17 @@ static void Main()
 <pre class="tryit-output-src">2</pre>
 </div>
 
-<p>Every method declares, in order: an access modifier (<code>public</code>/<code>private</code>/<code>internal</code>), a return type (or <code>void</code> if it returns nothing), a name, and a parameter list in parentheses. The return type isn't optional or inferred the way it can be in JavaScript — it's part of the method's contract.</p>
+<ul>
+<li>Every method declares, in order: an access modifier (<code>public</code>/<code>private</code>/<code>internal</code>), a return type (or <code>void</code> if it returns nothing), a name, and a parameter list in parentheses.</li>
+<li>The return type isn't optional or inferred the way it can be in JavaScript — it's part of the method's contract.</li>
+</ul>
 
 <div class="callout tip">
 <span class="callout-title">2, not 2.0</span>
 <code>100 * 0.02</code> is mathematically <code>2.0</code>, but C#'s default <code>double</code>-to-string conversion drops trailing zeros, so <code>Console.WriteLine</code> prints <code>2</code>. The value is still a <code>double</code> — this is purely about how it's displayed.
 </div>
 
-<h2>Early returns keep validation readable</h2>
+<h2>Early Returns</h2>
 <p>This mirrors the JavaScript validation function from earlier — same shape, real C# syntax:</p>
 
 <div class="tryit" data-lang="csharp">
@@ -86,7 +89,11 @@ Reload's real methods (<code>TerminalService.Login</code>, <code>TerminalProvide
 </ul>
 
 <h2>Better ways</h2>
-<p>Returning a plain string for both success and every failure reason (as above) is fine for a teaching example, but in real reload code this is exactly the ambiguous-sentinel shape flagged in <a href="conv-03-error-handling.html">Fiuu C# Conventions → Error Handling</a> — a caller has to string-compare against <code>"OK"</code> to know if it worked. A real API would more often return a proper result type or throw a specific exception, so success/failure can't be confused with "some other string I forgot to check for."</p>
+<ul>
+<li>Returning a plain string for both success and every failure reason (as above) is fine for a teaching example, but in real reload code this is exactly the ambiguous-sentinel shape flagged in <a href="conv-03-error-handling.html">Fiuu C# Conventions → Error Handling</a>.</li>
+<li>A caller has to string-compare against <code>"OK"</code> to know if it worked.</li>
+<li>A real API would more often return a proper result type or throw a specific exception, so success/failure can't be confused with "some other string I forgot to check for."</li>
+</ul>
 
 <h2>Check your understanding</h2>
 <div class="quiz" data-type="mcq">

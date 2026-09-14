@@ -17,8 +17,12 @@
 <h1>Boxing &amp; Unboxing</h1>
 <p class="lede">Builds directly on <a href="theory-01-value-reference-types.html">Value vs. Reference Types</a> — this is what happens when the two worlds have to meet.</p>
 
-<h2>The problem: sometimes a value type needs to act like a reference type</h2>
-<p><code>object</code> (and any interface) can only ever hold a reference to something on the heap. But <code>int</code> is a value type that normally lives on the stack. When you assign an <code>int</code> to an <code>object</code>-typed variable, the runtime has to do something to reconcile that — it <strong>boxes</strong> it: allocates a small object on the heap, copies the value into it, and gives you a reference to that box.</p>
+<h2>Boxing and Unboxing</h2>
+<ul>
+<li><strong><code>object</code></strong> (and any interface) can only ever hold a reference to something on the heap.</li>
+<li><strong><code>int</code></strong> is a value type that normally lives on the stack.</li>
+<li>Assigning an <code>int</code> to an <code>object</code>-typed variable forces the runtime to reconcile that mismatch — it <strong>boxes</strong> it: allocates a small object on the heap, copies the value into it, and gives you a reference to that box.</li>
+</ul>
 
 <h2>Example: boxing and unboxing, explicitly</h2>
 <div class="tryit" data-lang="dual">
@@ -48,19 +52,32 @@ System.Int32
 </div>
 </div>
 
-<p><code>boxed.GetType()</code> reports <code>System.Int32</code> — the boxed object remembers its original value type. Unboxing (<code>(int)boxed</code> / <code>CInt(boxed)</code>) copies the value back into a plain stack-based <code>int</code>. Both directions involve a real copy; boxing additionally involves a real heap allocation.</p>
+<ul>
+<li><strong><code>boxed.GetType()</code></strong> reports <code>System.Int32</code> — the boxed object remembers its original value type.</li>
+<li><strong>Unboxing</strong> (<code>(int)boxed</code> / <code>CInt(boxed)</code>) copies the value back into a plain stack-based <code>int</code>.</li>
+<li>Both directions involve a real copy; boxing additionally involves a real heap allocation.</li>
+</ul>
 <div class="callout tip">
 <span class="callout-title">Official documentation</span>
 Microsoft's <a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/types/boxing-and-unboxing">Boxing and Unboxing reference</a> defines the mechanism precisely: <em>"When the common language runtime (CLR) boxes a value type, it wraps the value inside a System.Object instance and stores it on the managed heap."</em> It also confirms the two variables genuinely become independent after boxing: changing the original <code>int</code> afterward leaves the boxed copy unchanged, because <em>"the original value type and the boxed object use separate memory locations, and therefore can store different values."</em>
 </div>
 <div class="callout warn">
 <span class="callout-title">What if you unbox to the wrong type? A real, specific exception, not a silent conversion</span>
-The same reference is exact about the requirement: <em>"For the unboxing of value types to succeed at run time, the item being unboxed must be a reference to an object that was previously created by boxing an instance of that value type."</em> Miss that, and: <em>"Attempting to unbox null causes a NullReferenceException. Attempting to unbox a reference to an incompatible value type causes an InvalidCastException."</em> Its own worked example unboxes an <code>int</code>-boxed value as <code>short</code> instead of <code>int</code> and gets exactly <code>"Specified cast is not valid."</code> — boxing remembers the <em>exact</em> original type, and unboxing to anything else, even a similarly-sized numeric type, fails.
+<ul>
+<li>The same reference is exact about the requirement: <em>"For the unboxing of value types to succeed at run time, the item being unboxed must be a reference to an object that was previously created by boxing an instance of that value type."</em></li>
+<li>Miss that, and: <em>"Attempting to unbox null causes a NullReferenceException. Attempting to unbox a reference to an incompatible value type causes an InvalidCastException."</em></li>
+<li>Its own worked example unboxes an <code>int</code>-boxed value as <code>short</code> instead of <code>int</code> and gets exactly <code>"Specified cast is not valid."</code></li>
+<li>Boxing remembers the <em>exact</em> original type, and unboxing to anything else, even a similarly-sized numeric type, fails.</li>
+</ul>
 </div>
 
 <div class="callout warn">
 <span class="callout-title">Why this matters: it's a hidden performance cost</span>
-Boxing looks like a harmless assignment, but it's a heap allocation and a memory copy every single time it happens. Do it once, irrelevant. Do it inside a hot loop processing thousands of transactions, and you've created thousands of tiny heap allocations the garbage collector now has to clean up — a real, measurable performance cost that's invisible just from reading the code, unless you know to look for it.
+<ul>
+<li>Boxing looks like a harmless assignment, but it's a heap allocation and a memory copy every single time it happens.</li>
+<li>Do it once — irrelevant.</li>
+<li>Do it inside a hot loop processing thousands of transactions, and you've created thousands of tiny heap allocations the garbage collector now has to clean up — a real, measurable performance cost that's invisible just from reading the code, unless you know to look for it.</li>
+</ul>
 </div>
 
 <div class="tryit" data-lang="csharp">
@@ -79,8 +96,11 @@ catch (InvalidCastException e)
 <pre class="tryit-output-src">Specified cast is not valid. Error: Incorrect unboxing.</pre>
 </div>
 
-<h2>Where this used to bite people: non-generic collections</h2>
-<p>Before generics existed in .NET, collections like <code>ArrayList</code> and <code>Hashtable</code> stored everything as <code>object</code> — adding an <code>int</code> to an <code>ArrayList</code> boxed it, and reading it back out unboxed it, on every single operation. This is one of the concrete reasons generic collections (<code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey,TValue&gt;</code> — see <a href="theory-06-generics-collections.html">Generics &amp; Collections Internals</a>) replaced them almost entirely: <code>List&lt;int&gt;</code> stores actual <code>int</code>s directly, with zero boxing.</p>
+<h2>Non-Generic Collections and Boxing</h2>
+<ul>
+<li>Before generics existed in .NET, collections like <code>ArrayList</code> and <code>Hashtable</code> stored everything as <code>object</code> — adding an <code>int</code> to an <code>ArrayList</code> boxed it, and reading it back out unboxed it, on every single operation.</li>
+<li>This is one of the concrete reasons generic collections (<code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey,TValue&gt;</code> — see <a href="theory-06-generics-collections.html">Generics &amp; Collections Internals</a>) replaced them almost entirely: <code>List&lt;int&gt;</code> stores actual <code>int</code>s directly, with zero boxing.</li>
+</ul>
 
 <h2>Best practice</h2>
 <ul>

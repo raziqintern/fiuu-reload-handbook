@@ -25,10 +25,18 @@ private IAccountService AccountCompo
     get { return _accountCompo ?? (_accountCompo = EngineContext.Current.Resolve&lt;IAccountService&gt;()); }
 }</pre>
 <p class="code-cite">reload/class-library/Reloads/TNG/Services/TerminalService.cs:35-39</p>
-<p>Instead of receiving <code>IAccountService</code> as a constructor parameter (the more modern <strong>Dependency Injection</strong> approach you'll see recommended almost everywhere today), <code>TerminalService</code> asks a central registry (<code>EngineContext.Current</code>) for it, lazily, the first time it's actually used. This is the <strong>Service Locator</strong> pattern — a real, working, if somewhat dated, alternative to constructor injection. You saw this first in <a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>; the callout there is worth re-reading now that you know the pattern's name: don't "fix" it to constructor injection unless that's the actual scope of your change.</p>
+<ul>
+<li>Instead of receiving <code>IAccountService</code> as a constructor parameter (the more modern <strong>Dependency Injection</strong> approach you'll see recommended almost everywhere today), <code>TerminalService</code> asks a central registry (<code>EngineContext.Current</code>) for it, lazily, the first time it's actually used.</li>
+<li>This is the <strong>Service Locator</strong> pattern — a real, working, if somewhat dated, alternative to constructor injection.</li>
+<li>You saw this first in <a href="conv-02-layering.html">Fiuu C# Conventions → Layering</a>; the callout there is worth re-reading now that you know the pattern's name: don't "fix" it to constructor injection unless that's the actual scope of your change.</li>
+</ul>
 <div class="callout warn">
 <span class="callout-title">Official documentation — the real, named critique of Service Locator</span>
-Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles">Architectural principles reference</a> doesn't name Service Locator directly, but its <strong>Explicit Dependencies Principle</strong> describes exactly the shape of what's wrong with it: <em>"Methods and classes should explicitly require any collaborating objects they need in order to function correctly... If you define classes that can be constructed and called, but that will only function properly if certain global or infrastructure components are in place, these classes are being dishonest with their clients. The constructor contract is telling the client that it only needs the things specified... but then at runtime it turns out the object really did need something else."</em> That's precisely what <code>TerminalService</code>'s constructor does — its public signature doesn't reveal that it actually needs <code>IAccountService</code> to be registered in <code>EngineContext</code> to work correctly. This is a real, principled reason Dependency Injection is preferred in new code, not just current fashion.
+<ul>
+<li>Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles">Architectural principles reference</a> doesn't name Service Locator directly, but its <strong>Explicit Dependencies Principle</strong> describes exactly the shape of what's wrong with it: <em>"Methods and classes should explicitly require any collaborating objects they need in order to function correctly... If you define classes that can be constructed and called, but that will only function properly if certain global or infrastructure components are in place, these classes are being dishonest with their clients. The constructor contract is telling the client that it only needs the things specified... but then at runtime it turns out the object really did need something else."</em></li>
+<li>That's precisely what <code>TerminalService</code>'s constructor does — its public signature doesn't reveal that it actually needs <code>IAccountService</code> to be registered in <code>EngineContext</code> to work correctly.</li>
+<li>This is a real, principled reason Dependency Injection is preferred in new code, not just current fashion.</li>
+</ul>
 </div>
 
 <h2>Template Method</h2>
@@ -37,11 +45,18 @@ Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/architecture/m
 protected override InCommTransaction FormatContractToModel(ContractRequest appReq, string processingCode, string messageTypeIdentifier) { ... }
 protected override int ValidateParameters(ContractRequest appReq) { ... }</pre>
 <p class="code-cite">reload/class-library/Secure/Incomm/Services/FastPinSaleService.cs:70-90</p>
-<p>An abstract base class (<code>InCommServiceBase</code>) defines the overall algorithm's shape once, with specific steps (<code>ValidateParameters</code>, <code>FormatContractToModel</code>, ...) left as overridable hooks. Concrete classes like <code>FastPinSaleService</code> override just those steps — this is the <strong>Template Method</strong> pattern. It's notably more structured than the flat, no-inheritance style most other reload modules (TNG, Game) use for the same kind of variability — a real, deliberate design choice specific to InComm's ISO 8583 protocol handling, not a codebase-wide standard.</p>
+<ul>
+<li>An abstract base class (<code>InCommServiceBase</code>) defines the overall algorithm's shape once, with specific steps (<code>ValidateParameters</code>, <code>FormatContractToModel</code>, ...) left as overridable hooks.</li>
+<li>Concrete classes like <code>FastPinSaleService</code> override just those steps — this is the <strong>Template Method</strong> pattern.</li>
+<li>It's notably more structured than the flat, no-inheritance style most other reload modules (TNG, Game) use for the same kind of variability — a real, deliberate design choice specific to InComm's ISO 8583 protocol handling, not a codebase-wide standard.</li>
+</ul>
 
 <h2>Repository / Provider pattern</h2>
 <p><strong>The problem it solves:</strong> keep data-access code (how you talk to a database) separate from business logic (what you do with the data), so each can change independently.</p>
-<p>Every <code>*Provider</code> class in reload (<a href="conv-05-data-access.html">Fiuu C# Conventions → Data Access</a>) is this pattern by another name — industry-standard terminology usually calls it a <strong>Repository</strong>, though reload's own naming convention calls it a Provider. Same idea: one class per aggregate, whose only job is translating between the domain model and the database, with a stored-procedure call underneath.</p>
+<ul>
+<li>Every <code>*Provider</code> class in reload (<a href="conv-05-data-access.html">Fiuu C# Conventions → Data Access</a>) is this pattern by another name — industry-standard terminology usually calls it a <strong>Repository</strong>, though reload's own naming convention calls it a Provider.</li>
+<li>Same idea: one class per aggregate, whose only job is translating between the domain model and the database, with a stored-procedure call underneath.</li>
+</ul>
 
 <div class="callout tip">
 <span class="callout-title">Why naming the pattern is useful, practically</span>

@@ -17,10 +17,14 @@
 <h1>Heaps &amp; Priority Queues</h1>
 <p class="lede">A <a href="algo-06-stacks-queues.html">Queue</a> processes things in the order they arrived. Sometimes that's wrong — you need to process the most <em>urgent</em> thing next, regardless of when it showed up.</p>
 
-<h2>The problem a plain queue can't solve</h2>
-<p>Imagine a retry queue for failed transactions, where some failures are far more urgent than others (a payment stuck mid-flight vs. a low-priority report regeneration). A <code>Queue&lt;T&gt;</code> would retry them in arrival order, ignoring urgency entirely. A <strong>priority queue</strong> is exactly this: a queue where each item has a priority, and <code>Dequeue()</code> always returns the highest-priority item currently waiting, not the oldest one.</p>
+<h2>Priority Queues</h2>
+<ul>
+<li>Imagine a retry queue for failed transactions, where some failures are far more urgent than others (a payment stuck mid-flight vs. a low-priority report regeneration).</li>
+<li>A <code>Queue&lt;T&gt;</code> would retry them in arrival order, ignoring urgency entirely.</li>
+<li>A <strong>priority queue</strong> is exactly this: a queue where each item has a priority, and <code>Dequeue()</code> always returns the highest-priority item currently waiting, not the oldest one.</li>
+</ul>
 
-<h2>Example: .NET's real, built-in PriorityQueue</h2>
+<h2>PriorityQueue&lt;TElement, TPriority&gt; Example</h2>
 <div class="tryit" data-lang="dual">
 <div class="tryit-variant" data-variant-lang="csharp">
 <pre class="tryit-src">using System.Collections.Generic;
@@ -57,8 +61,11 @@ TXN-1001</pre>
 
 <p>Notice <code>TXN-1001</code> was enqueued <em>first</em> but comes out <em>last</em> — arrival order is completely irrelevant here. Only the priority number matters, and by default, lower numbers come out first (a "min-heap" — see below for why that's the name).</p>
 
-<h2>What's actually inside a priority queue: a heap</h2>
-<p>A <strong>heap</strong> is a tree (usually binary, like <a href="algo-07-trees.html">Trees &amp; Hierarchies</a>) with one extra rule: every parent's value is <code>&lt;=</code> both its children's values (a <strong>min-heap</strong> — the smallest value is always the root; a <strong>max-heap</strong> flips the comparison). That single rule is enough to guarantee the smallest item is always instantly available at the root, while insert and remove only need to fix up one path through the tree — O(log n) each, not a full re-sort of everything.</p>
+<h2>Heaps</h2>
+<ul>
+<li>A <strong>heap</strong> is a tree (usually binary, like <a href="algo-07-trees.html">Trees &amp; Hierarchies</a>) with one extra rule: every parent's value is <code>&lt;=</code> both its children's values (a <strong>min-heap</strong> — the smallest value is always the root; a <strong>max-heap</strong> flips the comparison).</li>
+<li>That single rule is enough to guarantee the smallest item is always instantly available at the root, while insert and remove only need to fix up one path through the tree — O(log n) each, not a full re-sort of everything.</li>
+</ul>
 
 <table>
 <tr><th>Operation</th><th>Cost</th><th>Why</th></tr>
@@ -73,7 +80,11 @@ Microsoft's own <a href="https://learn.microsoft.com/en-us/dotnet/api/system.col
 </div>
 <div class="callout warn">
 <span class="callout-title">What if two items share the exact same priority? No FIFO guarantee</span>
-The same reference states this plainly: <em>"Note that the type does not guarantee first-in-first-out semantics for elements of equal priority."</em> If <code>TXN-1001</code> and <code>TXN-1004</code> are both enqueued with priority <code>2</code>, don't assume the one enqueued first comes out first — <code>PriorityQueue&lt;T,P&gt;</code> makes no promise about their relative order at all. If tie-breaking by arrival order genuinely matters, encode it explicitly — e.g. a compound priority combining urgency and a sequence number — rather than relying on undocumented behavior.
+<ul>
+<li>The same reference states this plainly: <em>"Note that the type does not guarantee first-in-first-out semantics for elements of equal priority."</em></li>
+<li>If <code>TXN-1001</code> and <code>TXN-1004</code> are both enqueued with priority <code>2</code>, don't assume the one enqueued first comes out first — <code>PriorityQueue&lt;T,P&gt;</code> makes no promise about their relative order at all.</li>
+<li>If tie-breaking by arrival order genuinely matters, encode it explicitly — e.g. a compound priority combining urgency and a sequence number — rather than relying on undocumented behavior.</li>
+</ul>
 </div>
 <div class="callout tip">
 <span class="callout-title">You don't need to hand-write one</span>
